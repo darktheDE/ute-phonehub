@@ -1,9 +1,16 @@
 # UTE Phone Hub
 
+## Requirements
+
+- Java 17
+- Node.js
+- Docker Desktop
+- Git
+
 ## Clone Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/darktheDE/ute-phonehub
 cd ute-phonehub
 ```
 
@@ -11,8 +18,7 @@ cd ute-phonehub
 
 ```bash
 cd backend
-docker-compose up -d
-./mvnw spring-boot:run
+docker-compose up -d --build
 ```
 
 Backend chạy tại: `http://localhost:8081`
