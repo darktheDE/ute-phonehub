@@ -1,0 +1,58 @@
+services:
+  # 1. DATABASE
+  postgres:
+    image: postgres:15-alpine
+    container_name: utephonehub-postgres
+    environment:
+      POSTGRES_USER: utephonehub
+      POSTGRES_PASSWORD: utephonehub
+      POSTGRES_DB: utephonehub_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U utephonehub -d utephonehub_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ute-net
+
+  # 2. REDIS
+  redis:
+    image: redis:7-alpine
+    container_name: utephonehub-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ute-net
+
+  # 3. BACKEND API
+  backend:
+    build: .
+    container_name: utephonehub-backend
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_HOST=postgres
+      - DB_USERNAME=utephonehub
+      - DB_PASSWORD=utephonehub
+      - REDIS_HOST=redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./src:/app/src
+    networks:
+      - ute-net
+
+volumes:
+  postgres_data:
+
+networks:
+  ute-net:
+    name: ute-network
+    driver: bridge
