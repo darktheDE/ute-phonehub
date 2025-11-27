@@ -21,7 +21,8 @@ cd backend
 docker-compose up -d --build
 ```
 
-Backend chạy tại: `http://localhost:8081`
+- Backend chạy tại: `http://localhost:8081`
+- API Backend Test tại: `http://localhost:8081/swagger-ui/index.html`
 
 ## Frontend Setup
 
