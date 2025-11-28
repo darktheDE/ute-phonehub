@@ -1,5 +1,7 @@
 package com.utephonehub.backend.entity;
 
+import com.utephonehub.backend.enums.UserRole;
+import com.utephonehub.backend.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -58,13 +60,5 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Cart cart;
-
-    public enum UserRole {
-        ADMIN, CUSTOMER
-    }
-
-    public enum UserStatus {
-        ACTIVE, LOCKED
-    }
 }
 

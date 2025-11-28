@@ -1,5 +1,7 @@
 package com.utephonehub.backend.entity;
 
+import com.utephonehub.backend.enums.OrderStatus;
+import com.utephonehub.backend.enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -69,13 +71,5 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items;
-
-    public enum OrderStatus {
-        PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
-    }
-
-    public enum PaymentMethod {
-        COD, VNPAY, BANK_TRANSFER
-    }
 }
 

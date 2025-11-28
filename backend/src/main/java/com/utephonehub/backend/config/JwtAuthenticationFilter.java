@@ -1,6 +1,7 @@
 package com.utephonehub.backend.config;
 
 import com.utephonehub.backend.entity.User;
+import com.utephonehub.backend.enums.UserStatus;
 import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.util.JwtTokenProvider;
 import jakarta.servlet.FilterChain;
@@ -43,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 User user = userRepository.findById(userId).orElse(null);
 
-                if (user != null && user.getStatus() == User.UserStatus.ACTIVE) {
+                if (user != null && user.getStatus() == UserStatus.ACTIVE) {
                     SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

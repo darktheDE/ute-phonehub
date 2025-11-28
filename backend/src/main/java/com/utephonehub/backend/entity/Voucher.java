@@ -1,5 +1,7 @@
 package com.utephonehub.backend.entity;
 
+import com.utephonehub.backend.enums.DiscountType;
+import com.utephonehub.backend.enums.VoucherStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -51,13 +53,5 @@ public class Voucher {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
-    public enum DiscountType {
-        PERCENT, FIXED_AMOUNT
-    }
-
-    public enum VoucherStatus {
-        ACTIVE, EXPIRED, INACTIVE
-    }
 }
 

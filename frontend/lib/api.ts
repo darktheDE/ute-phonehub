@@ -1,63 +1,15 @@
 // API Configuration and utility functions
+import type {
+  ApiResponse,
+  User,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  ForgotPasswordRequest,
+  VerifyOtpRequest,
+} from '@/types';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
-
-export interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-}
-
-export interface LoginRequest {
-  usernameOrEmail: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-  expiresIn: number;
-  user: {
-    id: number;
-    username: string;
-    fullName: string;
-    email: string;
-    phoneNumber: string | null;
-    role: string;
-    status: string;
-  };
-}
-
-export interface RegisterRequest {
-  username: string;
-  fullName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-export interface VerifyOtpRequest {
-  email: string;
-  otp: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
-export interface User {
-  id: number;
-  username: string;
-  fullName: string;
-  email: string;
-  phoneNumber: string | null;
-  role: string;
-  status: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
 
 // Helper function to get auth token from localStorage
 export const getAuthToken = (): string | null => {
