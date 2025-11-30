@@ -57,7 +57,7 @@ public class Order {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "voucher_id")
-    private Voucher voucher;
+    private PromotionTemplate voucher;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
