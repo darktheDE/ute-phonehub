@@ -18,10 +18,8 @@ public class CategoryResponse {
 
     private Long id;
     private String name;
-    private String description;
     private Long parentId;
-    private String parentName;
-    private List<CategoryResponse> children;
+    private Boolean hasChildren;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -38,34 +36,8 @@ public class CategoryResponse {
         return CategoryResponse.builder()
                 .id(category.getId())
                 .name(category.getName())
-                .description(category.getDescription())
                 .parentId(category.getParent() != null ? category.getParent().getId() : null)
-                .parentName(category.getParent() != null ? category.getParent().getName() : null)
-                .children(category.getChildren() != null && !category.getChildren().isEmpty()
-                        ? category.getChildren().stream()
-                                .map(CategoryResponse::fromEntitySimple)
-                                .collect(Collectors.toList())
-                        : null)
-                .createdAt(category.getCreatedAt())
-                .updatedAt(category.getUpdatedAt())
-                .build();
-    }
-
-    /**
-     * Convert Category entity to simplified CategoryResponse (without children details)
-     * @param category Category entity
-     * @return CategoryResponse
-     */
-    public static CategoryResponse fromEntitySimple(Category category) {
-        if (category == null) {
-            return null;
-        }
-
-        return CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .description(category.getDescription())
-                .parentId(category.getParent() != null ? category.getParent().getId() : null)
+                .hasChildren(category.getChildren() != null && !category.getChildren().isEmpty())
                 .createdAt(category.getCreatedAt())
                 .updatedAt(category.getUpdatedAt())
                 .build();

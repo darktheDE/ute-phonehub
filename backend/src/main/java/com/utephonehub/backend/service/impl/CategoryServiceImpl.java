@@ -22,47 +22,28 @@ public class CategoryServiceImpl implements ICategoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryResponse> getAllCategories() {
-        log.info("Getting all categories");
-        List<Category> categories = categoryRepository.findAll();
-        return categories.stream()
-                .map(CategoryResponse::fromEntitySimple)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<CategoryResponse> getRootCategories() {
-        log.info("Getting root categories");
-        List<Category> rootCategories = categoryRepository.findByParentIdIsNull();
-        return rootCategories.stream()
-                .map(CategoryResponse::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public CategoryResponse getCategoryById(Long categoryId) {
-        log.info("Getting category by id: {}", categoryId);
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Danh mục không tồn tại với ID: " + categoryId));
-        return CategoryResponse.fromEntity(category);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public List<CategoryResponse> getCategoriesByParentId(Long parentId) {
-        log.info("Getting categories by parent id: {}", parentId);
+        if (parentId == null) {
+            // Get root categories (parentId is null)
+            log.info("Getting root categories");
+            List<Category> rootCategories = categoryRepository.findByParentIdIsNull();
+            return rootCategories.stream()
+                    .map(CategoryResponse::fromEntity)
+                    .collect(Collectors.toList());
+        } else {
+            // Get children of specific parent
+            log.info("Getting categories by parent id: {}", parentId);
 
-        // Validate parent exists
-        if (!categoryRepository.existsById(parentId)) {
-            throw new ResourceNotFoundException("Danh mục cha không tồn tại với ID: " + parentId);
+            // Validate parent exists
+            if (!categoryRepository.existsById(parentId)) {
+                throw new ResourceNotFoundException("Danh mục cha không tồn tại với ID: " + parentId);
+            }
+
+            List<Category> childCategories = categoryRepository.findByParentId(parentId);
+            return childCategories.stream()
+                    .map(CategoryResponse::fromEntity)
+                    .collect(Collectors.toList());
         }
-
-        List<Category> childCategories = categoryRepository.findByParentId(parentId);
-        return childCategories.stream()
-                .map(CategoryResponse::fromEntitySimple)
-                .collect(Collectors.toList());
     }
 }
 

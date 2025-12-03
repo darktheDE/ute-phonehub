@@ -10,27 +10,11 @@ import java.util.List;
 public interface ICategoryService {
 
     /**
-     * Get all categories (root categories with their children)
-     * @return List of CategoryResponse
-     */
-    List<CategoryResponse> getAllCategories();
-
-    /**
-     * Get all root categories (categories without parent)
-     * @return List of CategoryResponse
-     */
-    List<CategoryResponse> getRootCategories();
-
-    /**
-     * Get category by ID
-     * @param categoryId Category ID
-     * @return CategoryResponse
-     */
-    CategoryResponse getCategoryById(Long categoryId);
-
-    /**
-     * Get child categories by parent ID
-     * @param parentId Parent category ID
+     * Get categories by parent ID
+     * If parentId is null, return root categories (categories without parent)
+     * If parentId is provided, return children of that parent
+     *
+     * @param parentId Parent category ID (nullable)
      * @return List of CategoryResponse
      */
     List<CategoryResponse> getCategoriesByParentId(Long parentId);
