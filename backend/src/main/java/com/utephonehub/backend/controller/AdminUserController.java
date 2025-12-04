@@ -96,4 +96,23 @@ public class AdminUserController {
                 user
         ));
     }
+
+    @PutMapping("/{userId}/unlock")
+    @Operation(
+            summary = "Gỡ khóa tài khoản người dùng",
+            description = "Mở khóa tài khoản đã bị khóa, cho phép người dùng đăng nhập trở lại."
+    )
+    public ResponseEntity<ApiResponse<UserResponse>> unlockUser(
+            @Parameter(description = "ID của người dùng cần gỡ khóa", example = "1", required = true)
+            @PathVariable Long userId
+    ) {
+        log.info("Admin unlock user - userId: {}", userId);
+
+        UserResponse user = userService.unlockUser(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Tài khoản đã được mở khóa thành công",
+                user
+        ));
+    }
 }

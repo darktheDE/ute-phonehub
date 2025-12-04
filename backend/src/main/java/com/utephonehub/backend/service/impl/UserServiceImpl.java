@@ -153,4 +153,27 @@ public class UserServiceImpl implements IUserService {
         log.info("User account locked successfully - userId: {}", userId);
         return userMapper.toResponse(user);
     }
+
+    @Override
+    @Transactional
+    public UserResponse unlockUser(Long userId) {
+        log.info("Attempting to unlock user with id: {}", userId);
+
+        // Find user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+
+        // Check if already active
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            log.info("User is already active - userId: {}", userId);
+            throw new BadRequestException("Tài khoản đang hoạt động, không cần mở khóa");
+        }
+
+        // Unlock the account
+        user.setStatus(UserStatus.ACTIVE);
+        user = userRepository.save(user);
+
+        log.info("User account unlocked successfully - userId: {}", userId);
+        return userMapper.toResponse(user);
+    }
 }

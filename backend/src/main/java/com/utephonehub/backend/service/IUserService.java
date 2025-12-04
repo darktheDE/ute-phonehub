@@ -53,4 +53,13 @@ public interface IUserService {
      * @throws ResourceNotFoundException if user not found
      */
     UserResponse lockUser(Long userId);
+    
+    /**
+     * Unlock user account
+     * @param userId User ID to unlock
+     * @return Updated UserResponse
+     * @throws BadRequestException if account is already active
+     * @throws ResourceNotFoundException if user not found
+     */
+    UserResponse unlockUser(Long userId);
 }
