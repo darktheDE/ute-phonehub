@@ -44,4 +44,13 @@ public interface IUserService {
      * @return PagedUserResponse
      */
     PagedUserResponse getAllUsers(int page, int size, UserRole role, UserStatus status, String search);
+    
+    /**
+     * Lock user account (Only CUSTOMER can be locked, ADMIN cannot)
+     * @param userId User ID to lock
+     * @return Updated UserResponse
+     * @throws BadRequestException if trying to lock ADMIN account
+     * @throws ResourceNotFoundException if user not found
+     */
+    UserResponse lockUser(Long userId);
 }

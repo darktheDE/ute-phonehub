@@ -77,4 +77,23 @@ public class AdminUserController {
                 user
         ));
     }
+
+    @PutMapping("/{userId}/lock")
+    @Operation(
+            summary = "Khóa tài khoản người dùng",
+            description = "Khóa tài khoản CUSTOMER. Không thể khóa tài khoản ADMIN."
+    )
+    public ResponseEntity<ApiResponse<UserResponse>> lockUser(
+            @Parameter(description = "ID của người dùng cần khóa", example = "1", required = true)
+            @PathVariable Long userId
+    ) {
+        log.info("Admin lock user - userId: {}", userId);
+
+        UserResponse user = userService.lockUser(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Tài khoản đã được khóa thành công",
+                user
+        ));
+    }
 }

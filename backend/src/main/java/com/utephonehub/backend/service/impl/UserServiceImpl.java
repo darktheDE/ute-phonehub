@@ -124,4 +124,33 @@ public class UserServiceImpl implements IUserService {
         log.info("Retrieved {} users out of {} total", userResponses.size(), userPage.getTotalElements());
         return response;
     }
+
+    @Override
+    @Transactional
+    public UserResponse lockUser(Long userId) {
+        log.info("Attempting to lock user with id: {}", userId);
+
+        // Find user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+
+        // Business Rule: Cannot lock ADMIN accounts
+        if (user.getRole() == UserRole.ADMIN) {
+            log.warn("Attempted to lock ADMIN account - userId: {}", userId);
+            throw new BadRequestException("Không thể khóa tài khoản quản trị viên");
+        }
+
+        // Check if already locked
+        if (user.getStatus() == UserStatus.LOCKED) {
+            log.info("User is already locked - userId: {}", userId);
+            throw new BadRequestException("Tài khoản đã bị khóa trước đó");
+        }
+
+        // Lock the account
+        user.setStatus(UserStatus.LOCKED);
+        user = userRepository.save(user);
+
+        log.info("User account locked successfully - userId: {}", userId);
+        return userMapper.toResponse(user);
+    }
 }
