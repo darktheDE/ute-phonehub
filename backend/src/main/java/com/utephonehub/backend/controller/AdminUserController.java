@@ -2,6 +2,7 @@ package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.response.user.PagedUserResponse;
+import com.utephonehub.backend.dto.response.user.UserResponse;
 import com.utephonehub.backend.enums.UserRole;
 import com.utephonehub.backend.enums.UserStatus;
 import com.utephonehub.backend.service.IUserService;
@@ -55,6 +56,25 @@ public class AdminUserController {
         return ResponseEntity.ok(ApiResponse.success(
                 "Lấy danh sách người dùng thành công",
                 response
+        ));
+    }
+
+    @GetMapping("/{userId}")
+    @Operation(
+            summary = "Lấy chi tiết người dùng",
+            description = "Lấy thông tin chi tiết của một người dùng cụ thể theo ID"
+    )
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(
+            @Parameter(description = "ID của người dùng", example = "1", required = true)
+            @PathVariable Long userId
+    ) {
+        log.info("Admin get user detail - userId: {}", userId);
+
+        UserResponse user = userService.getUserById(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Lấy thông tin người dùng thành công",
+                user
         ));
     }
 }
