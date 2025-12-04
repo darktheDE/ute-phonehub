@@ -2,7 +2,10 @@ package com.utephonehub.backend.service;
 
 import com.utephonehub.backend.dto.request.user.ChangePasswordRequest;
 import com.utephonehub.backend.dto.request.user.UpdateProfileRequest;
+import com.utephonehub.backend.dto.response.user.PagedUserResponse;
 import com.utephonehub.backend.dto.response.user.UserResponse;
+import com.utephonehub.backend.enums.UserRole;
+import com.utephonehub.backend.enums.UserStatus;
 
 /**
  * Interface for User Service operations
@@ -30,4 +33,15 @@ public interface IUserService {
      * @param request Change password request
      */
     void changePassword(Long userId, ChangePasswordRequest request);
+    
+    /**
+     * Get all users with pagination, filtering and searching
+     * @param page Page number (0-based)
+     * @param size Page size
+     * @param role Filter by role (null for all)
+     * @param status Filter by status (null for all)
+     * @param search Search keyword (username, email, fullName)
+     * @return PagedUserResponse
+     */
+    PagedUserResponse getAllUsers(int page, int size, UserRole role, UserStatus status, String search);
 }

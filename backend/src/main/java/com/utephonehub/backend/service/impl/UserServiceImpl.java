@@ -2,19 +2,31 @@ package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.request.user.ChangePasswordRequest;
 import com.utephonehub.backend.dto.request.user.UpdateProfileRequest;
+import com.utephonehub.backend.dto.response.user.PagedUserResponse;
 import com.utephonehub.backend.dto.response.user.UserResponse;
 import com.utephonehub.backend.entity.User;
+import com.utephonehub.backend.enums.UserRole;
+import com.utephonehub.backend.enums.UserStatus;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.exception.UnauthorizedException;
 import com.utephonehub.backend.mapper.UserMapper;
 import com.utephonehub.backend.repository.UserRepository;
+import com.utephonehub.backend.repository.UserSpecification;
 import com.utephonehub.backend.service.IUserService;
 import com.utephonehub.backend.util.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -79,5 +91,37 @@ public class UserServiceImpl implements IUserService {
         userRepository.save(user);
 
         log.info("Password changed successfully for user id: {}", userId);
+    }
+
+    @Override
+    public PagedUserResponse getAllUsers(int page, int size, UserRole role, UserStatus status, String search) {
+        log.info("Getting all users - page: {}, size: {}, role: {}, status: {}, search: {}",
+                page, size, role, status, search);
+
+        // Create pageable with sorting by createdAt descending (newest first)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        // Build specification for dynamic filtering
+        Specification<User> spec = UserSpecification.filterUsers(role, status, search);
+
+        // Fetch data from repository
+        Page<User> userPage = userRepository.findAll(spec, pageable);
+
+        // Convert entities to DTOs
+        List<UserResponse> userResponses = userPage.getContent().stream()
+                .map(userMapper::toResponse)
+                .collect(Collectors.toList());
+
+        // Build paged response
+        PagedUserResponse response = PagedUserResponse.builder()
+                .content(userResponses)
+                .totalElements(userPage.getTotalElements())
+                .totalPages(userPage.getTotalPages())
+                .currentPage(userPage.getNumber())
+                .pageSize(userPage.getSize())
+                .build();
+
+        log.info("Retrieved {} users out of {} total", userResponses.size(), userPage.getTotalElements());
+        return response;
     }
 }
