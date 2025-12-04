@@ -1,6 +1,7 @@
 package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
+import com.utephonehub.backend.dto.request.user.CreateUserRequest;
 import com.utephonehub.backend.dto.response.user.PagedUserResponse;
 import com.utephonehub.backend.dto.response.user.UserResponse;
 import com.utephonehub.backend.enums.UserRole;
@@ -10,8 +11,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -112,6 +115,24 @@ public class AdminUserController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 "Tài khoản đã được mở khóa thành công",
+                user
+        ));
+    }
+
+    @PostMapping
+    @Operation(
+            summary = "Tạo tài khoản mới",
+            description = "Tạo tài khoản CUSTOMER hoặc ADMIN mới. Email phải unique, password tối thiểu 8 ký tự (có chữ hoa, chữ thường, số)."
+    )
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(
+            @Valid @RequestBody CreateUserRequest request
+    ) {
+        log.info("Admin create new user - email: {}, role: {}", request.getEmail(), request.getRole());
+
+        UserResponse user = userService.createUser(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                "Tài khoản đã được tạo thành công",
                 user
         ));
     }

@@ -1,6 +1,7 @@
 package com.utephonehub.backend.service;
 
 import com.utephonehub.backend.dto.request.user.ChangePasswordRequest;
+import com.utephonehub.backend.dto.request.user.CreateUserRequest;
 import com.utephonehub.backend.dto.request.user.UpdateProfileRequest;
 import com.utephonehub.backend.dto.response.user.PagedUserResponse;
 import com.utephonehub.backend.dto.response.user.UserResponse;
@@ -62,4 +63,12 @@ public interface IUserService {
      * @throws ResourceNotFoundException if user not found
      */
     UserResponse unlockUser(Long userId);
+    
+    /**
+     * Create new user account (CUSTOMER or ADMIN)
+     * @param request Create user request with email, password, fullName, phoneNumber, role
+     * @return Created UserResponse
+     * @throws BadRequestException if email already exists or validation fails
+     */
+    UserResponse createUser(CreateUserRequest request);
 }

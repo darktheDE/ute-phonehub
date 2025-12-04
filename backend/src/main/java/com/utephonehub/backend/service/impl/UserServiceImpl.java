@@ -1,6 +1,7 @@
 package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.request.user.ChangePasswordRequest;
+import com.utephonehub.backend.dto.request.user.CreateUserRequest;
 import com.utephonehub.backend.dto.request.user.UpdateProfileRequest;
 import com.utephonehub.backend.dto.response.user.PagedUserResponse;
 import com.utephonehub.backend.dto.response.user.UserResponse;
@@ -174,6 +175,50 @@ public class UserServiceImpl implements IUserService {
         user = userRepository.save(user);
 
         log.info("User account unlocked successfully - userId: {}", userId);
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse createUser(CreateUserRequest request) {
+        log.info("Creating new user - email: {}, role: {}", request.getEmail(), request.getRole());
+
+        // Check if email already exists
+        if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("Email already exists - email: {}", request.getEmail());
+            throw new BadRequestException("Email đã tồn tại trong hệ thống");
+        }
+
+        // Validate password strength (already validated by @Pattern, but double check)
+        if (!passwordEncoder.isValidPassword(request.getPassword())) {
+            throw new BadRequestException("Mật khẩu phải có ít nhất 8 ký tự, chứa chữ hoa, chữ thường và số");
+        }
+
+        // Create username from email (before @)
+        String username = request.getEmail().split("@")[0];
+        
+        // If username exists, append random number
+        if (userRepository.existsByUsername(username)) {
+            username = username + System.currentTimeMillis() % 10000;
+        }
+
+        // Build new user entity
+        User user = User.builder()
+                .username(username)
+                .email(request.getEmail())
+                .fullName(request.getFullName())
+                .phoneNumber(request.getPhoneNumber())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .role(request.getRole())
+                .status(UserStatus.ACTIVE)
+                .build();
+
+        // Save to database
+        user = userRepository.save(user);
+
+        log.info("User created successfully - userId: {}, email: {}, role: {}", 
+                user.getId(), user.getEmail(), user.getRole());
+
         return userMapper.toResponse(user);
     }
 }
