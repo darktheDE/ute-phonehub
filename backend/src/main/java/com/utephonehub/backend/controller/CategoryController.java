@@ -2,6 +2,7 @@ package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.request.category.CreateCategoryRequest;
+import com.utephonehub.backend.dto.request.category.UpdateCategoryRequest;
 import com.utephonehub.backend.dto.response.category.CategoryResponse;
 import com.utephonehub.backend.service.ICategoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -94,6 +95,42 @@ public class CategoryController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo danh mục thành công", category));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(
+            summary = "Cập nhật danh mục",
+            description = "Cập nhật thông tin của danh mục đã tồn tại. " +
+                    "Kiểm tra trùng tên trong cùng cấp parentId (loại trừ chính nó). " +
+                    "Không cho phép đặt danh mục làm cha của chính nó."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Cập nhật danh mục thành công",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Dữ liệu không hợp lệ hoặc tên danh mục đã tồn tại"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Không tìm thấy danh mục cần cập nhật hoặc danh mục cha"
+            )
+    })
+    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
+            @Parameter(description = "ID của danh mục cần cập nhật", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateCategoryRequest request
+    ) {
+        log.info("Update category request for id: {} with name: {}, parentId: {}",
+                id, request.getName(), request.getParentId());
+        CategoryResponse category = categoryService.updateCategory(id, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Cập nhật danh mục thành công", category)
+        );
     }
 }
 

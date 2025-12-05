@@ -1,6 +1,7 @@
 package com.utephonehub.backend.service;
 
 import com.utephonehub.backend.dto.request.category.CreateCategoryRequest;
+import com.utephonehub.backend.dto.request.category.UpdateCategoryRequest;
 import com.utephonehub.backend.dto.response.category.CategoryResponse;
 
 import java.util.List;
@@ -26,5 +27,13 @@ public interface ICategoryService {
      * @return CategoryResponse
      */
     CategoryResponse createCategory(CreateCategoryRequest request);
+
+    /**
+     * Update existing category
+     * @param id Category ID
+     * @param request UpdateCategoryRequest
+     * @return CategoryResponse
+     */
+    CategoryResponse updateCategory(Long id, UpdateCategoryRequest request);
 }
 
