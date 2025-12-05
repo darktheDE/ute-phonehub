@@ -2,6 +2,7 @@ package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
+import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
 import com.utephonehub.backend.enums.DashboardPeriod;
 import com.utephonehub.backend.service.IDashboardService;
@@ -61,6 +62,22 @@ public class DashboardController {
         return ResponseEntity.ok(ApiResponse.success(
                 "Lấy dữ liệu biểu đồ doanh thu thành công",
                 revenueChart
+        ));
+    }
+
+    @GetMapping("/order-status-chart")
+    @Operation(
+            summary = "Lấy biểu đồ phân bố đơn hàng theo trạng thái",
+            description = "Lấy dữ liệu biểu đồ tròn (Pie chart) thể hiện số lượng và tỷ lệ phần trăm đơn hàng theo từng trạng thái (Chờ xác nhận, Đã xác nhận, Đang giao, Đã giao, Đã hủy)"
+    )
+    public ResponseEntity<ApiResponse<OrderStatusChartResponse>> getOrderStatusChart() {
+        log.info("Admin fetch order status distribution chart");
+
+        OrderStatusChartResponse statusChart = dashboardService.getOrderStatusChart();
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Lấy dữ liệu biểu đồ trạng thái đơn hàng thành công",
+                statusChart
         ));
     }
 }

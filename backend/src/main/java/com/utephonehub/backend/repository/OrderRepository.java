@@ -31,5 +31,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return List of orders in date range with specific status
      */
     List<Order> findByCreatedAtBetweenAndStatus(LocalDateTime startDate, LocalDateTime endDate, OrderStatus status);
+    
+    /**
+     * Count orders by status
+     * @param status Order status
+     * @return Number of orders with specific status
+     */
+    long countByStatus(OrderStatus status);
 }
 

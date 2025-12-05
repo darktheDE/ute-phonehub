@@ -1,6 +1,7 @@
 package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
+import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.enums.DashboardPeriod;
@@ -124,6 +125,55 @@ public class DashboardServiceImpl implements IDashboardService {
                 .total(totalRevenue)
                 .averagePerDay(averagePerDay)
                 .period(period.name())
+                .build();
+    }
+
+    @Override
+    public OrderStatusChartResponse getOrderStatusChart() {
+        log.info("Fetching order status distribution chart data");
+
+        List<String> labels = new ArrayList<>();
+        List<Long> values = new ArrayList<>();
+        List<Double> percentages = new ArrayList<>();
+        
+        // Count total orders
+        long totalOrders = orderRepository.count();
+        
+        log.debug("Total orders: {}", totalOrders);
+
+        // Vietnamese labels for each OrderStatus
+        Map<OrderStatus, String> statusLabels = Map.of(
+                OrderStatus.PENDING, "Chờ xác nhận",
+                OrderStatus.CONFIRMED, "Đã xác nhận",
+                OrderStatus.SHIPPED, "Đang giao hàng",
+                OrderStatus.DELIVERED, "Đã giao hàng",
+                OrderStatus.CANCELLED, "Đã hủy"
+        );
+
+        // Count orders for each status
+        for (OrderStatus status : OrderStatus.values()) {
+            long count = orderRepository.countByStatus(status);
+            double percentage = totalOrders > 0 
+                    ? (count * 100.0 / totalOrders) 
+                    : 0.0;
+            
+            // Round to 2 decimal places
+            percentage = Math.round(percentage * 100.0) / 100.0;
+            
+            labels.add(statusLabels.get(status));
+            values.add(count);
+            percentages.add(percentage);
+            
+            log.debug("Status: {} - Count: {}, Percentage: {}%", status, count, percentage);
+        }
+
+        log.info("Order status chart - Total orders: {}", totalOrders);
+
+        return OrderStatusChartResponse.builder()
+                .labels(labels)
+                .values(values)
+                .percentages(percentages)
+                .totalOrders(totalOrders)
                 .build();
     }
 }

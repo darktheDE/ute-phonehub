@@ -1,6 +1,7 @@
 package com.utephonehub.backend.service;
 
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
+import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
 import com.utephonehub.backend.enums.DashboardPeriod;
 
@@ -29,4 +30,13 @@ public interface IDashboardService {
      * @return RevenueChartResponse with labels, values, total, average
      */
     RevenueChartResponse getRevenueChart(DashboardPeriod period);
+    
+    /**
+     * Get order status distribution chart data
+     * - Count of orders by each status
+     * - Percentage distribution
+     * 
+     * @return OrderStatusChartResponse with labels, values, percentages, total
+     */
+    OrderStatusChartResponse getOrderStatusChart();
 }
