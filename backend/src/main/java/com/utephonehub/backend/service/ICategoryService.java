@@ -35,5 +35,14 @@ public interface ICategoryService {
      * @return CategoryResponse
      */
     CategoryResponse updateCategory(Long id, UpdateCategoryRequest request);
+
+    /**
+     * Delete category by ID
+     * Check constraints before deletion:
+     * - Cannot delete if category has children
+     * - Cannot delete if category has products linked
+     * @param id Category ID
+     */
+    void deleteCategory(Long id);
 }
 

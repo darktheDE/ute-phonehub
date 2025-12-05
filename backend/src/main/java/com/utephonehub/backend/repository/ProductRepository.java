@@ -11,5 +11,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByStatusTrue();
     List<Product> findByCategoryId(Long categoryId);
     List<Product> findByBrandId(Long brandId);
+
+    /**
+     * Check if any product is linked to the specified category
+     * Used for deletion constraint checking
+     * @param categoryId Category ID
+     * @return true if products exist, false otherwise
+     */
+    boolean existsByCategoryId(Long categoryId);
 }
 

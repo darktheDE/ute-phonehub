@@ -7,6 +7,7 @@ import com.utephonehub.backend.entity.Category;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.repository.CategoryRepository;
+import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.service.ICategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements ICategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -122,8 +124,35 @@ public class CategoryServiceImpl implements ICategoryService {
         category = categoryRepository.save(category);
         log.info("Updated category successfully with id: {}", category.getId());
 
-
         return CategoryResponse.fromEntity(category);
+    }
+
+    @Override
+    @Transactional
+    public void deleteCategory(Long id) {
+        log.info("Deleting category with id: {}", id);
+
+        // Check if category exists
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Danh mục không tồn tại với ID: " + id));
+
+        // Check if category has children
+        long childrenCount = categoryRepository.countByParentId(id);
+        if (childrenCount > 0) {
+            throw new BadRequestException(
+                    "Không thể xóa danh mục. Danh mục này có " + childrenCount + " danh mục con");
+        }
+
+        // Check if category has products linked
+        boolean hasProducts = productRepository.existsByCategoryId(id);
+        if (hasProducts) {
+            throw new BadRequestException(
+                    "Không thể xóa danh mục. Danh mục đang chứa sản phẩm");
+        }
+
+        // Delete category
+        categoryRepository.delete(category);
+        log.info("Deleted category successfully with id: {}", id);
     }
 }
 

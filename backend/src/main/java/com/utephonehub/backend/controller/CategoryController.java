@@ -132,5 +132,39 @@ public class CategoryController {
                 ApiResponse.success("Cập nhật danh mục thành công", category)
         );
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(
+            summary = "Xóa danh mục",
+            description = "Xóa danh mục theo ID. " +
+                    "Kiểm tra ràng buộc trước khi xóa: " +
+                    "Không cho phép xóa nếu danh mục có danh mục con hoặc có sản phẩm liên kết."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Xóa danh mục thành công",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Không thể xóa do có danh mục con hoặc sản phẩm liên kết"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Không tìm thấy danh mục cần xóa"
+            )
+    })
+    public ResponseEntity<ApiResponse<Void>> deleteCategory(
+            @Parameter(description = "ID của danh mục cần xóa", required = true)
+            @PathVariable Long id
+    ) {
+        log.info("Delete category request for id: {}", id);
+        categoryService.deleteCategory(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Xóa danh mục thành công", null)
+        );
+    }
 }
 

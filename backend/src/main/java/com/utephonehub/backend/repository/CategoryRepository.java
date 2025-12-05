@@ -28,5 +28,13 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * @return true if exists, false otherwise
      */
     boolean existsByNameAndParentIdAndIdNot(String name, Long parentId, Long id);
+
+    /**
+     * Count categories by parent ID
+     * Used to check if a category has children before deletion
+     * @param parentId Parent category ID
+     * @return Number of child categories
+     */
+    long countByParentId(Long parentId);
 }
 
