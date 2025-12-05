@@ -1,5 +1,5 @@
 /**
  * Central export for common components
  */
-export { Header } from './Header';
+export { Header, TopBar } from './Header';
 export { Footer } from './Footer';

@@ -2,6 +2,7 @@ package com.utephonehub.backend.dto.request.user;
 
 import com.utephonehub.backend.enums.EGender;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,7 +25,8 @@ public class UpdateProfileRequest {
     private String phoneNumber;
 
     private EGender gender;
-
+    
+    @Past(message = "Ngày sinh phải là ngày trong quá khứ")
     private LocalDate dateOfBirth;
 }
 

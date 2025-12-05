@@ -39,9 +39,9 @@ Bản thiết kế dưới đây là phiên bản **FINAL**, đảm bảo:
 | full_name | VARCHAR(100) | NOT NULL | Họ tên đầy đủ. |
 | email | VARCHAR(100) | UNIQUE, NOT NULL | Email liên hệ. |
 | phone_number | VARCHAR(15) | | Số điện thoại. |
-| gender | VARCHAR(10) | | `EGender` (MALE, FEMALE). |
+| gender | VARCHAR(10) | | `EGender` (MALE, FEMALE, OTHER). |
 | date_of_birth | DATE | | Ngày sinh. |
-| role | VARCHAR(20) | NOT NULL | `EUserRole` (ADMIN, MEMBER). |
+| role | VARCHAR(20) | NOT NULL | `UserRole` (ADMIN, CUSTOMER). |
 | status | VARCHAR(20) | NOT NULL | `UserStatus` (ACTIVE, LOCKED). |
 | created_at | TIMESTAMP | DEFAULT NOW() | |
 | updated_at | TIMESTAMP | DEFAULT NOW() | |

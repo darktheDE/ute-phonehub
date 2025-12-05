@@ -25,10 +25,10 @@ CREATE TABLE IF NOT EXISTS users (
 -- Sample data: users
 INSERT INTO users (username, password_hash, full_name, email, phone_number, gender, date_of_birth, role, status) VALUES
 ('admin', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Nguyễn Văn Admin', 'admin@utephonehub.com', '0901234567', 'MALE', '1990-01-01', 'ADMIN', 'ACTIVE'),
-('user001', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Trần Thị Hương', 'huong.tran@gmail.com', '0912345678', 'FEMALE', '1995-05-15', 'MEMBER', 'ACTIVE'),
-('user002', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Lê Văn Nam', 'nam.le@gmail.com', '0923456789', 'MALE', '1998-08-20', 'MEMBER', 'ACTIVE'),
-('user003', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Phạm Thị Mai', 'mai.pham@gmail.com', '0934567890', 'FEMALE', '2000-03-10', 'MEMBER', 'ACTIVE'),
-('user004', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Hoàng Văn Đức', 'duc.hoang@gmail.com', '0945678901', 'MALE', '1997-11-25', 'MEMBER', 'LOCKED');
+('user001', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Trần Thị Hương', 'huong.tran@gmail.com', '0912345678', 'FEMALE', '1995-05-15', 'CUSTOMER', 'ACTIVE'),
+('user002', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Lê Văn Nam', 'nam.le@gmail.com', '0923456789', 'MALE', '1998-08-20', 'CUSTOMER', 'ACTIVE'),
+('user003', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Phạm Thị Mai', 'mai.pham@gmail.com', '0934567890', 'FEMALE', '2000-03-10', 'CUSTOMER', 'ACTIVE'),
+('user004', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Hoàng Văn Đức', 'duc.hoang@gmail.com', '0945678901', 'MALE', '1997-11-25', 'CUSTOMER', 'LOCKED');
 
 -- Table: addresses
 CREATE TABLE IF NOT EXISTS addresses (
@@ -164,11 +164,11 @@ CREATE TABLE IF NOT EXISTS promotions (
 
 -- Sample data: promotions
 INSERT INTO promotions (code, name, description, discount_type, discount_value, max_usage, min_order_value, start_date, end_date, status) VALUES
-('WELCOME10', 'Giảm 10% cho khách hàng mới', 'Áp dụng cho đơn hàng đầu tiên', 'PERCENT', 10.00, 100, 5000000.00, '2024-01-01', '2024-12-31', 'ACTIVE'),
-('SALE500K', 'Giảm 500K cho đơn từ 10 triệu', 'Mã giảm giá cố định', 'AMOUNT', 500000.00, 50, 10000000.00, '2024-01-01', '2024-06-30', 'ACTIVE'),
-('FLASH20', 'Flash Sale 20%', 'Giảm 20% trong khung giờ vàng', 'PERCENT', 20.00, 200, 3000000.00, '2024-12-01', '2024-12-31', 'ACTIVE'),
-('VIP15', 'Ưu đãi khách VIP 15%', 'Dành cho khách hàng thân thiết', 'PERCENT', 15.00, NULL, 15000000.00, '2024-01-01', '2025-12-31', 'ACTIVE'),
-('EXPIRED', 'Mã hết hạn', 'Chỉ dùng test', 'PERCENT', 5.00, 10, 1000000.00, '2023-01-01', '2023-12-31', 'EXPIRED');
+('WELCOME10', 'Giảm 10% cho khách hàng mới', 'Áp dụng cho đơn hàng đầu tiên', 'PERCENT', 10.00, 100, 5000000.00, '2024-01-01 00:00:00', '2024-12-31 00:00:00', 'ACTIVE'),
+('SALE500K', 'Giảm 500K cho đơn từ 10 triệu', 'Mã giảm giá cố định', 'AMOUNT', 500000.00, 50, 10000000.00, '2024-01-01 00:00:00', '2024-06-30 00:00:00', 'ACTIVE'),
+('FLASH20', 'Flash Sale 20%', 'Giảm 20% trong khung giờ vàng', 'PERCENT', 20.00, 200, 3000000.00, '2024-12-01 00:00:00', '2024-12-31 00:00:00', 'ACTIVE'),
+('VIP15', 'Ưu đãi khách VIP 15%', 'Dành cho khách hàng thân thiết', 'PERCENT', 15.00, NULL, 15000000.00, '2024-01-01 00:00:00', '2025-12-31 00:00:00', 'ACTIVE'),
+('EXPIRED', 'Mã hết hạn', 'Chỉ dùng test', 'PERCENT', 5.00, 10, 1000000.00, '2023-01-01 00:00:00', '2023-12-31 00:00:00', 'EXPIRED');
 
 -- Table: orders
 CREATE TABLE IF NOT EXISTS orders (

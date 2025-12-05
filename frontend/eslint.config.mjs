@@ -22,7 +22,7 @@ const eslintConfig = [
   },
   {
     rules: {
-      "@typescript-eslint/no-explicit-any": "warn", // Đổi từ error thành warning
+      "@typescript-eslint/no-explicit-any": "warn", 
     },
   },
 ];

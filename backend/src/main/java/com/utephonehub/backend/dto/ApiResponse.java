@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 /**
  * Standard API Response wrapper following RESTful best practices
@@ -44,7 +44,7 @@ public class ApiResponse<T> {
      * Timestamp in ISO-8601 format with UTC timezone
      */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant timestamp;
+    private LocalDateTime timestamp;
 
     // ==================== Success Responses ====================
 
@@ -54,7 +54,7 @@ public class ApiResponse<T> {
                 .status(200)
                 .message("Success")
                 .data(data)
-                .timestamp(Instant.now())
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 
@@ -64,7 +64,7 @@ public class ApiResponse<T> {
                 .status(200)
                 .message(message)
                 .data(data)
-                .timestamp(Instant.now())
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 
@@ -74,7 +74,7 @@ public class ApiResponse<T> {
                 .status(201)
                 .message(message)
                 .data(data)
-                .timestamp(Instant.now())
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 
@@ -83,7 +83,7 @@ public class ApiResponse<T> {
                 .success(true)
                 .status(204)
                 .message(message)
-                .timestamp(Instant.now())
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 
@@ -94,7 +94,7 @@ public class ApiResponse<T> {
                 .success(false)
                 .status(status)
                 .message(message)
-                .timestamp(Instant.now())
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 
@@ -104,7 +104,7 @@ public class ApiResponse<T> {
                 .status(status)
                 .message(message)
                 .data(data)
-                .timestamp(Instant.now())
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 

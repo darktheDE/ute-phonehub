@@ -1,6 +1,5 @@
 package com.utephonehub.backend.entity;
 
-import com.utephonehub.backend.enums.EPaymentType;
 import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.enums.PaymentMethod;
 import jakarta.persistence.*;

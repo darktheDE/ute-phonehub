@@ -25,7 +25,7 @@ public class HealthController {
         data.put("status", "UP");
         data.put("service", "UTE Phone Hub Backend");
         data.put("version", "1.0.0");
-        return ResponseEntity.ok(ApiResponse.success(data));
+        return ResponseEntity.ok(ApiResponse.success("API is healthy and running", data));
     }
 }
 
