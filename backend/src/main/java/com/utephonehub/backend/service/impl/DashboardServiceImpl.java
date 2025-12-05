@@ -3,9 +3,12 @@ package com.utephonehub.backend.service.impl;
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
 import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
+import com.utephonehub.backend.dto.response.dashboard.UserRegistrationChartResponse;
 import com.utephonehub.backend.entity.Order;
+import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.enums.DashboardPeriod;
 import com.utephonehub.backend.enums.OrderStatus;
+import com.utephonehub.backend.enums.RegistrationPeriod;
 import com.utephonehub.backend.repository.OrderRepository;
 import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.repository.UserRepository;
@@ -174,6 +177,58 @@ public class DashboardServiceImpl implements IDashboardService {
                 .values(values)
                 .percentages(percentages)
                 .totalOrders(totalOrders)
+                .build();
+    }
+
+    @Override
+    public UserRegistrationChartResponse getUserRegistrationChart(RegistrationPeriod period) {
+        log.info("Fetching user registration chart data for period: {}", period);
+
+        // Calculate date range
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(period.getDays() - 1);
+        
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+        log.debug("Date range: {} to {}", startDateTime, endDateTime);
+
+        // Fetch users registered in date range
+        List<User> users = userRepository.findByCreatedAtBetween(startDateTime, endDateTime);
+
+        log.debug("Found {} new users in period", users.size());
+
+        // Group users by registration date and count
+        Map<LocalDate, Long> usersByDate = users.stream()
+                .collect(Collectors.groupingBy(
+                        user -> user.getCreatedAt().toLocalDate(),
+                        Collectors.counting()
+                ));
+
+        // Build chart data with all dates (fill missing dates with zero)
+        List<String> labels = new ArrayList<>();
+        List<Long> values = new ArrayList<>();
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM");
+
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            labels.add(currentDate.format(dateFormatter));
+            values.add(usersByDate.getOrDefault(currentDate, 0L));
+            currentDate = currentDate.plusDays(1);
+        }
+
+        // Calculate total new users
+        long total = values.stream()
+                .mapToLong(Long::longValue)
+                .sum();
+
+        log.info("User registration chart - Total new users: {}, Period: {}", total, period);
+
+        return UserRegistrationChartResponse.builder()
+                .labels(labels)
+                .values(values)
+                .total(total)
+                .period(period.name())
                 .build();
     }
 }

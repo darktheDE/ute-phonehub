@@ -3,7 +3,9 @@ package com.utephonehub.backend.service;
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
 import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
+import com.utephonehub.backend.dto.response.dashboard.UserRegistrationChartResponse;
 import com.utephonehub.backend.enums.DashboardPeriod;
+import com.utephonehub.backend.enums.RegistrationPeriod;
 
 /**
  * Interface for Dashboard Service operations
@@ -39,4 +41,14 @@ public interface IDashboardService {
      * @return OrderStatusChartResponse with labels, values, percentages, total
      */
     OrderStatusChartResponse getOrderStatusChart();
+    
+    /**
+     * Get user registration chart data by time period
+     * - Daily new user registrations for selected period
+     * - Total new users in the period
+     * 
+     * @param period Time period (WEEKLY, MONTHLY)
+     * @return UserRegistrationChartResponse with labels, values, total
+     */
+    UserRegistrationChartResponse getUserRegistrationChart(RegistrationPeriod period);
 }

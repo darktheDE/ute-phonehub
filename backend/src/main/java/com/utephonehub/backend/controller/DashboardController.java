@@ -4,7 +4,9 @@ import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
 import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
+import com.utephonehub.backend.dto.response.dashboard.UserRegistrationChartResponse;
 import com.utephonehub.backend.enums.DashboardPeriod;
+import com.utephonehub.backend.enums.RegistrationPeriod;
 import com.utephonehub.backend.service.IDashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -78,6 +80,25 @@ public class DashboardController {
         return ResponseEntity.ok(ApiResponse.success(
                 "Lấy dữ liệu biểu đồ trạng thái đơn hàng thành công",
                 statusChart
+        ));
+    }
+
+    @GetMapping("/user-registration-chart")
+    @Operation(
+            summary = "Lấy biểu đồ người dùng đăng ký mới",
+            description = "Lấy dữ liệu biểu đồ cột (Bar chart) thể hiện số lượng người dùng đăng ký mới theo ngày cho khoảng thời gian được chọn. Mặc định: MONTHLY (30 ngày)"
+    )
+    public ResponseEntity<ApiResponse<UserRegistrationChartResponse>> getUserRegistrationChart(
+            @Parameter(description = "Khoảng thời gian (WEEKLY: 7 ngày, MONTHLY: 30 ngày). Mặc định: MONTHLY")
+            @RequestParam(defaultValue = "MONTHLY") RegistrationPeriod period
+    ) {
+        log.info("Admin fetch user registration chart for period: {}", period);
+
+        UserRegistrationChartResponse registrationChart = dashboardService.getUserRegistrationChart(period);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Lấy dữ liệu biểu đồ đăng ký người dùng thành công",
+                registrationChart
         ));
     }
 }
