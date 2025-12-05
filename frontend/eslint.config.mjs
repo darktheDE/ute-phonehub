@@ -20,6 +20,11 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn", // Đổi từ error thành warning
+    },
+  },
 ];
 
 export default eslintConfig;

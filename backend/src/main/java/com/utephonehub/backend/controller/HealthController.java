@@ -20,12 +20,12 @@ public class HealthController {
 
     @GetMapping
     @Operation(summary = "Kiểm tra trạng thái API", description = "Trả về trạng thái hoạt động của API")
-    public ResponseEntity<ApiResponse<?>> health() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> health() {
         Map<String, Object> data = new HashMap<>();
         data.put("status", "UP");
         data.put("service", "UTE Phone Hub Backend");
-        data.put("version", "1.0");
-        return ResponseEntity.ok(ApiResponse.success("API is running", data));
+        data.put("version", "1.0.0");
+        return ResponseEntity.ok(ApiResponse.success(data));
     }
 }
 

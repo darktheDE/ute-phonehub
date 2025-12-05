@@ -1,11 +1,14 @@
 package com.utephonehub.backend.dto.request.user;
 
+import com.utephonehub.backend.enums.EGender;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -19,5 +22,9 @@ public class UpdateProfileRequest {
 
     @Size(max = 15, message = "Số điện thoại không được vượt quá 15 ký tự")
     private String phoneNumber;
+
+    private EGender gender;
+
+    private LocalDate dateOfBirth;
 }
 

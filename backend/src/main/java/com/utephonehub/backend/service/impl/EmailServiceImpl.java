@@ -1,5 +1,6 @@
 package com.utephonehub.backend.service.impl;
 
+import com.utephonehub.backend.exception.EmailServiceException;
 import com.utephonehub.backend.service.IEmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,7 @@ public class EmailServiceImpl implements IEmailService {
             log.info("Verification email sent to: {}", email);
         } catch (Exception e) {
             log.error("Failed to send verification email to {}: {}", email, e.getMessage());
-            throw new RuntimeException("Không thể gửi email xác thực", e);
+            throw new EmailServiceException("Không thể gửi email xác thực", e);
         }
     }
 
@@ -48,7 +49,7 @@ public class EmailServiceImpl implements IEmailService {
             log.info("OTP email sent to: {}", email);
         } catch (Exception e) {
             log.error("Failed to send OTP email to {}: {}", email, e.getMessage());
-            throw new RuntimeException("Không thể gửi email OTP", e);
+            throw new EmailServiceException("Không thể gửi email OTP", e);
         }
     }
 
@@ -67,7 +68,7 @@ public class EmailServiceImpl implements IEmailService {
             log.info("Password reset email sent to: {}", email);
         } catch (Exception e) {
             log.error("Failed to send password reset email to {}: {}", email, e.getMessage());
-            throw new RuntimeException("Không thể gửi email đặt lại mật khẩu", e);
+            throw new EmailServiceException("Không thể gửi email đặt lại mật khẩu", e);
         }
     }
 }
