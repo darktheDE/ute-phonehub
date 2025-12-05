@@ -1,6 +1,7 @@
 package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
+import com.utephonehub.backend.dto.request.category.CreateCategoryRequest;
 import com.utephonehub.backend.dto.response.category.CategoryResponse;
 import com.utephonehub.backend.service.ICategoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,8 +10,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,6 +60,40 @@ public class CategoryController {
         return ResponseEntity.ok(
                 ApiResponse.success(message, categories)
         );
+    }
+
+    @PostMapping
+    @Operation(
+            summary = "Tạo danh mục mới",
+            description = "Tạo một danh mục mới. " +
+                    "Nếu parentId=null: tạo danh mục gốc. " +
+                    "Nếu parentId=<id>: tạo danh mục con. " +
+                    "Kiểm tra trùng tên trong cùng cấp parentId."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "Tạo danh mục thành công",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Dữ liệu không hợp lệ hoặc tên danh mục đã tồn tại"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Không tìm thấy danh mục cha"
+            )
+    })
+    public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(
+            @Valid @RequestBody CreateCategoryRequest request
+    ) {
+        log.info("Create category request with name: {}, parentId: {}", request.getName(), request.getParentId());
+        CategoryResponse category = categoryService.createCategory(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo danh mục thành công", category));
     }
 }
 

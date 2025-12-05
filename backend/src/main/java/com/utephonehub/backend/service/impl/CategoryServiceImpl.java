@@ -1,7 +1,9 @@
 package com.utephonehub.backend.service.impl;
 
+import com.utephonehub.backend.dto.request.category.CreateCategoryRequest;
 import com.utephonehub.backend.dto.response.category.CategoryResponse;
 import com.utephonehub.backend.entity.Category;
+import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.repository.CategoryRepository;
 import com.utephonehub.backend.service.ICategoryService;
@@ -44,6 +46,40 @@ public class CategoryServiceImpl implements ICategoryService {
                     .map(CategoryResponse::fromEntity)
                     .collect(Collectors.toList());
         }
+    }
+
+    @Override
+    @Transactional
+    public CategoryResponse createCategory(CreateCategoryRequest request) {
+        log.info("Creating new category with name: {} and parentId: {}", request.getName(), request.getParentId());
+
+        // Check if category name already exists in same parent level
+        if (categoryRepository.existsByNameAndParentId(request.getName(), request.getParentId())) {
+            String parentInfo = request.getParentId() == null
+                ? "danh mục gốc"
+                : "danh mục cha ID " + request.getParentId();
+            throw new BadRequestException("Tên danh mục '" + request.getName() + "' đã tồn tại trong " + parentInfo);
+        }
+
+        // If parentId is provided, validate parent exists
+        Category parent = null;
+        if (request.getParentId() != null) {
+            parent = categoryRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Danh mục cha không tồn tại với ID: " + request.getParentId()));
+        }
+
+        // Create new category
+        Category category = Category.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .parent(parent)
+                .build();
+
+        category = categoryRepository.save(category);
+        log.info("Created category successfully with id: {}", category.getId());
+
+        return CategoryResponse.fromEntity(category);
     }
 }
 

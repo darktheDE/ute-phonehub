@@ -10,5 +10,13 @@ import java.util.List;
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByParentIdIsNull();
     List<Category> findByParentId(Long parentId);
+
+    /**
+     * Check if category name exists in same parent level
+     * @param name Category name
+     * @param parentId Parent category ID (null for root level)
+     * @return true if exists, false otherwise
+     */
+    boolean existsByNameAndParentId(String name, Long parentId);
 }
 

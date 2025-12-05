@@ -1,5 +1,6 @@
 package com.utephonehub.backend.service;
 
+import com.utephonehub.backend.dto.request.category.CreateCategoryRequest;
 import com.utephonehub.backend.dto.response.category.CategoryResponse;
 
 import java.util.List;
@@ -18,5 +19,12 @@ public interface ICategoryService {
      * @return List of CategoryResponse
      */
     List<CategoryResponse> getCategoriesByParentId(Long parentId);
+
+    /**
+     * Create new category
+     * @param request CreateCategoryRequest
+     * @return CategoryResponse
+     */
+    CategoryResponse createCategory(CreateCategoryRequest request);
 }
 
