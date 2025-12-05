@@ -2,6 +2,7 @@ package com.utephonehub.backend.repository;
 
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.enums.OrderStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -38,5 +39,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return Number of orders with specific status
      */
     long countByStatus(OrderStatus status);
+    
+    /**
+     * Find recent orders sorted by created date (newest first)
+     * Uses Pageable to limit results
+     * @param pageable Pageable for limiting and sorting
+     * @return List of recent orders
+     */
+    List<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }
 
