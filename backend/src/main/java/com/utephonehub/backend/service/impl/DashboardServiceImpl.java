@@ -1,6 +1,9 @@
 package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
+import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
+import com.utephonehub.backend.entity.Order;
+import com.utephonehub.backend.enums.DashboardPeriod;
 import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.repository.OrderRepository;
 import com.utephonehub.backend.repository.ProductRepository;
@@ -12,6 +15,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +59,71 @@ public class DashboardServiceImpl implements IDashboardService {
                 .totalOrders(totalOrders)
                 .totalProducts(totalProducts)
                 .totalUsers(totalUsers)
+                .build();
+    }
+
+    @Override
+    public RevenueChartResponse getRevenueChart(DashboardPeriod period) {
+        log.info("Fetching revenue chart data for period: {}", period);
+
+        // Calculate date range
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(period.getDays() - 1);
+        
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+        log.debug("Date range: {} to {}", startDateTime, endDateTime);
+
+        // Fetch orders in date range with DELIVERED status
+        List<Order> orders = orderRepository.findByCreatedAtBetweenAndStatus(
+                startDateTime, endDateTime, OrderStatus.DELIVERED);
+
+        log.debug("Found {} delivered orders in period", orders.size());
+
+        // Group orders by date and sum revenue
+        Map<LocalDate, BigDecimal> revenueByDate = orders.stream()
+                .collect(Collectors.groupingBy(
+                        order -> order.getCreatedAt().toLocalDate(),
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                Order::getTotalAmount,
+                                BigDecimal::add
+                        )
+                ));
+
+        // Build chart data with all dates (fill missing dates with zero)
+        List<String> labels = new ArrayList<>();
+        List<BigDecimal> values = new ArrayList<>();
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM");
+
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            labels.add(currentDate.format(dateFormatter));
+            values.add(revenueByDate.getOrDefault(currentDate, BigDecimal.ZERO));
+            currentDate = currentDate.plusDays(1);
+        }
+
+        // Calculate total revenue
+        BigDecimal totalRevenue = values.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate average revenue per day
+        BigDecimal averagePerDay = totalRevenue.divide(
+                BigDecimal.valueOf(period.getDays()), 
+                2, 
+                RoundingMode.HALF_UP
+        );
+
+        log.info("Revenue chart - Total: {}, Average/Day: {}, Period: {}", 
+                totalRevenue, averagePerDay, period);
+
+        return RevenueChartResponse.builder()
+                .labels(labels)
+                .values(values)
+                .total(totalRevenue)
+                .averagePerDay(averagePerDay)
+                .period(period.name())
                 .build();
     }
 }
