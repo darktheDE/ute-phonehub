@@ -1,6 +1,7 @@
 package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
+import com.utephonehub.backend.dto.response.dashboard.LowStockProductResponse;
 import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
 import com.utephonehub.backend.dto.response.dashboard.RecentOrderResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
@@ -314,5 +315,37 @@ public class DashboardServiceImpl implements IDashboardService {
         log.info("Found {} recent orders", recentOrders.size());
 
         return recentOrders;
+    }
+
+    @Override
+    public List<LowStockProductResponse> getLowStockProducts(int threshold) {
+        log.info("Fetching low stock products with threshold: {}", threshold);
+
+        // Validate threshold (minimum 0, reasonable default 10)
+        if (threshold < 0) {
+            log.warn("Threshold {} is negative, setting to 0", threshold);
+            threshold = 0;
+        }
+
+        // Fetch products with stock <= threshold, only active products, sorted by stock ASC
+        List<Product> lowStockProducts = productRepository
+                .findByStockQuantityLessThanEqualAndStatusTrueOrderByStockQuantityAsc(threshold);
+
+        // Convert to DTO list
+        List<LowStockProductResponse> response = lowStockProducts.stream()
+                .map(product -> LowStockProductResponse.builder()
+                        .productId(product.getId())
+                        .productName(product.getName())
+                        .imageUrl(product.getThumbnailUrl())
+                        .stockQuantity(product.getStockQuantity())
+                        .categoryName(product.getCategory() != null ? product.getCategory().getName() : "N/A")
+                        .brandName(product.getBrand() != null ? product.getBrand().getName() : "N/A")
+                        .status(product.getStatus())
+                        .build())
+                .collect(Collectors.toList());
+
+        log.info("Found {} low stock products (threshold: {})", response.size(), threshold);
+
+        return response;
     }
 }

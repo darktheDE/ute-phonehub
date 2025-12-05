@@ -1,6 +1,7 @@
 package com.utephonehub.backend.service;
 
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
+import com.utephonehub.backend.dto.response.dashboard.LowStockProductResponse;
 import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
 import com.utephonehub.backend.dto.response.dashboard.RecentOrderResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
@@ -75,4 +76,15 @@ public interface IDashboardService {
      * @return List of RecentOrderResponse
      */
     List<RecentOrderResponse> getRecentOrders(int limit);
+    
+    /**
+     * Get low stock products (products below threshold)
+     * - Products with stock quantity <= threshold
+     * - Only active products (status = true)
+     * - Sorted by stock quantity ascending (lowest first)
+     * 
+     * @param threshold Stock quantity threshold for warning
+     * @return List of LowStockProductResponse
+     */
+    List<LowStockProductResponse> getLowStockProducts(int threshold);
 }

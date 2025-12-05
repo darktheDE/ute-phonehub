@@ -2,6 +2,7 @@ package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
+import com.utephonehub.backend.dto.response.dashboard.LowStockProductResponse;
 import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
 import com.utephonehub.backend.dto.response.dashboard.RecentOrderResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
@@ -141,6 +142,25 @@ public class DashboardController {
         return ResponseEntity.ok(ApiResponse.success(
                 "Lấy danh sách đơn hàng gần đây thành công",
                 recentOrders
+        ));
+    }
+
+    @GetMapping("/low-stock-products")
+    @Operation(
+            summary = "Lấy danh sách sản phẩm sắp hết hàng",
+            description = "Lấy danh sách sản phẩm có số lượng tồn kho <= ngưỡng cảnh báo. Chỉ hiển thị sản phẩm đang hoạt động (status = true). Sắp xếp theo số lượng tồn kho tăng dần (ít nhất trước)."
+    )
+    public ResponseEntity<ApiResponse<List<LowStockProductResponse>>> getLowStockProducts(
+            @Parameter(description = "Ngưỡng cảnh báo tồn kho (VD: 10 = sản phẩm có <= 10 cái)")
+            @RequestParam(defaultValue = "10") int threshold
+    ) {
+        log.info("Admin fetch low stock products with threshold: {}", threshold);
+
+        List<LowStockProductResponse> lowStockProducts = dashboardService.getLowStockProducts(threshold);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Lấy danh sách sản phẩm sắp hết hàng thành công",
+                lowStockProducts
         ));
     }
 }
