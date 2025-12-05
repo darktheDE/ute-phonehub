@@ -2,19 +2,25 @@ package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
 import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
+import com.utephonehub.backend.dto.response.dashboard.RecentOrderResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
+import com.utephonehub.backend.dto.response.dashboard.TopProductResponse;
 import com.utephonehub.backend.dto.response.dashboard.UserRegistrationChartResponse;
 import com.utephonehub.backend.entity.Order;
+import com.utephonehub.backend.entity.Product;
 import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.enums.DashboardPeriod;
 import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.enums.RegistrationPeriod;
+import com.utephonehub.backend.repository.OrderItemRepository;
 import com.utephonehub.backend.repository.OrderRepository;
 import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.service.IDashboardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +44,7 @@ public class DashboardServiceImpl implements IDashboardService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final OrderItemRepository orderItemRepository;
 
     @Override
     public DashboardOverviewResponse getOverview() {
@@ -230,5 +237,82 @@ public class DashboardServiceImpl implements IDashboardService {
                 .total(total)
                 .period(period.name())
                 .build();
+    }
+
+    @Override
+    public List<TopProductResponse> getTopProducts(int limit) {
+        log.info("Fetching top {} selling products", limit);
+
+        // Get top selling products from OrderItem aggregation
+        List<Object[]> results = orderItemRepository.findTopSellingProducts(limit);
+
+        // Convert to DTO list
+        List<TopProductResponse> topProducts = results.stream()
+                .limit(limit) // Apply limit
+                .map(row -> {
+                    Product product = (Product) row[0];
+                    Long totalSold = ((Number) row[1]).longValue();
+                    BigDecimal revenue = (BigDecimal) row[2];
+
+                    return TopProductResponse.builder()
+                            .productId(product.getId())
+                            .productName(product.getName())
+                            .imageUrl(product.getThumbnailUrl())
+                            .totalSold(totalSold)
+                            .revenue(revenue)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        log.info("Found {} top selling products", topProducts.size());
+
+        return topProducts;
+    }
+
+    @Override
+    public List<RecentOrderResponse> getRecentOrders(int limit) {
+        log.info("Fetching {} recent orders", limit);
+
+        // Validate and cap limit at 20
+        if (limit > 20) {
+            log.warn("Limit {} exceeds maximum 20, capping to 20", limit);
+            limit = 20;
+        }
+        if (limit < 1) {
+            log.warn("Limit {} is less than 1, setting to default 10", limit);
+            limit = 10;
+        }
+
+        // Create Pageable for limiting results
+        Pageable pageable = PageRequest.of(0, limit);
+
+        // Fetch recent orders sorted by createdAt DESC
+        List<Order> orders = orderRepository.findAllByOrderByCreatedAtDesc(pageable);
+
+        // Vietnamese status labels mapping
+        Map<OrderStatus, String> statusLabels = Map.of(
+                OrderStatus.PENDING, "Chờ xác nhận",
+                OrderStatus.CONFIRMED, "Đã xác nhận",
+                OrderStatus.SHIPPED, "Đang giao hàng",
+                OrderStatus.DELIVERED, "Đã giao hàng",
+                OrderStatus.CANCELLED, "Đã hủy"
+        );
+
+        // Convert to DTO list
+        List<RecentOrderResponse> recentOrders = orders.stream()
+                .map(order -> RecentOrderResponse.builder()
+                        .orderId(order.getId())
+                        .customerName(order.getRecipientName())
+                        .customerEmail(order.getEmail())
+                        .totalAmount(order.getTotalAmount())
+                        .status(order.getStatus())
+                        .statusLabel(statusLabels.get(order.getStatus()))
+                        .createdAt(order.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        log.info("Found {} recent orders", recentOrders.size());
+
+        return recentOrders;
     }
 }

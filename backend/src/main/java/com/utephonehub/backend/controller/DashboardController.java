@@ -3,7 +3,9 @@ package com.utephonehub.backend.controller;
 import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
 import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
+import com.utephonehub.backend.dto.response.dashboard.RecentOrderResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
+import com.utephonehub.backend.dto.response.dashboard.TopProductResponse;
 import com.utephonehub.backend.dto.response.dashboard.UserRegistrationChartResponse;
 import com.utephonehub.backend.enums.DashboardPeriod;
 import com.utephonehub.backend.enums.RegistrationPeriod;
@@ -20,6 +22,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/dashboard")
@@ -99,6 +103,44 @@ public class DashboardController {
         return ResponseEntity.ok(ApiResponse.success(
                 "Lấy dữ liệu biểu đồ đăng ký người dùng thành công",
                 registrationChart
+        ));
+    }
+
+    @GetMapping("/top-products")
+    @Operation(
+            summary = "Lấy Top sản phẩm bán chạy",
+            description = "Lấy danh sách sản phẩm bán chạy nhất theo số lượng đã bán (chỉ tính từ đơn hàng DELIVERED). Sắp xếp từ cao đến thấp."
+    )
+    public ResponseEntity<ApiResponse<List<TopProductResponse>>> getTopProducts(
+            @Parameter(description = "Số lượng sản phẩm cần lấy (VD: 5 cho Top 5)")
+            @RequestParam(defaultValue = "5") int limit
+    ) {
+        log.info("Admin fetch top {} selling products", limit);
+
+        List<TopProductResponse> topProducts = dashboardService.getTopProducts(limit);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Lấy danh sách sản phẩm bán chạy thành công",
+                topProducts
+        ));
+    }
+
+    @GetMapping("/recent-orders")
+    @Operation(
+            summary = "Lấy danh sách đơn hàng gần đây",
+            description = "Lấy danh sách đơn hàng mới nhất, sắp xếp theo thời gian tạo (mới nhất trước). Mặc định: 10 đơn, tối đa: 20 đơn."
+    )
+    public ResponseEntity<ApiResponse<List<RecentOrderResponse>>> getRecentOrders(
+            @Parameter(description = "Số lượng đơn hàng cần lấy (default: 10, max: 20)")
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        log.info("Admin fetch {} recent orders", limit);
+
+        List<RecentOrderResponse> recentOrders = dashboardService.getRecentOrders(limit);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Lấy danh sách đơn hàng gần đây thành công",
+                recentOrders
         ));
     }
 }

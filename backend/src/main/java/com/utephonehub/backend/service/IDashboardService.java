@@ -2,10 +2,14 @@ package com.utephonehub.backend.service;
 
 import com.utephonehub.backend.dto.response.dashboard.DashboardOverviewResponse;
 import com.utephonehub.backend.dto.response.dashboard.OrderStatusChartResponse;
+import com.utephonehub.backend.dto.response.dashboard.RecentOrderResponse;
 import com.utephonehub.backend.dto.response.dashboard.RevenueChartResponse;
+import com.utephonehub.backend.dto.response.dashboard.TopProductResponse;
 import com.utephonehub.backend.dto.response.dashboard.UserRegistrationChartResponse;
 import com.utephonehub.backend.enums.DashboardPeriod;
 import com.utephonehub.backend.enums.RegistrationPeriod;
+
+import java.util.List;
 
 /**
  * Interface for Dashboard Service operations
@@ -51,4 +55,24 @@ public interface IDashboardService {
      * @return UserRegistrationChartResponse with labels, values, total
      */
     UserRegistrationChartResponse getUserRegistrationChart(RegistrationPeriod period);
+    
+    /**
+     * Get top selling products
+     * - Products sorted by total quantity sold (from DELIVERED orders only)
+     * - Includes product info, total sold quantity, and revenue
+     * 
+     * @param limit Number of top products to return (e.g., 5 for Top 5)
+     * @return List of TopProductResponse
+     */
+    List<TopProductResponse> getTopProducts(int limit);
+    
+    /**
+     * Get recent orders
+     * - Orders sorted by creation date (newest first)
+     * - Includes customer info, order amount, status
+     * 
+     * @param limit Number of recent orders to return (default: 10, max: 20)
+     * @return List of RecentOrderResponse
+     */
+    List<RecentOrderResponse> getRecentOrders(int limit);
 }
