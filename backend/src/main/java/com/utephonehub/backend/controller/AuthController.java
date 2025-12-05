@@ -39,7 +39,7 @@ public class AuthController {
         log.info("Register request for email: {}", request.getEmail());
         UserResponse user = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Đăng ký thành công", user));
+                .body(ApiResponse.created("Đăng ký thành công", user));
     }
 
     @PostMapping("/register/admin")
@@ -52,7 +52,7 @@ public class AuthController {
         log.info("Register admin request for email: {}", request.getEmail());
         UserResponse user = authService.registerAdmin(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Đăng ký tài khoản Admin thành công", user));
+                .body(ApiResponse.created("Đăng ký tài khoản Admin thành công", user));
     }
 
     @PostMapping("/login")
