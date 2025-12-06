@@ -23,6 +23,8 @@ export function RegisterForm() {
     fullName: '',
     email: '',
     phoneNumber: '',
+    gender: '' as 'MALE' | 'FEMALE' | 'OTHER' | '',
+    dateOfBirth: '',
     password: '',
     confirmPassword: '',
   });
@@ -33,7 +35,7 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -78,6 +80,9 @@ export function RegisterForm() {
         username: formData.username,
         fullName: formData.fullName,
         email: formData.email,
+        phoneNumber: formData.phoneNumber || undefined,
+        gender: formData.gender || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
       });
@@ -202,6 +207,46 @@ export function RegisterForm() {
             onChange={handleChange}
             placeholder="0912345678"
             className="w-full pl-10 pr-4 py-2.5 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            disabled={loading}
+          />
+        </div>
+      </div>
+
+      {/* Gender and Date of Birth - Grid Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Gender Field */}
+        <div>
+          <label htmlFor="gender" className="block text-sm font-medium text-foreground mb-1.5">
+            Giới tính
+          </label>
+          <select
+            id="gender"
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+            className="w-full px-4 py-2.5 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            disabled={loading}
+          >
+            <option value="">Chọn giới tính</option>
+            <option value="MALE">Nam</option>
+            <option value="FEMALE">Nữ</option>
+            <option value="OTHER">Khác</option>
+          </select>
+        </div>
+
+        {/* Date of Birth Field */}
+        <div>
+          <label htmlFor="dateOfBirth" className="block text-sm font-medium text-foreground mb-1.5">
+            Ngày sinh
+          </label>
+          <input
+            type="date"
+            id="dateOfBirth"
+            name="dateOfBirth"
+            value={formData.dateOfBirth}
+            onChange={handleChange}
+            max={new Date().toISOString().split('T')[0]}
+            className="w-full px-4 py-2.5 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             disabled={loading}
           />
         </div>

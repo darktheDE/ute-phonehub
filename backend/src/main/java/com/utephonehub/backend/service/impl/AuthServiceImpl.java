@@ -8,6 +8,7 @@ import com.utephonehub.backend.entity.Cart;
 import com.utephonehub.backend.enums.UserRole;
 import com.utephonehub.backend.enums.UserStatus;
 import com.utephonehub.backend.exception.BadRequestException;
+import com.utephonehub.backend.exception.ConflictException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.exception.UnauthorizedException;
 import com.utephonehub.backend.repository.UserRepository;
@@ -56,12 +57,12 @@ public class AuthServiceImpl implements IAuthService {
 
         // Check if email already exists
         if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("Email này đã được sử dụng");
+            throw new ConflictException("Email này đã được sử dụng");
         }
 
         // Check if username already exists
         if (request.getUsername() != null && userRepository.existsByUsername(request.getUsername())) {
-            throw new BadRequestException("Tên đăng nhập này đã được sử dụng");
+            throw new ConflictException("Tên đăng nhập này đã được sử dụng");
         }
 
         // Create new user
@@ -70,6 +71,8 @@ public class AuthServiceImpl implements IAuthService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .phoneNumber(request.getPhoneNumber())
+                .gender(request.getGender())
+                .dateOfBirth(request.getDateOfBirth())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(UserRole.CUSTOMER)
                 .status(UserStatus.ACTIVE)
@@ -101,12 +104,12 @@ public class AuthServiceImpl implements IAuthService {
 
         // Check if email already exists
         if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("Email này đã được sử dụng");
+            throw new ConflictException("Email này đã được sử dụng");
         }
 
         // Check if username already exists
         if (request.getUsername() != null && userRepository.existsByUsername(request.getUsername())) {
-            throw new BadRequestException("Tên đăng nhập này đã được sử dụng");
+            throw new ConflictException("Tên đăng nhập này đã được sử dụng");
         }
 
         // Create new admin user
@@ -115,6 +118,8 @@ public class AuthServiceImpl implements IAuthService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .phoneNumber(request.getPhoneNumber())
+                .gender(request.getGender())
+                .dateOfBirth(request.getDateOfBirth())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(UserRole.ADMIN)
                 .status(UserStatus.ACTIVE)
