@@ -41,10 +41,10 @@ public class Order {
     private String phoneNumber;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String shippingAddress;
+    private String streetAddress;
 
-    @Column(columnDefinition = "TEXT")
-    private String note;
+    @Column(length = 100)
+    private String city;
 
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
@@ -58,8 +58,8 @@ public class Order {
     private BigDecimal totalAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "promotion_id")
-    private Promotion promotion;
+    @JoinColumn(name = "voucher_id")
+    private Voucher voucher;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -71,11 +71,5 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items;
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderStatusHistory> statusHistory;
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<Payment> payments;
 }
 

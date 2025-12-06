@@ -37,6 +37,15 @@ public class SecurityConfig {
                     "/api/v1/auth/**",
                     "/api/v1/health/**"
                 ).permitAll()
+                // Cho phép truy cập tự do vào các API public của products (GET only)
+                .requestMatchers(
+                    "/api/v1/products",
+                    "/api/v1/products/*",
+                    "/api/v1/products/search",
+                    "/api/v1/products/filter",
+                    "/api/v1/products/category/*",
+                    "/api/v1/products/brand/*"
+                ).permitAll()
                 // Các request khác yêu cầu phải xác thực
                 .anyRequest().authenticated()
             )

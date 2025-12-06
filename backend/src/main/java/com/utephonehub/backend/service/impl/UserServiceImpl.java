@@ -45,12 +45,6 @@ public class UserServiceImpl implements IUserService {
         if (request.getPhoneNumber() != null) {
             user.setPhoneNumber(request.getPhoneNumber());
         }
-        if (request.getGender() != null) {
-            user.setGender(request.getGender());
-        }
-        if (request.getDateOfBirth() != null) {
-            user.setDateOfBirth(request.getDateOfBirth());
-        }
 
         user = userRepository.save(user);
         log.info("Profile updated successfully for user id: {}", userId);

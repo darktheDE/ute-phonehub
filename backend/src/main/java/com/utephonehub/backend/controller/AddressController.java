@@ -47,7 +47,7 @@ public class AddressController {
         Long userId = securityUtils.getCurrentUserId(httpRequest);
         AddressResponse address = addressService.createAddress(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.created("Thêm địa chỉ thành công", address));
+                .body(ApiResponse.success("Thêm địa chỉ thành công", address));
     }
 
     @PutMapping("/{id}")

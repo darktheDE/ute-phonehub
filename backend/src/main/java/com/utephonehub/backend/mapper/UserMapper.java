@@ -18,8 +18,6 @@ public interface UserMapper {
      */
     @Mapping(target = "role", source = "role")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "gender", source = "gender")
-    @Mapping(target = "dateOfBirth", source = "dateOfBirth")
     UserResponse toResponse(User user);
     
     /**
