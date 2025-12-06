@@ -1,13 +1,12 @@
 package com.utephonehub.backend.repository;
 
-import com.utephonehub.backend.entity.Voucher;
+import com.utephonehub.backend.entity.Conversation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface VoucherRepository extends JpaRepository<Voucher, Long> {
-    Optional<Voucher> findByCode(String code);
+public interface ConversationRepository extends JpaRepository<Conversation, Long> {
+    Optional<Conversation> findBySessionId(String sessionId);
 }
-

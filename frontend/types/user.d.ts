@@ -7,6 +7,8 @@ export interface User {
   fullName: string;
   email: string;
   phoneNumber: string | null;
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  dateOfBirth: string | null;
   role: string;
   status: string;
   createdAt?: string;
@@ -20,6 +22,8 @@ export interface UpdateProfileRequest {
   fullName?: string;
   email?: string;
   phoneNumber?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  dateOfBirth?: string;
 }
 
 /**
