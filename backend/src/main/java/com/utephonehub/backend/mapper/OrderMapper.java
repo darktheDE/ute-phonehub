@@ -17,7 +17,7 @@ public interface OrderMapper {
      * @param order Order entity
      * @return OrderResponse DTO
      */
-    @Mapping(source = "voucher.code", target = "voucherCode")
+    @Mapping(source = "promotion.code", target = "promotionCode")
     @Mapping(source = "items", target = "items")
     OrderResponse toOrderResponse(Order order);
     

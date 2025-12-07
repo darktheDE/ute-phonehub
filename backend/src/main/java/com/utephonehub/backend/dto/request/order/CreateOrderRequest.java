@@ -31,16 +31,15 @@ public class CreateOrderRequest {
     @Pattern(regexp = "^0\\d{9,10}$", message = "Số điện thoại không hợp lệ")
     private String phoneNumber;
     
-    @NotBlank(message = "Địa chỉ không được để trống")
-    private String streetAddress;
+    @NotBlank(message = "Địa chỉ giao hàng không được để trống")
+    private String shippingAddress;
     
-    @NotBlank(message = "Thành phố không được để trống")
-    private String city;
+    private String note; // Ghi chú đơn hàng (Optional)
     
     @NotNull(message = "Phương thức thanh toán không được để trống")
     private PaymentMethod paymentMethod;
     
-    private String voucherCode; // Optional
+    private Long promotionId; // ID của promotion (Optional)
     
     @NotEmpty(message = "Đơn hàng phải có ít nhất 1 sản phẩm")
     @Valid

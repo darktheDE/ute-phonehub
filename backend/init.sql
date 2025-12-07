@@ -113,15 +113,15 @@ CREATE TABLE IF NOT EXISTS products (
 -- Sample data: products
 INSERT INTO products (name, description, price, stock_quantity, thumbnail_url, specifications, status, category_id, brand_id) VALUES
 ('iPhone 15 Pro Max', 'Điện thoại cao cấp với chip A17 Pro', 32990000.00, 50, 'https://example.com/iphone15.jpg', 
-'{"screen": "6.7 inch OLED", "chip": "A17 Pro", "ram": "8GB", "storage": "256GB", "battery": "4422mAh", "camera": "48MP"}', TRUE, 1, 1),
+'{"screen": "6.7 inch OLED", "chip": "A17 Pro", "ram": "8GB", "storage": "256GB", "battery": "4422mAh", "camera": "48MP"}'::jsonb, TRUE, 1, 1),
 ('Samsung Galaxy S24 Ultra', 'Flagship Android với bút S Pen', 29990000.00, 45, 'https://example.com/s24ultra.jpg',
-'{"screen": "6.8 inch Dynamic AMOLED", "chip": "Snapdragon 8 Gen 3", "ram": "12GB", "storage": "512GB", "battery": "5000mAh", "camera": "200MP"}', TRUE, 1, 2),
+'{"screen": "6.8 inch Dynamic AMOLED", "chip": "Snapdragon 8 Gen 3", "ram": "12GB", "storage": "512GB", "battery": "5000mAh", "camera": "200MP"}'::jsonb, TRUE, 1, 2),
 ('Xiaomi 14', 'Smartphone hiệu năng cao giá tốt', 17990000.00, 60, 'https://example.com/xiaomi14.jpg',
-'{"screen": "6.36 inch AMOLED", "chip": "Snapdragon 8 Gen 3", "ram": "12GB", "storage": "256GB", "battery": "4610mAh", "camera": "50MP"}', TRUE, 1, 3),
+'{"screen": "6.36 inch AMOLED", "chip": "Snapdragon 8 Gen 3", "ram": "12GB", "storage": "256GB", "battery": "4610mAh", "camera": "50MP"}'::jsonb, TRUE, 1, 3),
 ('MacBook Pro 14 M3', 'Laptop chuyên dụng cho developer', 42990000.00, 30, 'https://example.com/macbook14.jpg',
-'{"screen": "14.2 inch Liquid Retina XDR", "chip": "Apple M3", "ram": "16GB", "storage": "512GB SSD", "battery": "70Wh", "weight": "1.55kg"}', TRUE, 2, 1),
+'{"screen": "14.2 inch Liquid Retina XDR", "chip": "Apple M3", "ram": "16GB", "storage": "512GB SSD", "battery": "70Wh", "weight": "1.55kg"}'::jsonb, TRUE, 2, 1),
 ('Dell XPS 13 Plus', 'Laptop mỏng nhẹ cao cấp', 35990000.00, 25, 'https://example.com/xps13.jpg',
-'{"screen": "13.4 inch FHD+", "chip": "Intel Core i7-1360P", "ram": "16GB", "storage": "1TB SSD", "battery": "55Wh", "weight": "1.24kg"}', TRUE, 2, 5);
+'{"screen": "13.4 inch FHD+", "chip": "Intel Core i7-1360P", "ram": "16GB", "storage": "1TB SSD", "battery": "55Wh", "weight": "1.24kg"}'::jsonb, TRUE, 2, 5);
 
 -- Table: product_images
 CREATE TABLE IF NOT EXISTS product_images (

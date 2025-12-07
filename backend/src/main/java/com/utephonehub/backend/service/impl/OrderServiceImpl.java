@@ -7,6 +7,7 @@ import com.utephonehub.backend.dto.response.order.OrderResponse;
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.entity.OrderItem;
 import com.utephonehub.backend.entity.Product;
+import com.utephonehub.backend.entity.Promotion;
 import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.enums.PaymentMethod;
@@ -17,6 +18,7 @@ import com.utephonehub.backend.mapper.OrderMapper;
 import com.utephonehub.backend.repository.OrderItemRepository;
 import com.utephonehub.backend.repository.OrderRepository;
 import com.utephonehub.backend.repository.ProductRepository;
+import com.utephonehub.backend.repository.PromotionRepository;
 import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.service.IOrderService;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +44,7 @@ public class OrderServiceImpl implements IOrderService {
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final PromotionRepository promotionRepository;
     private final OrderMapper orderMapper;
     
     @Override
@@ -113,31 +116,42 @@ public class OrderServiceImpl implements IOrderService {
             validatedItems.add(item);
         }
         
-        // 5. Tạo orderCode unique
+        // 5. Áp dụng promotion nếu có
+        Promotion promotion = null;
+        if (request.getPromotionId() != null) {
+            promotion = promotionRepository.findById(request.getPromotionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Promotion không tồn tại"));
+            
+            // TODO: Validate promotion còn hiệu lực, đủ điều kiện áp dụng
+            // Tính discount và trừ vào totalAmount (sẽ implement sau)
+        }
+        
+        // 6. Tạo orderCode unique
         String orderCode = generateUniqueOrderCode();
         
-        // 6. Xác định trạng thái đơn hàng
+        // 7. Xác định trạng thái đơn hàng
         OrderStatus initialStatus = request.getPaymentMethod() == PaymentMethod.VNPAY
                 ? OrderStatus.WAITING_PAYMENT
                 : OrderStatus.PROCESSING;
         
-        // 7. Tạo Order entity
+        // 8. Tạo Order entity
         Order order = Order.builder()
                 .orderCode(orderCode)
                 .user(user)
                 .email(request.getEmail())
                 .recipientName(request.getRecipientName())
                 .phoneNumber(request.getPhoneNumber())
-                .streetAddress(request.getStreetAddress())
-                .city(request.getCity())
+                .shippingAddress(request.getShippingAddress())
+                .note(request.getNote())
                 .status(initialStatus)
                 .paymentMethod(request.getPaymentMethod())
                 .totalAmount(totalAmount)
+                .promotion(promotion)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
         
-        // 8. Lưu Order
+        // 9. Lưu Order
         order = orderRepository.save(order);
         log.info("Created order: {}", orderCode);
         
@@ -190,19 +204,21 @@ public class OrderServiceImpl implements IOrderService {
     
     /**
      * Generate unique order code
-     * Format: ORD_YYYYMMDD_HHMMSS_XXXX
+     * Format: ORD_YYMMDDHHMMSS (20 chars max)
+     * Example: ORD_251207093853
      */
     private String generateUniqueOrderCode() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String random = String.format("%04d", new Random().nextInt(10000));
-        String orderCode = "ORD_" + timestamp + "_" + random;
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHHmmss"));
+        String orderCode = "ORD_" + timestamp;
         
         // Kiểm tra trùng lặp (rất hiếm khi xảy ra)
-        while (orderRepository.existsByOrderCode(orderCode)) {
-            random = String.format("%04d", new Random().nextInt(10000));
-            orderCode = "ORD_" + timestamp + "_" + random;
+        int counter = 1;
+        String uniqueCode = orderCode;
+        while (orderRepository.existsByOrderCode(uniqueCode)) {
+            uniqueCode = orderCode + counter;
+            counter++;
         }
         
-        return orderCode;
+        return uniqueCode;
     }
 }
