@@ -68,13 +68,21 @@ CREATE TABLE IF NOT EXISTS categories (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Sample data: categories
+-- Sample data: categories (root categories)
 INSERT INTO categories (name, description, parent_id) VALUES
-('Điện thoại', 'Điện thoại thông minh', NULL),
-('Laptop', 'Máy tính xách tay', NULL),
+('Điện thoại', 'Điện thoại thông minh các loại', NULL),
 ('Tablet', 'Máy tính bảng', NULL),
+('Laptop', 'Máy tính xách tay', NULL),
 ('Phụ kiện', 'Phụ kiện điện thoại và laptop', NULL),
-('Tai nghe', 'Tai nghe có dây và không dây', 4);
+('Đồng hồ thông minh', 'Smartwatch và thiết bị đeo tay', NULL);
+
+-- Sample data: categories (sub-categories - danh mục con)
+INSERT INTO categories (name, description, parent_id) VALUES
+-- Sub-categories of "Phụ kiện" (id=4)
+('Tai nghe', 'Tai nghe có dây và không dây', 4),
+('Sạc dự phòng', 'Pin sạc dự phòng các loại', 4),
+('Cáp sạc', 'Cáp sạc USB-C, Lightning, Micro USB', 4),
+('Ốp lưng', 'Ốp lưng bảo vệ điện thoại', 4);
 
 -- Table: brands
 CREATE TABLE IF NOT EXISTS brands (
