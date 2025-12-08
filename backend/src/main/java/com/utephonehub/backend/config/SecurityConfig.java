@@ -3,6 +3,7 @@ package com.utephonehub.backend.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -13,6 +14,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -37,6 +39,14 @@ public class SecurityConfig {
                     "/api/v1/auth/**",
                     "/api/v1/health/**"
                 ).permitAll()
+                // Cho phép truy cập tự do vào API danh mục (public - chỉ GET)
+                .requestMatchers(
+                    "/api/v1/categories"
+                ).permitAll()
+                // Yêu cầu ADMIN cho các API quản lý danh mục
+                .requestMatchers(
+                    "/api/v1/admin/categories/**"
+                ).hasAuthority("ADMIN")
                 // Các request khác yêu cầu phải xác thực
                 .anyRequest().authenticated()
             )
