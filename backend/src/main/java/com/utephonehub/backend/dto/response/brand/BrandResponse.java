@@ -1,0 +1,44 @@
+package com.utephonehub.backend.dto.response.brand;
+
+import com.utephonehub.backend.entity.Brand;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class BrandResponse {
+
+    private Long id;
+    private String name;
+    private String description;
+    private String logoUrl;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    /**
+     * Convert Brand entity to BrandResponse DTO
+     * @param brand Brand entity
+     * @return BrandResponse
+     */
+    public static BrandResponse fromEntity(Brand brand) {
+        if (brand == null) {
+            return null;
+        }
+
+        return BrandResponse.builder()
+                .id(brand.getId())
+                .name(brand.getName())
+                .description(brand.getDescription())
+                .logoUrl(brand.getLogoUrl())
+                .createdAt(brand.getCreatedAt())
+                .updatedAt(brand.getUpdatedAt())
+                .build();
+    }
+}
+
