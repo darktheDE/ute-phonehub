@@ -15,7 +15,9 @@ public class PaymentResponse {
     
     private Long orderId;
     
-    private String provider; // VNPAY, COD, etc.
+    private String paymentMethod; // COD, BANK_TRANSFER, VNPAY
+    
+    private String provider; // VNPAY, MOMO (chỉ có khi paymentMethod = VNPAY/MOMO)
     
     private String transactionId;
     

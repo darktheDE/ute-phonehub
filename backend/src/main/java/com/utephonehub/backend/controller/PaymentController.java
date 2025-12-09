@@ -2,10 +2,13 @@ package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.request.payment.CreatePaymentRequest;
+import com.utephonehub.backend.dto.response.payment.PaymentHistoryResponse;
 import com.utephonehub.backend.dto.response.payment.PaymentResponse;
 import com.utephonehub.backend.dto.response.payment.VNPayPaymentResponse;
 import com.utephonehub.backend.service.IPaymentService;
+import com.utephonehub.backend.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,6 +29,7 @@ import java.io.IOException;
 public class PaymentController {
     
     private final IPaymentService paymentService;
+    private final SecurityUtils securityUtils;
     
     /**
      * Create VNPay payment URL
@@ -127,28 +131,21 @@ public class PaymentController {
     }
     
     /**
-     * Get payment by order ID
+     * Get customer payment history
      */
-    @GetMapping("/order/{orderId}")
-    @Operation(summary = "Get payment by order ID", description = "Retrieve payment information for specific order")
-    public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentByOrderId(@PathVariable Long orderId) {
-        log.info("Getting payment for order: {}", orderId);
+    @GetMapping("/history")
+    @Operation(summary = "Get customer payment history", description = "Get payment history for logged in customer with pagination")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<ApiResponse<PaymentHistoryResponse>> getPaymentHistory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request) {
         
-        PaymentResponse response = paymentService.getPaymentByOrderId(orderId);
+        Long userId = securityUtils.getCurrentUserId(request);
+        log.info("Getting payment history for user: {}, page: {}, size: {}", userId, page, size);
         
-        return ResponseEntity.ok(ApiResponse.success("Payment retrieved successfully", response));
-    }
-    
-    /**
-     * Get payment by payment ID
-     */
-    @GetMapping("/{paymentId}")
-    @Operation(summary = "Get payment by ID", description = "Retrieve payment information by payment ID")
-    public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentById(@PathVariable Long paymentId) {
-        log.info("Getting payment: {}", paymentId);
+        PaymentHistoryResponse response = paymentService.getCustomerPaymentHistory(userId, page, size);
         
-        PaymentResponse response = paymentService.getPaymentById(paymentId);
-        
-        return ResponseEntity.ok(ApiResponse.success("Payment retrieved successfully", response));
+        return ResponseEntity.ok(ApiResponse.success("Payment history retrieved successfully", response));
     }
 }

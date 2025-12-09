@@ -1,9 +1,15 @@
 package com.utephonehub.backend.service;
 
 import com.utephonehub.backend.dto.request.payment.CreatePaymentRequest;
+import com.utephonehub.backend.dto.response.payment.AdminPaymentListResponse;
+import com.utephonehub.backend.dto.response.payment.PaymentHistoryResponse;
 import com.utephonehub.backend.dto.response.payment.PaymentResponse;
 import com.utephonehub.backend.dto.response.payment.VNPayPaymentResponse;
+import com.utephonehub.backend.enums.PaymentMethod;
+import com.utephonehub.backend.enums.PaymentStatus;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.time.LocalDateTime;
 
 public interface IPaymentService {
     
@@ -18,12 +24,20 @@ public interface IPaymentService {
     PaymentResponse handlePaymentCallback(HttpServletRequest request);
     
     /**
-     * Get payment by order ID
+     * Get payment history for customer
      */
-    PaymentResponse getPaymentByOrderId(Long orderId);
+    PaymentHistoryResponse getCustomerPaymentHistory(Long userId, int page, int size);
     
     /**
-     * Get payment by ID
+     * Get all payments for admin with filtering
      */
-    PaymentResponse getPaymentById(Long paymentId);
+    AdminPaymentListResponse getAdminPayments(
+            PaymentStatus status,
+            PaymentMethod paymentMethod,
+            String provider,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            int page,
+            int size
+    );
 }
