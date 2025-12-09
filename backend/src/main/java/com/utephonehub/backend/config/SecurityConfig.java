@@ -37,6 +37,10 @@ public class SecurityConfig {
                     "/api/v1/auth/**",
                     "/api/v1/health/**"
                 ).permitAll()
+                // Cho phép VNPay endpoints
+                .requestMatchers(
+                    "/api/payments/**"
+                ).permitAll()
                 // Các request khác yêu cầu phải xác thực
                 .anyRequest().authenticated()
             )
