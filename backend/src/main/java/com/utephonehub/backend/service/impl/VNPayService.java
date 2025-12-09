@@ -1,11 +1,13 @@
 package com.utephonehub.backend.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.utephonehub.backend.config.VNPayConfig;
 import com.utephonehub.backend.dto.request.payment.CreatePaymentRequest;
 import com.utephonehub.backend.dto.response.payment.PaymentResponse;
 import com.utephonehub.backend.dto.response.payment.VNPayPaymentResponse;
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.entity.Payment;
+import com.utephonehub.backend.entity.PaymentCallbackLog;
 import com.utephonehub.backend.enums.EWalletProvider;
 import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.enums.PaymentStatus;
@@ -13,6 +15,7 @@ import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.repository.OrderRepository;
 import com.utephonehub.backend.repository.PaymentRepository;
+import com.utephonehub.backend.repository.PaymentCallbackLogRepository;
 import com.utephonehub.backend.service.IPaymentService;
 import com.utephonehub.backend.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,6 +38,8 @@ public class VNPayService implements IPaymentService {
     private final VNPayConfig vnPayConfig;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final PaymentCallbackLogRepository callbackLogRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Override
     @Transactional
@@ -147,11 +152,7 @@ public class VNPayService implements IPaymentService {
         // 4. Verify signature
         String hashData = VNPayUtil.buildHashData(fields);
         String calculatedHash = VNPayUtil.hmacSHA512(vnPayConfig.getHashSecret(), hashData);
-        
-        if (!calculatedHash.equals(vnpSecureHash)) {
-            log.error("Invalid VNPay signature");
-            throw new BadRequestException("Invalid payment signature");
-        }
+        boolean signatureValid = calculatedHash.equals(vnpSecureHash);
         
         // 5. Get transaction info
         String vnpTxnRef = request.getParameter("vnp_TxnRef"); // This is orderCode
@@ -176,6 +177,12 @@ public class VNPayService implements IPaymentService {
         
         payment.setTransactionId(vnpTransactionNo);
         
+        // 7.1. Nếu signature không hợp lệ, throw exception NGAY
+        if (!signatureValid) {
+            log.error("Invalid VNPay signature");
+            throw new BadRequestException("Invalid payment signature");
+        }
+        
         // 8. Update payment and order status based on VNPay response
         if ("00".equals(vnpResponseCode) && "00".equals(vnpTransactionStatus)) {
             // Payment successful
@@ -191,6 +198,24 @@ public class VNPayService implements IPaymentService {
         
         paymentRepository.save(payment);
         orderRepository.save(order);
+        
+        // 8.1. LƯU CALLBACK LOG SAU KHI PAYMENT ĐÃ CÓ ID (Audit trail)
+        try {
+            PaymentCallbackLog callbackLog = PaymentCallbackLog.builder()
+                    .payment(payment)
+                    .requestData(objectMapper.writeValueAsString(fields))
+                    .responseCode(vnpResponseCode)
+                    .transactionId(vnpTransactionNo)
+                    .signature(vnpSecureHash)
+                    .signatureValid(signatureValid)
+                    .errorMessage(null) // Signature đã valid nếu tới đây
+                    .build();
+            callbackLogRepository.save(callbackLog);
+            log.info("Saved callback log for payment ID: {}", payment.getId());
+        } catch (Exception e) {
+            log.error("Error saving callback log", e);
+            // Không throw exception để không ảnh hưởng flow chính
+        }
         
         // 9. Return payment response
         return PaymentResponse.builder()
