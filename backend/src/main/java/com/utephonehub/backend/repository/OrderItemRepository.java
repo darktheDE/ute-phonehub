@@ -27,4 +27,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
            "GROUP BY oi.product " +
            "ORDER BY totalQuantity DESC")
     List<Object[]> findTopSellingProducts(@Param("limit") int limit);
+    
+    // Tìm tất cả items của 1 order
+    List<OrderItem> findByOrderId(Long orderId);
 }

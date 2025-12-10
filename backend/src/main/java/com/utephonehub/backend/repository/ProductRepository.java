@@ -21,5 +21,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * @return List of products with low stock
      */
     List<Product> findByStockQuantityLessThanEqualAndStatusTrueOrderByStockQuantityAsc(Integer threshold);
+    boolean existsByCategoryId(Long categoryId);
+    boolean existsByBrandId(Long brandId);
+    // Tìm nhiều sản phẩm theo danh sách IDs
+    List<Product> findAllByIdIn(List<Long> ids);
 }
 
