@@ -87,7 +87,7 @@ export function RegisterForm() {
         confirmPassword: formData.confirmPassword,
       });
 
-      if (response.code === 201) {
+      if (response.success && response.status === 201) {
         setSuccess('Đăng ký thành công! Đang chuyển đến trang đăng nhập...');
         setTimeout(() => {
           router.push(ROUTES.LOGIN);

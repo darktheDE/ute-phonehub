@@ -131,8 +131,8 @@ public class OrderServiceImpl implements IOrderService {
         
         // 7. Xác định trạng thái đơn hàng
         OrderStatus initialStatus = request.getPaymentMethod() == PaymentMethod.VNPAY
-                ? OrderStatus.WAITING_PAYMENT
-                : OrderStatus.PROCESSING;
+                ? OrderStatus.PENDING
+                : OrderStatus.CONFIRMED;
         
         // 8. Tạo Order entity
         Order order = Order.builder()

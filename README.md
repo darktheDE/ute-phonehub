@@ -18,7 +18,7 @@ cd ute-phonehub
 
 ```bash
 cd backend
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 - Backend chạy tại: `http://localhost:8081`
