@@ -1,10 +1,11 @@
 package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
-import com.utephonehub.backend.dto.auth.*;
-import com.utephonehub.backend.dto.user.UserResponse;
-import com.utephonehub.backend.service.AuthService;
-import com.utephonehub.backend.util.JwtTokenProvider;
+import com.utephonehub.backend.dto.request.auth.*;
+import com.utephonehub.backend.dto.response.auth.AuthResponse;
+import com.utephonehub.backend.dto.response.user.UserResponse;
+import com.utephonehub.backend.service.IAuthService;
+import com.utephonehub.backend.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,8 +26,8 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Authentication", description = "API xác thực và quản lý phiên đăng nhập")
 public class AuthController {
 
-    private final AuthService authService;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final IAuthService authService;
+    private final SecurityUtils securityUtils;
 
     @PostMapping("/register")
     @Operation(summary = "Đăng ký tài khoản mới", description = "Tạo một tài khoản khách hàng mới")
@@ -38,7 +39,7 @@ public class AuthController {
         log.info("Register request for email: {}", request.getEmail());
         UserResponse user = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Đăng ký thành công", user));
+                .body(ApiResponse.created("Đăng ký thành công", user));
     }
 
     @PostMapping("/register/admin")
@@ -51,7 +52,7 @@ public class AuthController {
         log.info("Register admin request for email: {}", request.getEmail());
         UserResponse user = authService.registerAdmin(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Đăng ký tài khoản Admin thành công", user));
+                .body(ApiResponse.created("Đăng ký tài khoản Admin thành công", user));
     }
 
     @PostMapping("/login")
@@ -86,9 +87,8 @@ public class AuthController {
     })
     public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request) {
         log.info("Logout request");
-        String token = extractTokenFromRequest(request);
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        Long userId = securityUtils.getUserIdIfAuthenticated(request);
+        if (userId != null) {
             authService.logout(userId);
         }
         return ResponseEntity.ok(ApiResponse.success("Đăng xuất thành công", null));
@@ -116,14 +116,6 @@ public class AuthController {
         log.info("Verify OTP and reset password for email: {}", request.getEmail());
         authService.verifyOtpAndResetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Mật khẩu đã được đặt lại thành công", null));
-    }
-
-    private String extractTokenFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-        return null;
     }
 }
 

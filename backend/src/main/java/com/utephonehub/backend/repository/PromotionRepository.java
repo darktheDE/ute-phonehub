@@ -13,7 +13,5 @@ public interface PromotionRepository extends JpaRepository<Promotion, String> {
 
     Optional<Promotion> findByTemplateCode(String code);
 
-    // --- BỔ SUNG DÒNG NÀY ---
     List<Promotion> findByEffectiveDateBeforeAndExpirationDateAfter(LocalDateTime now1, LocalDateTime now2);
-    // ------------------------
 }

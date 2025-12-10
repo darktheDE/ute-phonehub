@@ -22,7 +22,7 @@ public class GlobalExceptionHandler {
             ResourceNotFoundException ex, WebRequest request) {
         log.error("Resource not found: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(404, ex.getMessage()));
+                .body(ApiResponse.notFound(ex.getMessage()));
     }
 
     @ExceptionHandler(BadRequestException.class)
@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
             BadRequestException ex, WebRequest request) {
         log.error("Bad request: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400, ex.getMessage()));
+                .body(ApiResponse.badRequest(ex.getMessage()));
     }
 
     @ExceptionHandler(UnauthorizedException.class)
@@ -38,7 +38,31 @@ public class GlobalExceptionHandler {
             UnauthorizedException ex, WebRequest request) {
         log.error("Unauthorized: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error(401, ex.getMessage()));
+                .body(ApiResponse.unauthorized(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiResponse<?>> handleForbiddenException(
+            ForbiddenException ex, WebRequest request) {
+        log.error("Forbidden: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.forbidden(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiResponse<?>> handleConflictException(
+            ConflictException ex, WebRequest request) {
+        log.error("Conflict: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.conflict(ex.getMessage()));
+    }
+
+    @ExceptionHandler(EmailServiceException.class)
+    public ResponseEntity<ApiResponse<?>> handleEmailServiceException(
+            EmailServiceException ex, WebRequest request) {
+        log.error("Email service error: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.internalServerError(ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -60,7 +84,7 @@ public class GlobalExceptionHandler {
             Exception ex, WebRequest request) {
         log.error("Internal server error: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Internal server error"));
+                .body(ApiResponse.internalServerError("Internal server error"));
     }
 }
 

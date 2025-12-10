@@ -1,0 +1,100 @@
+/**
+ * Validation utilities for forms
+ */
+
+export interface ValidationResult {
+  isValid: boolean;
+  error?: string;
+}
+
+/**
+ * Validate email format
+ */
+export const validateEmail = (email: string): ValidationResult => {
+  if (!email) {
+    return { isValid: false, error: 'Email là bắt buộc' };
+  }
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { isValid: false, error: 'Vui lòng nhập địa chỉ email hợp lệ' };
+  }
+  
+  return { isValid: true };
+};
+
+/**
+ * Validate password strength
+ */
+export const validatePassword = (password: string): ValidationResult => {
+  if (!password) {
+    return { isValid: false, error: 'Mật khẩu là bắt buộc' };
+  }
+  
+  if (password.length < 8) {
+    return { isValid: false, error: 'Mật khẩu phải có ít nhất 8 ký tự' };
+  }
+  
+  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+    return { isValid: false, error: 'Mật khẩu phải chứa chữ hoa, chữ thường và số' };
+  }
+  
+  return { isValid: true };
+};
+
+/**
+ * Validate username format
+ */
+export const validateUsername = (username: string): ValidationResult => {
+  if (!username) {
+    return { isValid: false, error: 'Tên đăng nhập là bắt buộc' };
+  }
+  
+  if (username.length < 3) {
+    return { isValid: false, error: 'Tên đăng nhập phải có ít nhất 3 ký tự' };
+  }
+  
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return { isValid: false, error: 'Tên đăng nhập chỉ được chứa chữ, số và dấu gạch dưới' };
+  }
+  
+  return { isValid: true };
+};
+
+/**
+ * Validate phone number (Vietnamese format)
+ */
+export const validatePhoneNumber = (phone: string): ValidationResult => {
+  if (!phone) {
+    return { isValid: false, error: 'Số điện thoại là bắt buộc' };
+  }
+  
+  const phoneRegex = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
+  if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+    return { isValid: false, error: 'Số điện thoại không hợp lệ' };
+  }
+  
+  return { isValid: true };
+};
+
+/**
+ * Validate required field
+ */
+export const validateRequired = (value: string, fieldName: string): ValidationResult => {
+  if (!value || value.trim() === '') {
+    return { isValid: false, error: `${fieldName} là bắt buộc` };
+  }
+  
+  return { isValid: true };
+};
+
+/**
+ * Validate password confirmation
+ */
+export const validatePasswordMatch = (password: string, confirmPassword: string): ValidationResult => {
+  if (password !== confirmPassword) {
+    return { isValid: false, error: 'Mật khẩu xác nhận không khớp' };
+  }
+  
+  return { isValid: true };
+};

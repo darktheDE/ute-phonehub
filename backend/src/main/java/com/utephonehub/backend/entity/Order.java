@@ -1,5 +1,7 @@
 package com.utephonehub.backend.entity;
 
+import com.utephonehub.backend.enums.OrderStatus;
+import com.utephonehub.backend.enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -39,10 +41,10 @@ public class Order {
     private String phoneNumber;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String streetAddress;
+    private String shippingAddress;
 
-    @Column(length = 100)
-    private String city;
+    @Column(columnDefinition = "TEXT")
+    private String note;
 
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
@@ -56,8 +58,8 @@ public class Order {
     private BigDecimal totalAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "voucher_id")
-    private PromotionTemplate voucher;
+    @JoinColumn(name = "promotion_id")
+    private Promotion promotion;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -70,12 +72,10 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items;
 
-    public enum OrderStatus {
-        PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
-    }
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    private List<OrderStatusHistory> statusHistory;
 
-    public enum PaymentMethod {
-        COD, VNPAY, BANK_TRANSFER
-    }
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    private List<Payment> payments;
 }
 

@@ -1,10 +1,14 @@
 package com.utephonehub.backend.entity;
 
+import com.utephonehub.backend.enums.EGender;
+import com.utephonehub.backend.enums.UserRole;
+import com.utephonehub.backend.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -36,6 +40,13 @@ public class User {
     @Column(length = 15)
     private String phoneNumber;
 
+    @Column(length = 10)
+    @Enumerated(EnumType.STRING)
+    private EGender gender;
+
+    @Column
+    private LocalDate dateOfBirth;
+
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private UserRole role;
@@ -58,13 +69,5 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Cart cart;
-
-    public enum UserRole {
-        ADMIN, CUSTOMER
-    }
-
-    public enum UserStatus {
-        ACTIVE, LOCKED
-    }
 }
 

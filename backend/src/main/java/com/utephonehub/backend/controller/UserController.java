@@ -1,11 +1,11 @@
 package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
-import com.utephonehub.backend.dto.user.ChangePasswordRequest;
-import com.utephonehub.backend.dto.user.UpdateProfileRequest;
-import com.utephonehub.backend.dto.user.UserResponse;
-import com.utephonehub.backend.service.UserService;
-import com.utephonehub.backend.util.JwtTokenProvider;
+import com.utephonehub.backend.dto.request.user.ChangePasswordRequest;
+import com.utephonehub.backend.dto.request.user.UpdateProfileRequest;
+import com.utephonehub.backend.dto.response.user.UserResponse;
+import com.utephonehub.backend.service.IUserService;
+import com.utephonehub.backend.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,14 +24,14 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "Bearer Authentication")
 public class UserController {
 
-    private final UserService userService;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final IUserService userService;
+    private final SecurityUtils securityUtils;
 
     @GetMapping("/me")
     @Operation(summary = "Lấy thông tin người dùng hiện tại", description = "Trả về thông tin chi tiết của người dùng đang đăng nhập")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(HttpServletRequest request) {
         log.info("Get current user info");
-        Long userId = extractUserIdFromRequest(request);
+        Long userId = securityUtils.getCurrentUserId(request);
         UserResponse user = userService.getUserById(userId);
         return ResponseEntity.ok(ApiResponse.success(user));
     }
@@ -42,7 +42,7 @@ public class UserController {
             @Valid @RequestBody UpdateProfileRequest request,
             HttpServletRequest httpRequest) {
         log.info("Update profile request");
-        Long userId = extractUserIdFromRequest(httpRequest);
+        Long userId = securityUtils.getCurrentUserId(httpRequest);
         UserResponse user = userService.updateProfile(userId, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin thành công", user));
     }
@@ -53,20 +53,9 @@ public class UserController {
             @Valid @RequestBody ChangePasswordRequest request,
             HttpServletRequest httpRequest) {
         log.info("Change password request");
-        Long userId = extractUserIdFromRequest(httpRequest);
+        Long userId = securityUtils.getCurrentUserId(httpRequest);
         userService.changePassword(userId, request);
         return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công", null));
-    }
-
-    private Long extractUserIdFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            String token = bearerToken.substring(7);
-            if (jwtTokenProvider.validateToken(token)) {
-                return jwtTokenProvider.getUserIdFromToken(token);
-            }
-        }
-        throw new RuntimeException("Invalid or missing token");
     }
 }
 

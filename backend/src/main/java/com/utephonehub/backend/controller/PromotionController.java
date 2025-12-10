@@ -31,8 +31,7 @@ public class PromotionController {
     public ResponseEntity<ApiResponse<PromotionResponse>> createPromotion(@RequestBody @Valid PromotionRequest request) {
         PromotionResponse response = promotionService.createPromotion(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponse.<PromotionResponse>builder()
-                        .code(201).message("Created successfully").data(response).build()
+                ApiResponse.created("Created successfully", response)
         );
     }
 
@@ -42,32 +41,28 @@ public class PromotionController {
             @PathVariable String id,
             @RequestBody @Valid PromotionRequest request) {
         PromotionResponse response = promotionService.modifyPromotion(id, request);
-        return ResponseEntity.ok(ApiResponse.<PromotionResponse>builder()
-                .code(200).message("Modified successfully").data(response).build());
+        return ResponseEntity.ok(ApiResponse.success("Modified successfully", response));
     }
 
     @PatchMapping("/admin/promotions/{id}/disable")
     @Operation(summary = "[Admin] Disable Promotion - Vô hiệu hóa khuyến mãi")
     public ResponseEntity<ApiResponse<Void>> disablePromotion(@PathVariable String id) {
         promotionService.disable(id);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .code(200).message("Disabled successfully").build());
+        return ResponseEntity.ok(ApiResponse.noContent("Disabled successfully"));
     }
 
     @GetMapping("/admin/promotions/{id}")
     @Operation(summary = "[Admin] See Promotion Detail - Xem chi tiết")
     public ResponseEntity<ApiResponse<PromotionResponse>> getDetails(@PathVariable String id) {
         PromotionResponse response = promotionService.getDetails(id);
-        return ResponseEntity.ok(ApiResponse.<PromotionResponse>builder()
-                .code(200).message("Success").data(response).build());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/admin/promotions")
     @Operation(summary = "[Admin] Get All - Xem danh sách tất cả khuyến mãi")
     public ResponseEntity<ApiResponse<List<PromotionResponse>>> getAllPromotions() {
         List<PromotionResponse> response = promotionService.getAllPromotions();
-        return ResponseEntity.ok(ApiResponse.<List<PromotionResponse>>builder()
-                .code(200).message("Success").data(response).build());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     // ==========================================
@@ -79,8 +74,7 @@ public class PromotionController {
     public ResponseEntity<ApiResponse<List<PromotionResponse>>> checkAndGetAvailablePromotions(
             @RequestParam(defaultValue = "0") Double orderTotal) {
         List<PromotionResponse> response = promotionService.checkAndGetAvailablePromotions(orderTotal);
-        return ResponseEntity.ok(ApiResponse.<List<PromotionResponse>>builder()
-                .code(200).message("Success").data(response).build());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/promotions/calculate")
@@ -89,7 +83,6 @@ public class PromotionController {
             @RequestParam String promotionId,
             @RequestParam Double orderTotal) {
         Double discountAmount = promotionService.calculateDiscount(promotionId, orderTotal);
-        return ResponseEntity.ok(ApiResponse.<Double>builder()
-                .code(200).message("Success").data(discountAmount).build());
+        return ResponseEntity.ok(ApiResponse.success(discountAmount));
     }
 }

@@ -1,10 +1,10 @@
 package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
-import com.utephonehub.backend.dto.address.AddressRequest;
-import com.utephonehub.backend.dto.address.AddressResponse;
-import com.utephonehub.backend.service.AddressService;
-import com.utephonehub.backend.util.JwtTokenProvider;
+import com.utephonehub.backend.dto.request.address.AddressRequest;
+import com.utephonehub.backend.dto.response.address.AddressResponse;
+import com.utephonehub.backend.service.IAddressService;
+import com.utephonehub.backend.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,14 +26,14 @@ import java.util.List;
 @SecurityRequirement(name = "Bearer Authentication")
 public class AddressController {
 
-    private final AddressService addressService;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final IAddressService addressService;
+    private final SecurityUtils securityUtils;
 
     @GetMapping
     @Operation(summary = "Lấy danh sách địa chỉ", description = "Trả về tất cả địa chỉ giao hàng của người dùng")
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getAddresses(HttpServletRequest request) {
         log.info("Get addresses request");
-        Long userId = extractUserIdFromRequest(request);
+        Long userId = securityUtils.getCurrentUserId(request);
         List<AddressResponse> addresses = addressService.getUserAddresses(userId);
         return ResponseEntity.ok(ApiResponse.success(addresses));
     }
@@ -44,10 +44,10 @@ public class AddressController {
             @Valid @RequestBody AddressRequest request,
             HttpServletRequest httpRequest) {
         log.info("Create address request");
-        Long userId = extractUserIdFromRequest(httpRequest);
+        Long userId = securityUtils.getCurrentUserId(httpRequest);
         AddressResponse address = addressService.createAddress(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Thêm địa chỉ thành công", address));
+                .body(ApiResponse.created("Thêm địa chỉ thành công", address));
     }
 
     @PutMapping("/{id}")
@@ -57,7 +57,7 @@ public class AddressController {
             @Valid @RequestBody AddressRequest request,
             HttpServletRequest httpRequest) {
         log.info("Update address request for id: {}", id);
-        Long userId = extractUserIdFromRequest(httpRequest);
+        Long userId = securityUtils.getCurrentUserId(httpRequest);
         AddressResponse address = addressService.updateAddress(userId, id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật địa chỉ thành công", address));
     }
@@ -68,7 +68,7 @@ public class AddressController {
             @PathVariable Long id,
             HttpServletRequest request) {
         log.info("Delete address request for id: {}", id);
-        Long userId = extractUserIdFromRequest(request);
+        Long userId = securityUtils.getCurrentUserId(request);
         addressService.deleteAddress(userId, id);
         return ResponseEntity.ok(ApiResponse.success("Xóa địa chỉ thành công", null));
     }
@@ -79,20 +79,9 @@ public class AddressController {
             @PathVariable Long id,
             HttpServletRequest request) {
         log.info("Set default address request for id: {}", id);
-        Long userId = extractUserIdFromRequest(request);
+        Long userId = securityUtils.getCurrentUserId(request);
         AddressResponse address = addressService.setDefaultAddress(userId, id);
         return ResponseEntity.ok(ApiResponse.success("Đặt địa chỉ mặc định thành công", address));
-    }
-
-    private Long extractUserIdFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            String token = bearerToken.substring(7);
-            if (jwtTokenProvider.validateToken(token)) {
-                return jwtTokenProvider.getUserIdFromToken(token);
-            }
-        }
-        throw new RuntimeException("Invalid or missing token");
     }
 }
 
