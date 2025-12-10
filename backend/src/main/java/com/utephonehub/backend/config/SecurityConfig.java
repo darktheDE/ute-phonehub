@@ -39,13 +39,16 @@ public class SecurityConfig {
                     "/api/v1/auth/**",
                     "/api/v1/health/**"
                 ).permitAll()
-                // Cho phép truy cập tự do vào API danh mục (public - chỉ GET)
+                // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
                 .requestMatchers(
-                    "/api/v1/categories"
+                    "/api/v1/categories",
+                    "/api/v1/brands",
+                    "/api/v1/brands/**"
                 ).permitAll()
-                // Yêu cầu ADMIN cho các API quản lý danh mục
+                // Yêu cầu ADMIN cho các API quản lý danh mục và thương hiệu
                 .requestMatchers(
-                    "/api/v1/admin/categories/**"
+                    "/api/v1/admin/categories/**",
+                    "/api/v1/admin/brands/**"
                 ).hasAuthority("ADMIN")
                 // Các request khác yêu cầu phải xác thực
                 .anyRequest().authenticated()
