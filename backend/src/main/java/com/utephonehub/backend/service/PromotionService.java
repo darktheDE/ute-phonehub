@@ -21,6 +21,9 @@ public interface PromotionService {
     // SD: See Promotion Detail -> getDetails()
     PromotionResponse getDetails(String id);
 
+    // SD: Get All Promotions -> getAllPromotions()
+    List<PromotionResponse> getAllPromotions();
+
     // --- CUSTOMER: APPLY PROMOTION ---
 
     // SD: Access Promotion List -> checkAndGetAvailablePromotions()

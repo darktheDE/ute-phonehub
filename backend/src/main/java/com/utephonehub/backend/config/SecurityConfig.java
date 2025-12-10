@@ -59,10 +59,8 @@ public class SecurityConfig {
                     "/api/v1/auth/**",
                     "/api/v1/health/**"
                 ).permitAll()
-                // --- THÊM DÒNG NÀY ĐỂ TEST MODULE M09 ---
-                .requestMatchers("/api/v1/promotions/**").permitAll()
-                // ----------------------------------------
-                // Các request khác yêu cầu phải xác thực
+                    .requestMatchers("/api/v1/admin/promotions/**").permitAll()
+                    .requestMatchers("/api/v1/promotions/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
