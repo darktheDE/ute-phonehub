@@ -119,7 +119,7 @@ public class OrderServiceImpl implements IOrderService {
         // 5. Áp dụng promotion nếu có
         Promotion promotion = null;
         if (request.getPromotionId() != null) {
-            promotion = promotionRepository.findById(request.getPromotionId())
+            promotion = promotionRepository.findById(String.valueOf(request.getPromotionId()))
                     .orElseThrow(() -> new ResourceNotFoundException("Promotion không tồn tại"));
             
             // TODO: Validate promotion còn hiệu lực, đủ điều kiện áp dụng
