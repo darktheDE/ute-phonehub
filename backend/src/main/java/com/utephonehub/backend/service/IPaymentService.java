@@ -27,17 +27,4 @@ public interface IPaymentService {
      * Get payment history for customer
      */
     PaymentHistoryResponse getCustomerPaymentHistory(Long userId, int page, int size);
-    
-    /**
-     * Get all payments for admin with filtering
-     */
-    AdminPaymentListResponse getAdminPayments(
-            PaymentStatus status,
-            PaymentMethod paymentMethod,
-            String provider,
-            LocalDateTime startDate,
-            LocalDateTime endDate,
-            int page,
-            int size
-    );
 }

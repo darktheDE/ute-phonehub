@@ -3,8 +3,6 @@ package com.utephonehub.backend.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.utephonehub.backend.config.VNPayConfig;
 import com.utephonehub.backend.dto.request.payment.CreatePaymentRequest;
-import com.utephonehub.backend.dto.response.payment.AdminPaymentListResponse;
-import com.utephonehub.backend.dto.response.payment.AdminPaymentResponse;
 import com.utephonehub.backend.dto.response.payment.PaymentHistoryResponse;
 import com.utephonehub.backend.dto.response.payment.PaymentResponse;
 import com.utephonehub.backend.dto.response.payment.VNPayPaymentResponse;
@@ -257,35 +255,6 @@ public class VNPayService implements IPaymentService {
                 .build();
     }
     
-    @Override
-    public AdminPaymentListResponse getAdminPayments(
-            PaymentStatus status,
-            PaymentMethod paymentMethod,
-            String provider,
-            java.time.LocalDateTime startDate,
-            java.time.LocalDateTime endDate,
-            int page,
-            int size) {
-        
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Payment> paymentPage = paymentRepository.findAdminPayments(
-                status, paymentMethod, provider, startDate, endDate, pageable);
-        
-        List<AdminPaymentResponse> payments = paymentPage.getContent().stream()
-                .map(this::mapToAdminResponse)
-                .collect(Collectors.toList());
-        
-        return AdminPaymentListResponse.builder()
-                .payments(payments)
-                .currentPage(paymentPage.getNumber())
-                .pageSize(paymentPage.getSize())
-                .totalElements(paymentPage.getTotalElements())
-                .totalPages(paymentPage.getTotalPages())
-                .hasNext(paymentPage.hasNext())
-                .hasPrevious(paymentPage.hasPrevious())
-                .build();
-    }
-    
     private PaymentResponse mapToResponse(Payment payment) {
         return PaymentResponse.builder()
                 .id(payment.getId())
@@ -295,24 +264,6 @@ public class VNPayService implements IPaymentService {
                 .transactionId(payment.getTransactionId())
                 .amount(payment.getAmount().longValue())
                 .status(payment.getStatus().name())
-                .createdAt(payment.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .build();
-    }
-    
-    private AdminPaymentResponse mapToAdminResponse(Payment payment) {
-        return AdminPaymentResponse.builder()
-                .id(payment.getId())
-                .orderId(payment.getOrder().getId())
-                .orderCode(payment.getOrder().getOrderCode())
-                .customerName(payment.getOrder().getUser().getFullName())
-                .customerEmail(payment.getOrder().getUser().getEmail())
-                .paymentMethod(payment.getOrder().getPaymentMethod().name())
-                .provider(payment.getProvider() != null ? payment.getProvider().name() : null)
-                .transactionId(payment.getTransactionId())
-                .amount(payment.getAmount().longValue())
-                .status(payment.getStatus().name())
-                .reconciled(payment.getReconciled())
-                .note(payment.getNote())
                 .createdAt(payment.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .build();
     }
