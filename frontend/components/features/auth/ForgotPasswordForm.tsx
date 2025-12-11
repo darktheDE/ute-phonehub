@@ -46,7 +46,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     try {
       const response = await authAPI.forgotPassword({ email });
 
-      if (response.code === 200) {
+      if (response.success && response.status === 200) {
         setSuccess('Mã OTP đã được gửi đến email của bạn');
         setStep('otp');
       } else {
@@ -114,7 +114,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         confirmPassword,
       });
 
-      if (response.code === 200) {
+      if (response.success && response.status === 200) {
         setSuccess('Đặt lại mật khẩu thành công! Đang chuyển đến trang đăng nhập...');
         setTimeout(() => {
           router.push('/login');

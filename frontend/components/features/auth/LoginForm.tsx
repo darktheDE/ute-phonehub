@@ -57,7 +57,7 @@ export function LoginForm() {
         password: formData.password,
       });
 
-      if (response.code === 200) {
+      if (response.success && response.status === 200) {
         // Store tokens and user data
         setAuthTokens(response.data.accessToken, response.data.refreshToken);
         setStoredUser(response.data.user);

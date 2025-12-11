@@ -22,13 +22,28 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Sample data: users
-INSERT INTO users (username, password_hash, full_name, email, phone_number, gender, date_of_birth, role, status) VALUES
-('admin', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Nguyễn Văn Admin', 'admin@utephonehub.com', '0901234567', 'MALE', '1990-01-01', 'ADMIN', 'ACTIVE'),
-('user001', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Trần Thị Hương', 'huong.tran@gmail.com', '0912345678', 'FEMALE', '1995-05-15', 'CUSTOMER', 'ACTIVE'),
-('user002', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Lê Văn Nam', 'nam.le@gmail.com', '0923456789', 'MALE', '1998-08-20', 'CUSTOMER', 'ACTIVE'),
-('user003', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Phạm Thị Mai', 'mai.pham@gmail.com', '0934567890', 'FEMALE', '2000-03-10', 'CUSTOMER', 'ACTIVE'),
-('user004', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Hoàng Văn Đức', 'duc.hoang@gmail.com', '0945678901', 'MALE', '1997-11-25', 'CUSTOMER', 'LOCKED');
+-- Sample data: users (12 users phân bố 7 ngày - có created_at động)
+INSERT INTO users (username, password_hash, full_name, email, phone_number, gender, date_of_birth, role, status, created_at, updated_at) VALUES
+-- Admin (7 ngày trước)
+('admin', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Nguyễn Văn Admin', 'admin@utephonehub.com', '0901234567', 'MALE', '1990-01-01', 'ADMIN', 'ACTIVE', NOW() - INTERVAL '7 days', NOW() - INTERVAL '7 days'),
+-- 6 ngày trước (2 users)
+('user001', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Trần Thị Hương', 'huong.tran@gmail.com', '0912345678', 'FEMALE', '1995-05-15', 'CUSTOMER', 'ACTIVE', NOW() - INTERVAL '6 days', NOW() - INTERVAL '6 days'),
+('user002', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Lê Văn Nam', 'nam.le@gmail.com', '0923456789', 'MALE', '1998-08-20', 'CUSTOMER', 'ACTIVE', NOW() - INTERVAL '6 days', NOW() - INTERVAL '6 days'),
+-- 5 ngày trước (2 users)
+('user003', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Phạm Thị Mai', 'mai.pham@gmail.com', '0934567890', 'FEMALE', '2000-03-10', 'CUSTOMER', 'ACTIVE', NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days'),
+('user004', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Hoàng Văn Đức', 'duc.hoang@gmail.com', '0945678901', 'MALE', '1997-11-25', 'CUSTOMER', 'ACTIVE', NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days'),
+-- 4 ngày trước (1 user)
+('user005', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Nguyễn Thị Lan', 'lan.nguyen@gmail.com', '0956789012', 'FEMALE', '1999-07-12', 'CUSTOMER', 'ACTIVE', NOW() - INTERVAL '4 days', NOW() - INTERVAL '4 days'),
+-- 3 ngày trước (2 users)
+('user006', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Võ Văn Hùng', 'hung.vo@gmail.com', '0967890123', 'MALE', '1996-04-18', 'CUSTOMER', 'ACTIVE', NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days'),
+('user007', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Bùi Thị Hoa', 'hoa.bui@gmail.com', '0978901234', 'FEMALE', '2001-09-22', 'CUSTOMER', 'ACTIVE', NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days'),
+-- 2 ngày trước (1 user)
+('user008', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Đặng Văn Tài', 'tai.dang@gmail.com', '0989012345', 'MALE', '1994-12-05', 'CUSTOMER', 'ACTIVE', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+-- 1 ngày trước (2 users)
+('user009', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Lý Thị Kim', 'kim.ly@gmail.com', '0990123456', 'FEMALE', '2002-06-30', 'CUSTOMER', 'ACTIVE', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+('user010', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Trương Văn Long', 'long.truong@gmail.com', '0901234568', 'MALE', '1993-03-15', 'CUSTOMER', 'LOCKED', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+-- Hôm nay (1 user)
+('user011', '$2a$10$N.zmdr9VKQf5VGcbq8BbXeuEYXCEL2k0E3W6AJCvHLE3p91NEVGie', 'Phan Thị Nga', 'nga.phan@gmail.com', '0912345679', 'FEMALE', '1996-08-20', 'CUSTOMER', 'ACTIVE', NOW(), NOW());
 
 -- Table: addresses
 CREATE TABLE IF NOT EXISTS addresses (
@@ -68,13 +83,21 @@ CREATE TABLE IF NOT EXISTS categories (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Sample data: categories
+-- Sample data: categories (root categories)
 INSERT INTO categories (name, description, parent_id) VALUES
-('Điện thoại', 'Điện thoại thông minh', NULL),
-('Laptop', 'Máy tính xách tay', NULL),
+('Điện thoại', 'Điện thoại thông minh các loại', NULL),
 ('Tablet', 'Máy tính bảng', NULL),
+('Laptop', 'Máy tính xách tay', NULL),
 ('Phụ kiện', 'Phụ kiện điện thoại và laptop', NULL),
-('Tai nghe', 'Tai nghe có dây và không dây', 4);
+('Đồng hồ thông minh', 'Smartwatch và thiết bị đeo tay', NULL);
+
+-- Sample data: categories (sub-categories - danh mục con)
+INSERT INTO categories (name, description, parent_id) VALUES
+-- Sub-categories of "Phụ kiện" (id=4)
+('Tai nghe', 'Tai nghe có dây và không dây', 4),
+('Sạc dự phòng', 'Pin sạc dự phòng các loại', 4),
+('Cáp sạc', 'Cáp sạc USB-C, Lightning, Micro USB', 4),
+('Ốp lưng', 'Ốp lưng bảo vệ điện thoại', 4);
 
 -- Table: brands
 CREATE TABLE IF NOT EXISTS brands (
@@ -113,15 +136,15 @@ CREATE TABLE IF NOT EXISTS products (
 -- Sample data: products
 INSERT INTO products (name, description, price, stock_quantity, thumbnail_url, specifications, status, category_id, brand_id) VALUES
 ('iPhone 15 Pro Max', 'Điện thoại cao cấp với chip A17 Pro', 32990000.00, 50, 'https://example.com/iphone15.jpg', 
-'{"screen": "6.7 inch OLED", "chip": "A17 Pro", "ram": "8GB", "storage": "256GB", "battery": "4422mAh", "camera": "48MP"}', TRUE, 1, 1),
+'{"screen": "6.7 inch OLED", "chip": "A17 Pro", "ram": "8GB", "storage": "256GB", "battery": "4422mAh", "camera": "48MP"}'::jsonb, TRUE, 1, 1),
 ('Samsung Galaxy S24 Ultra', 'Flagship Android với bút S Pen', 29990000.00, 45, 'https://example.com/s24ultra.jpg',
-'{"screen": "6.8 inch Dynamic AMOLED", "chip": "Snapdragon 8 Gen 3", "ram": "12GB", "storage": "512GB", "battery": "5000mAh", "camera": "200MP"}', TRUE, 1, 2),
+'{"screen": "6.8 inch Dynamic AMOLED", "chip": "Snapdragon 8 Gen 3", "ram": "12GB", "storage": "512GB", "battery": "5000mAh", "camera": "200MP"}'::jsonb, TRUE, 1, 2),
 ('Xiaomi 14', 'Smartphone hiệu năng cao giá tốt', 17990000.00, 60, 'https://example.com/xiaomi14.jpg',
-'{"screen": "6.36 inch AMOLED", "chip": "Snapdragon 8 Gen 3", "ram": "12GB", "storage": "256GB", "battery": "4610mAh", "camera": "50MP"}', TRUE, 1, 3),
+'{"screen": "6.36 inch AMOLED", "chip": "Snapdragon 8 Gen 3", "ram": "12GB", "storage": "256GB", "battery": "4610mAh", "camera": "50MP"}'::jsonb, TRUE, 1, 3),
 ('MacBook Pro 14 M3', 'Laptop chuyên dụng cho developer', 42990000.00, 30, 'https://example.com/macbook14.jpg',
-'{"screen": "14.2 inch Liquid Retina XDR", "chip": "Apple M3", "ram": "16GB", "storage": "512GB SSD", "battery": "70Wh", "weight": "1.55kg"}', TRUE, 2, 1),
+'{"screen": "14.2 inch Liquid Retina XDR", "chip": "Apple M3", "ram": "16GB", "storage": "512GB SSD", "battery": "70Wh", "weight": "1.55kg"}'::jsonb, TRUE, 2, 1),
 ('Dell XPS 13 Plus', 'Laptop mỏng nhẹ cao cấp', 35990000.00, 25, 'https://example.com/xps13.jpg',
-'{"screen": "13.4 inch FHD+", "chip": "Intel Core i7-1360P", "ram": "16GB", "storage": "1TB SSD", "battery": "55Wh", "weight": "1.24kg"}', TRUE, 2, 5);
+'{"screen": "13.4 inch FHD+", "chip": "Intel Core i7-1360P", "ram": "16GB", "storage": "1TB SSD", "battery": "55Wh", "weight": "1.24kg"}'::jsonb, TRUE, 2, 5);
 
 -- Table: product_images
 CREATE TABLE IF NOT EXISTS product_images (
@@ -188,13 +211,36 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Sample data: orders
-INSERT INTO orders (order_code, user_id, email, recipient_name, phone_number, shipping_address, note, status, payment_method, total_amount, promotion_id) VALUES
-('ORD-001', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, Phường Bến Thành, TP.HCM', 'Giao giờ hành chính', 'DELIVERED', 'COD', 29691000.00, 1),
-('ORD-002', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, Phường 1, TP.HCM', NULL, 'SHIPPING', 'VNPAY', 17990000.00, NULL),
-('ORD-003', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, Phường 5, TP.HCM', 'Gọi trước khi giao', 'CONFIRMED', 'COD', 42990000.00, NULL),
-('ORD-004', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '456 Nguyễn Huệ, Phường Bến Nghé, TP.HCM', NULL, 'PENDING', 'VNPAY', 35990000.00, 2),
-('ORD-005', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, Phường 1, TP.HCM', 'Giao buổi tối', 'CANCELLED', 'COD', 32990000.00, NULL);
+-- Sample data: orders (20 đơn hàng phân bố 7 ngày - có created_at và updated_at động)
+INSERT INTO orders (order_code, user_id, email, recipient_name, phone_number, shipping_address, note, status, payment_method, total_amount, promotion_id, created_at, updated_at) VALUES
+-- 7 ngày trước (3 orders - 2 DELIVERED, 1 CANCELLED)
+('ORD-001', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', NULL, 'DELIVERED', 'COD', 32990000.00, NULL, NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days'),
+('ORD-002', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', NULL, 'DELIVERED', 'VNPAY', 29990000.00, 1, NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days'),
+('ORD-003', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', NULL, 'CANCELLED', 'COD', 17990000.00, NULL, NOW() - INTERVAL '7 days', NOW() - INTERVAL '7 days'),
+-- 6 ngày trước (3 orders - all DELIVERED)
+('ORD-004', 5, 'duc.hoang@gmail.com', 'Hoàng Văn Đức', '0945678901', '654 Đinh Tiên Hoàng, TP.HCM', NULL, 'DELIVERED', 'VNPAY', 42990000.00, NULL, NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days'),
+('ORD-005', 6, 'lan.nguyen@gmail.com', 'Nguyễn Thị Lan', '0956789012', '111 Nguyễn Trãi, TP.HCM', NULL, 'DELIVERED', 'COD', 35990000.00, 2, NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days'),
+('ORD-006', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', NULL, 'DELIVERED', 'VNPAY', 18000000.00, NULL, NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days'),
+-- 5 ngày trước (3 orders - all DELIVERED)
+('ORD-007', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', NULL, 'DELIVERED', 'COD', 32990000.00, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days'),
+('ORD-008', 7, 'hung.vo@gmail.com', 'Võ Văn Hùng', '0967890123', '222 Lý Thường Kiệt, TP.HCM', NULL, 'DELIVERED', 'VNPAY', 25000000.00, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days'),
+('ORD-009', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', NULL, 'DELIVERED', 'COD', 29990000.00, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days'),
+-- 4 ngày trước (3 orders - all DELIVERED)
+('ORD-010', 8, 'hoa.bui@gmail.com', 'Bùi Thị Hoa', '0978901234', '333 Hai Bà Trưng, TP.HCM', NULL, 'DELIVERED', 'VNPAY', 17990000.00, NULL, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
+('ORD-011', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', NULL, 'DELIVERED', 'COD', 42990000.00, NULL, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
+('ORD-012', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', NULL, 'DELIVERED', 'VNPAY', 35990000.00, NULL, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
+-- 3 ngày trước (3 orders - 2 DELIVERED, 1 SHIPPING)
+('ORD-013', 9, 'tai.dang@gmail.com', 'Đặng Văn Tài', '0989012345', '444 Điện Biên Phủ, TP.HCM', NULL, 'DELIVERED', 'COD', 25000000.00, NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '1 day'),
+('ORD-014', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', NULL, 'DELIVERED', 'VNPAY', 18000000.00, NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '1 day'),
+('ORD-015', 10, 'kim.ly@gmail.com', 'Lý Thị Kim', '0990123456', '555 Cách Mạng Tháng 8, TP.HCM', NULL, 'SHIPPING', 'COD', 32990000.00, NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days'),
+-- 2 ngày trước (2 orders - 1 DELIVERED, 1 CONFIRMED)
+('ORD-016', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', NULL, 'DELIVERED', 'VNPAY', 29990000.00, NULL, NOW() - INTERVAL '2 days', NOW()),
+('ORD-017', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', NULL, 'CONFIRMED', 'COD', 17990000.00, NULL, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+-- 1 ngày trước (2 orders - 1 PENDING, 1 CONFIRMED)
+('ORD-018', 11, 'long.truong@gmail.com', 'Trương Văn Long', '0901234568', '666 Võ Thị Sáu, TP.HCM', NULL, 'PENDING', 'VNPAY', 42990000.00, NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+('ORD-019', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', NULL, 'CONFIRMED', 'COD', 35990000.00, NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+-- Hôm nay (1 order - PENDING)
+('ORD-020', 12, 'nga.phan@gmail.com', 'Phan Thị Nga', '0912345679', '777 Phan Xích Long, TP.HCM', NULL, 'PENDING', 'VNPAY', 25000000.00, NULL, NOW(), NOW());
 
 -- Table: order_items
 CREATE TABLE IF NOT EXISTS order_items (
@@ -206,13 +252,28 @@ CREATE TABLE IF NOT EXISTS order_items (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Sample data: order_items
-INSERT INTO order_items (order_id, product_id, quantity, price) VALUES
-(1, 1, 1, 32990000.00),
-(2, 3, 1, 17990000.00),
-(3, 4, 1, 42990000.00),
-(4, 5, 1, 35990000.00),
-(5, 1, 1, 32990000.00);
+-- Sample data: order_items (20 items tương ứng 20 orders - có created_at động)
+INSERT INTO order_items (order_id, product_id, quantity, price, created_at) VALUES
+(1, 1, 1, 32990000.00, NOW() - INTERVAL '7 days'),
+(2, 2, 1, 29990000.00, NOW() - INTERVAL '7 days'),
+(3, 3, 1, 17990000.00, NOW() - INTERVAL '7 days'),
+(4, 4, 1, 42990000.00, NOW() - INTERVAL '6 days'),
+(5, 5, 1, 35990000.00, NOW() - INTERVAL '6 days'),
+(6, 3, 1, 18000000.00, NOW() - INTERVAL '6 days'),
+(7, 1, 1, 32990000.00, NOW() - INTERVAL '5 days'),
+(8, 2, 1, 25000000.00, NOW() - INTERVAL '5 days'),
+(9, 2, 1, 29990000.00, NOW() - INTERVAL '5 days'),
+(10, 3, 1, 17990000.00, NOW() - INTERVAL '4 days'),
+(11, 4, 1, 42990000.00, NOW() - INTERVAL '4 days'),
+(12, 5, 1, 35990000.00, NOW() - INTERVAL '4 days'),
+(13, 2, 1, 25000000.00, NOW() - INTERVAL '3 days'),
+(14, 3, 1, 18000000.00, NOW() - INTERVAL '3 days'),
+(15, 1, 1, 32990000.00, NOW() - INTERVAL '3 days'),
+(16, 2, 1, 29990000.00, NOW() - INTERVAL '2 days'),
+(17, 3, 1, 17990000.00, NOW() - INTERVAL '2 days'),
+(18, 4, 1, 42990000.00, NOW() - INTERVAL '1 day'),
+(19, 5, 1, 35990000.00, NOW() - INTERVAL '1 day'),
+(20, 2, 1, 25000000.00, NOW());
 
 -- Table: order_status_history
 CREATE TABLE IF NOT EXISTS order_status_history (
@@ -223,13 +284,60 @@ CREATE TABLE IF NOT EXISTS order_status_history (
     changed_at TIMESTAMP DEFAULT NOW()
 );
 
--- Sample data: order_status_history
+-- Sample data: order_status_history (history cho các đơn đã DELIVERED - có changed_at động)
 INSERT INTO order_status_history (order_id, status, changed_by, changed_at) VALUES
-(1, 'PENDING', 'System', '2024-12-01 10:00:00'),
-(1, 'CONFIRMED', 'admin', '2024-12-01 11:30:00'),
-(1, 'SHIPPING', 'System', '2024-12-02 09:00:00'),
-(1, 'DELIVERED', 'System', '2024-12-03 15:30:00'),
-(2, 'PENDING', 'System', '2024-12-04 14:20:00');
+-- ORD-001 (DELIVERED)
+(1, 'PENDING', 'System', NOW() - INTERVAL '7 days 2 hours'),
+(1, 'CONFIRMED', 'admin', NOW() - INTERVAL '7 days 1 hour'),
+(1, 'SHIPPING', 'System', NOW() - INTERVAL '6 days'),
+(1, 'DELIVERED', 'System', NOW() - INTERVAL '5 days'),
+-- ORD-002 (DELIVERED)
+(2, 'PENDING', 'System', NOW() - INTERVAL '7 days'),
+(2, 'CONFIRMED', 'admin', NOW() - INTERVAL '6 days 20 hours'),
+(2, 'SHIPPING', 'System', NOW() - INTERVAL '6 days'),
+(2, 'DELIVERED', 'System', NOW() - INTERVAL '5 days'),
+-- ORD-003 (CANCELLED)
+(3, 'PENDING', 'System', NOW() - INTERVAL '7 days'),
+(3, 'CANCELLED', 'System', NOW() - INTERVAL '7 days'),
+-- ORD-004 to ORD-014 (DELIVERED ones)
+(4, 'PENDING', 'System', NOW() - INTERVAL '6 days'),
+(4, 'DELIVERED', 'System', NOW() - INTERVAL '4 days'),
+(5, 'PENDING', 'System', NOW() - INTERVAL '6 days'),
+(5, 'DELIVERED', 'System', NOW() - INTERVAL '4 days'),
+(6, 'PENDING', 'System', NOW() - INTERVAL '6 days'),
+(6, 'DELIVERED', 'System', NOW() - INTERVAL '4 days'),
+(7, 'PENDING', 'System', NOW() - INTERVAL '5 days'),
+(7, 'DELIVERED', 'System', NOW() - INTERVAL '3 days'),
+(8, 'PENDING', 'System', NOW() - INTERVAL '5 days'),
+(8, 'DELIVERED', 'System', NOW() - INTERVAL '3 days'),
+(9, 'PENDING', 'System', NOW() - INTERVAL '5 days'),
+(9, 'DELIVERED', 'System', NOW() - INTERVAL '3 days'),
+(10, 'PENDING', 'System', NOW() - INTERVAL '4 days'),
+(10, 'DELIVERED', 'System', NOW() - INTERVAL '2 days'),
+(11, 'PENDING', 'System', NOW() - INTERVAL '4 days'),
+(11, 'DELIVERED', 'System', NOW() - INTERVAL '2 days'),
+(12, 'PENDING', 'System', NOW() - INTERVAL '4 days'),
+(12, 'DELIVERED', 'System', NOW() - INTERVAL '2 days'),
+(13, 'PENDING', 'System', NOW() - INTERVAL '3 days'),
+(13, 'DELIVERED', 'System', NOW() - INTERVAL '1 day'),
+(14, 'PENDING', 'System', NOW() - INTERVAL '3 days'),
+(14, 'DELIVERED', 'System', NOW() - INTERVAL '1 day'),
+-- ORD-015 (SHIPPING)
+(15, 'PENDING', 'System', NOW() - INTERVAL '3 days'),
+(15, 'SHIPPING', 'System', NOW() - INTERVAL '3 days'),
+-- ORD-016 (DELIVERED)
+(16, 'PENDING', 'System', NOW() - INTERVAL '2 days'),
+(16, 'DELIVERED', 'System', NOW()),
+-- ORD-017 (CONFIRMED)
+(17, 'PENDING', 'System', NOW() - INTERVAL '2 days'),
+(17, 'CONFIRMED', 'admin', NOW() - INTERVAL '2 days'),
+-- ORD-018 (PENDING)
+(18, 'PENDING', 'System', NOW() - INTERVAL '1 day'),
+-- ORD-019 (CONFIRMED)
+(19, 'PENDING', 'System', NOW() - INTERVAL '1 day'),
+(19, 'CONFIRMED', 'admin', NOW() - INTERVAL '1 day'),
+-- ORD-020 (PENDING)
+(20, 'PENDING', 'System', NOW());
 
 -- Table: payments
 CREATE TABLE IF NOT EXISTS payments (
