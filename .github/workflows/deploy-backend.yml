@@ -1,0 +1,37 @@
+name: Deploy Backend to AWS EC2
+
+# Trigger: Chạy khi có code push vào nhánh develop
+on:
+  push:
+    branches: [ "branch-deploy" ]
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: SSH and Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            echo "🚀 Starting deployment..."
+            
+            cd ute-phonehub
+            
+            # Reset cứng để tránh conflict file local (nếu có)
+            git reset --hard
+            git pull origin branch-deploy
+            
+            docker-compose -f docker-compose.prod.yml up -d --build backend
+            
+            docker image prune -f
+            
+            echo "✅ Deployment finished!"
