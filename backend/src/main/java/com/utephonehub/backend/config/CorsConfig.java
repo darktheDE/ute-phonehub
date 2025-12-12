@@ -26,14 +26,16 @@ public class CorsConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Cho phép tất cả localhost với các port phổ biến của frontend dev server
-        // và domain production của Amplify
+        // và domain production của Amplify + Backend domain cho Swagger UI
         configuration.setAllowedOriginPatterns(List.of(
             "http://localhost:*",
             "http://127.0.0.1:*",
             "http://172.*:*",
             "http://192.168.*:*",
             "https://*.amplifyapp.com",
-            "https://branch-deploy.d2mgqwae4h8npc.amplifyapp.com"
+            "https://branch-deploy.d2mgqwae4h8npc.amplifyapp.com",
+            "https://utephonehub-be.duckdns.org",
+            "https://*.duckdns.org"
         ));
         
         // Cho phép các HTTP methods
