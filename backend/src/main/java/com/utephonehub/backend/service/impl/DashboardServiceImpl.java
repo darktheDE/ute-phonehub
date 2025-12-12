@@ -244,12 +244,19 @@ public class DashboardServiceImpl implements IDashboardService {
     public List<TopProductResponse> getTopProducts(int limit) {
         log.info("Fetching top {} selling products", limit);
 
+        // Validate and cap limit to avoid fetching excessive records
+        if (limit < 1) {
+            log.warn("Limit {} is less than 1, setting to default 10", limit);
+            limit = 10;
+        }
+
+        Pageable pageable = PageRequest.of(0, limit);
+
         // Get top selling products from OrderItem aggregation
-        List<Object[]> results = orderItemRepository.findTopSellingProducts(limit);
+        List<Object[]> results = orderItemRepository.findTopSellingProducts(pageable);
 
         // Convert to DTO list
         List<TopProductResponse> topProducts = results.stream()
-                .limit(limit) // Apply limit
                 .map(row -> {
                     Product product = (Product) row[0];
                     Long totalSold = ((Number) row[1]).longValue();

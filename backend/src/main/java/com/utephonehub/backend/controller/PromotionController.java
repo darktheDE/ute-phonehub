@@ -5,11 +5,13 @@ import com.utephonehub.backend.dto.request.PromotionRequest;
 import com.utephonehub.backend.dto.response.PromotionResponse;
 import com.utephonehub.backend.service.PromotionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +30,8 @@ public class PromotionController {
 
     @PostMapping("/admin/promotions")
     @Operation(summary = "[Admin] Create Promotion - Tạo khuyến mãi mới")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<PromotionResponse>> createPromotion(@RequestBody @Valid PromotionRequest request) {
         PromotionResponse response = promotionService.createPromotion(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(
@@ -37,6 +41,8 @@ public class PromotionController {
 
     @PutMapping("/admin/promotions/{id}")
     @Operation(summary = "[Admin] Modify Promotion - Chỉnh sửa khuyến mãi")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<PromotionResponse>> modifyPromotion(
             @PathVariable String id,
             @RequestBody @Valid PromotionRequest request) {
@@ -46,6 +52,8 @@ public class PromotionController {
 
     @PatchMapping("/admin/promotions/{id}/disable")
     @Operation(summary = "[Admin] Disable Promotion - Vô hiệu hóa khuyến mãi")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> disablePromotion(@PathVariable String id) {
         promotionService.disable(id);
         return ResponseEntity.ok(ApiResponse.noContent("Disabled successfully"));
@@ -53,6 +61,8 @@ public class PromotionController {
 
     @GetMapping("/admin/promotions/{id}")
     @Operation(summary = "[Admin] See Promotion Detail - Xem chi tiết")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<PromotionResponse>> getDetails(@PathVariable String id) {
         PromotionResponse response = promotionService.getDetails(id);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -60,6 +70,8 @@ public class PromotionController {
 
     @GetMapping("/admin/promotions")
     @Operation(summary = "[Admin] Get All - Xem danh sách tất cả khuyến mãi")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<List<PromotionResponse>>> getAllPromotions() {
         List<PromotionResponse> response = promotionService.getAllPromotions();
         return ResponseEntity.ok(ApiResponse.success(response));

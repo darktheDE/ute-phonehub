@@ -1,9 +1,9 @@
 package com.utephonehub.backend.repository;
 
 import com.utephonehub.backend.entity.OrderItem;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,7 +15,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
      * Find top selling products based on total quantity sold
      * Only count orders with DELIVERED status (completed orders)
      * 
-     * @param limit Number of top products to return
+     * @param pageable Pageable limiting the number of products to return
      * @return List of Object arrays containing: [Product, totalQuantity, totalRevenue]
      */
     @Query("SELECT oi.product, " +
@@ -26,7 +26,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
            "WHERE o.status = 'DELIVERED' " +
            "GROUP BY oi.product " +
            "ORDER BY totalQuantity DESC")
-    List<Object[]> findTopSellingProducts(@Param("limit") int limit);
+    List<Object[]> findTopSellingProducts(Pageable pageable);
     
     // Tìm tất cả items của 1 order
     List<OrderItem> findByOrderId(Long orderId);

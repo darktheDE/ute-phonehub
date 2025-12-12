@@ -8,7 +8,7 @@
 ### 2. Utilities
 - `util/VNPayUtil.java` - HMAC SHA512, URL encoding, query builder
 
-### 3. DTOs sdadas
+### 3. DTOs
 - `dto/request/payment/CreatePaymentRequest.java`
 - `dto/response/payment/PaymentResponse.java`
 - `dto/response/payment/VNPayPaymentResponse.java`
