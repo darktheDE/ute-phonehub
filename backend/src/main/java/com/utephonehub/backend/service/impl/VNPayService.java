@@ -57,8 +57,8 @@ public class VNPayService implements IPaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + request.getOrderId()));
         
         // 2. Validate order status
-        if (order.getStatus() != OrderStatus.WAITING_PAYMENT) {
-            throw new BadRequestException("Order is not in WAITING_PAYMENT status");
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new BadRequestException("Order is not in PENDING status");
         }
         
         // 3. Validate amount matches order total

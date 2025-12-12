@@ -33,7 +33,7 @@ public class OrderController {
         summary = "Lấy thông tin đơn hàng",
         description = "User chỉ có thể xem đơn hàng của chính mình"
     )
-    @SecurityRequirement(name = "Bearer Authentication")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(
             @PathVariable Long orderId,
             HttpServletRequest request) {
@@ -59,7 +59,7 @@ public class OrderController {
         summary = "Tạo đơn hàng mới",
         description = "Tạo đơn hàng với danh sách sản phẩm. Hỗ trợ COD, VNPay, Bank Transfer."
     )
-    @SecurityRequirement(name = "Bearer Authentication")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<CreateOrderResponse>> createOrder(
             @Valid @RequestBody CreateOrderRequest request,
             HttpServletRequest httpRequest) {
@@ -72,6 +72,6 @@ public class OrderController {
         
         // Trả về response với status 201 Created
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Tạo đơn hàng thành công", response));
+                .body(ApiResponse.created("Tạo đơn hàng thành công", response));
     }
 }

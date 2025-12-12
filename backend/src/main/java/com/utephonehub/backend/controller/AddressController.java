@@ -23,7 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Address", description = "API quản lý địa chỉ giao hàng")
-@SecurityRequirement(name = "Bearer Authentication")
+@SecurityRequirement(name = "bearerAuth")
 public class AddressController {
 
     private final IAddressService addressService;

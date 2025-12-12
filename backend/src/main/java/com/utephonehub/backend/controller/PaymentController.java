@@ -44,7 +44,7 @@ public class PaymentController {
         VNPayPaymentResponse response = paymentService.createPayment(request, servletRequest);
         
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Payment URL created successfully", response));
+                .body(ApiResponse.created("Payment URL created successfully", response));
     }
     
     /**
@@ -135,7 +135,7 @@ public class PaymentController {
      */
     @GetMapping("/history")
     @Operation(summary = "Get customer payment history", description = "Get payment history for logged in customer with pagination")
-    @SecurityRequirement(name = "Bearer Authentication")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<PaymentHistoryResponse>> getPaymentHistory(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
