@@ -21,8 +21,8 @@ public class OpenApiConfig {
                         .version("1.0")
                         .description("Tài liệu API cho dự án UTE Phone Hub - Module 01: Authentication & Authorization"))
                 .servers(List.of(
-                        new Server().url("http://localhost:8081").description("Local Server"),
-                        new Server().url("http://localhost:8081").description("Docker Server")
+                        new Server().url("https://utephonehub-be.duckdns.org").description("Production Server"),
+                        new Server().url("http://localhost:8081").description("Local Server")
                 ))
                 .components(new Components()
                         .addSecuritySchemes("bearerAuth",
