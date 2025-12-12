@@ -3,6 +3,7 @@ package com.utephonehub.backend.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -13,6 +14,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -41,6 +43,20 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/payments/**"
                 ).permitAll()
+                // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
+                .requestMatchers(
+                    "/api/v1/categories",
+                    "/api/v1/brands",
+                    "/api/v1/brands/**"
+                ).permitAll()
+                // Yêu cầu ADMIN cho các API quản lý danh mục và thương hiệu
+                .requestMatchers(
+                    "/api/v1/admin/categories/**",
+                    "/api/v1/admin/brands/**"
+                ).hasAuthority("ADMIN")
+                // Cho phép truy cập tự do các API Promotion (tùy theo chính sách hiện tại)
+                .requestMatchers("/api/v1/admin/promotions/**").permitAll()
+                .requestMatchers("/api/v1/promotions/**").permitAll()
                 // Các request khác yêu cầu phải xác thực
                 .anyRequest().authenticated()
             )

@@ -2,6 +2,12 @@ package com.utephonehub.backend.repository;
 
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.enums.OrderStatus;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +23,37 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Tìm theo orderCode
     Optional<Order> findByOrderCode(String orderCode);
     
+    /**
+     * Calculate total revenue from completed orders
+     * @return Total revenue in BigDecimal, returns 0 if no orders
+     */
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = :status")
+    BigDecimal calculateTotalRevenueByStatus(OrderStatus status);
+    
+    /**
+     * Find orders by date range and status
+     * @param startDate Start date (inclusive)
+     * @param endDate End date (inclusive)
+     * @param status Order status
+     * @return List of orders in date range with specific status
+     */
+    List<Order> findByCreatedAtBetweenAndStatus(LocalDateTime startDate, LocalDateTime endDate, OrderStatus status);
+    
+    /**
+     * Count orders by status
+     * @param status Order status
+     * @return Number of orders with specific status
+     */
+    long countByStatus(OrderStatus status);
+    
+    /**
+     * Find recent orders sorted by created date (newest first)
+     * Uses Pageable to limit results
+     * @param pageable Pageable for limiting and sorting
+     * @return List of recent orders
+     */
+    List<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
     // Tìm tất cả đơn hàng của 1 user
     List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
     

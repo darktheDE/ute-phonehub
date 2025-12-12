@@ -25,11 +25,11 @@ public class OpenApiConfig {
                         new Server().url("http://localhost:8081").description("Docker Server")
                 ))
                 .components(new Components()
-                        .addSecuritySchemes("Bearer Authentication",
+                        .addSecuritySchemes("bearerAuth",
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
                                         .bearerFormat("JWT")
-                                        .description("Nhập JWT token")));
+                                        .description("Nhập JWT token để xác thực")));
     }
 }

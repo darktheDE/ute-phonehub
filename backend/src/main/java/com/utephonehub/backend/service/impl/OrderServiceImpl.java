@@ -123,7 +123,7 @@ public class OrderServiceImpl implements IOrderService {
         // 5. Áp dụng promotion nếu có
         Promotion promotion = null;
         if (request.getPromotionId() != null) {
-            promotion = promotionRepository.findById(request.getPromotionId())
+            promotion = promotionRepository.findById(String.valueOf(request.getPromotionId()))
                     .orElseThrow(() -> new ResourceNotFoundException("Promotion không tồn tại"));
             
             // TODO: Validate promotion còn hiệu lực, đủ điều kiện áp dụng
@@ -135,8 +135,8 @@ public class OrderServiceImpl implements IOrderService {
         
         // 7. Xác định trạng thái đơn hàng
         OrderStatus initialStatus = request.getPaymentMethod() == PaymentMethod.VNPAY
-                ? OrderStatus.WAITING_PAYMENT
-                : OrderStatus.PROCESSING;
+                ? OrderStatus.PENDING
+                : OrderStatus.CONFIRMED;
         
         // 8. Tạo Order entity
         Order order = Order.builder()
