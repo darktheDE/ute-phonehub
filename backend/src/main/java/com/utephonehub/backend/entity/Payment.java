@@ -40,6 +40,13 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
+    @Column(columnDefinition = "TEXT")
+    private String note;  // Ghi chú của admin (đối soát, note...)
+
+    @Column(nullable = true)  // Allow NULL for existing records
+    @Builder.Default
+    private Boolean reconciled = false;  // Đã đối soát chưa
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
