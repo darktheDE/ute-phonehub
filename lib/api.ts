@@ -9,8 +9,19 @@ import type {
   VerifyOtpRequest,
 } from "@/types";
 
+// Force production API URL for deployed version
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" &&
+  window.location.hostname.includes("amplifyapp.com")
+    ? "https://utephonehub-be.duckdns.org/api/v1"
+    : "http://localhost:8081/api/v1");
+
+// Debug: Log API URL on client side
+if (typeof window !== "undefined") {
+  console.log("🔧 API_BASE_URL:", API_BASE_URL);
+  console.log("🌐 Hostname:", window.location.hostname);
+}
 
 // Helper function to get auth token from localStorage
 export const getAuthToken = (): string | null => {
