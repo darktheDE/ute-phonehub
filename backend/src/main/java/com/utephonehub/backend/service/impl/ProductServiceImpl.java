@@ -325,18 +325,6 @@ public class ProductServiceImpl implements IProductService {
     }
 
     @Override
-    public void permanentlyDeleteProduct(Long id) {
-        log.warn("Permanently deleting product with ID: {}", id);
-        
-        Product product = productRepository.findByIdIncludingDeleted(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + id));
-        
-        productRepository.delete(product);
-        log.warn("Permanently deleted product with ID: {}", id);
-    }
-
-    @Override
     public void restoreProduct(Long id, Long userId) {
         log.info("Restoring product with ID: {}", id);
         

@@ -130,12 +130,6 @@ public interface IProductService {
     Page<ProductListResponse> getAllProductsIncludingDeleted(Pageable pageable);
     
     /**
-     * Permanently delete a product (Admin only - use with caution)
-     * @param id Product ID
-     */
-    void permanentlyDeleteProduct(Long id);
-    
-    /**
      * Restore a soft-deleted product
      * @param id Product ID
      * @param userId ID of user restoring the product

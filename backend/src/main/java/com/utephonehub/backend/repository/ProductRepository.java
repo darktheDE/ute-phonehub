@@ -1,6 +1,9 @@
 package com.utephonehub.backend.repository;
 
-import com.utephonehub.backend.entity.Product;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,9 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
+import com.utephonehub.backend.entity.Product;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -59,11 +60,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                                   @Param("maxPrice") BigDecimal maxPrice,
                                   Pageable pageable);
     
-    // Admin queries (include deleted products)
-    @Query("SELECT p FROM Product p WHERE p.id = :id")
+    // Admin queries (include deleted products) - Use native query to bypass @Where annotation
+    @Query(value = "SELECT * FROM products WHERE id = :id", nativeQuery = true)
     Optional<Product> findByIdIncludingDeleted(@Param("id") Long id);
     
-    @Query("SELECT p FROM Product p")
+    @Query(value = "SELECT * FROM products ORDER BY created_at DESC", 
+           countQuery = "SELECT COUNT(*) FROM products",
+           nativeQuery = true)
     Page<Product> findAllIncludingDeleted(Pageable pageable);
     
     // Count queries

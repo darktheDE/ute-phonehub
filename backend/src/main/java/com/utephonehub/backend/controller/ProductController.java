@@ -220,7 +220,7 @@ public class ProductController {
         ProductDetailResponse product = productService.createProduct(request, userId);
         
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Tạo sản phẩm thành công", product));
+                .body(ApiResponse.created("Tạo sản phẩm thành công", product));
     }
 
     @PutMapping("/{id}")
@@ -301,16 +301,12 @@ public class ProductController {
     )
     public ResponseEntity<ApiResponse<Page<ProductListResponse>>> getAllProductsIncludingDeleted(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String direction
+            @RequestParam(defaultValue = "20") int size
     ) {
         log.info("GET /api/v1/products/admin/all");
         
-        Sort sort = direction.equalsIgnoreCase("asc") 
-                ? Sort.by(sortBy).ascending() 
-                : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
+        // Use unsorted Pageable - native query already has ORDER BY created_at DESC
+        Pageable pageable = PageRequest.of(page, size);
         
         Page<ProductListResponse> products = productService.getAllProductsIncludingDeleted(pageable);
         return ResponseEntity.ok(ApiResponse.success("Lấy tất cả sản phẩm thành công", products));
@@ -333,22 +329,5 @@ public class ProductController {
         productService.restoreProduct(id, userId);
         
         return ResponseEntity.ok(ApiResponse.success("Khôi phục sản phẩm thành công", null));
-    }
-
-    @DeleteMapping("/{id}/permanent")
-    @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "bearerAuth")
-    @Operation(
-            summary = "Xóa vĩnh viễn sản phẩm (Admin - CẢNH BÁO)",
-            description = "Xóa vĩnh viễn sản phẩm khỏi database, KHÔNG THỂ KHÔI PHỤC"
-    )
-    public ResponseEntity<ApiResponse<Void>> permanentlyDeleteProduct(
-            @Parameter(description = "ID của sản phẩm") @PathVariable Long id
-    ) {
-        log.warn("DELETE /api/v1/products/{}/permanent - PERMANENT DELETE", id);
-        
-        productService.permanentlyDeleteProduct(id);
-        
-        return ResponseEntity.ok(ApiResponse.success("Xóa vĩnh viễn sản phẩm thành công", null));
     }
 }
