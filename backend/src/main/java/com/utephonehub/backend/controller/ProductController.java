@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Product Management", description = "API quản lý sản phẩm - CRUD, tìm kiếm, lọc và quản lý tồn kho")
+@SecurityRequirement(name = "bearerAuth")
 public class ProductController {
 
     private final IProductService productService;
@@ -48,7 +49,6 @@ public class ProductController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "bearerAuth")
     @Operation(
             summary = "Tạo sản phẩm mới (Admin)",
             description = "Tạo một sản phẩm mới trong hệ thống"
@@ -86,7 +86,6 @@ public class ProductController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "bearerAuth")
     @Operation(
             summary = "Cập nhật sản phẩm (Admin)",
             description = "Cập nhật thông tin sản phẩm đã tồn tại"
@@ -116,7 +115,6 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "bearerAuth")
     @Operation(
             summary = "Xóa sản phẩm (Admin - Soft Delete)",
             description = "Xóa mềm sản phẩm, có thể khôi phục sau này"
@@ -135,7 +133,6 @@ public class ProductController {
 
     @GetMapping("/admin/all")
     @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "bearerAuth")
     @Operation(
             summary = "Lấy tất cả sản phẩm kể cả đã xóa (Admin)",
             description = "Lấy danh sách tất cả sản phẩm bao gồm cả sản phẩm đã bị xóa mềm"
@@ -155,7 +152,6 @@ public class ProductController {
 
     @PostMapping("/{id}/restore")
     @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "bearerAuth")
     @Operation(
             summary = "Khôi phục sản phẩm đã xóa (Admin)",
             description = "Khôi phục sản phẩm đã bị xóa mềm"
@@ -174,7 +170,6 @@ public class ProductController {
 
     @PostMapping("/{id}/images")
     @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "bearerAuth")
     @Operation(
             summary = "Quản lý hình ảnh sản phẩm (Admin)",
             description = "Thêm, cập nhật hoặc sắp xếp lại hình ảnh sản phẩm. Sẽ thay thế toàn bộ ảnh hiện tại."
@@ -206,7 +201,6 @@ public class ProductController {
 
     @DeleteMapping("/{id}/images/{imageId}")
     @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "bearerAuth")
     @Operation(
             summary = "Xóa hình ảnh sản phẩm (Admin)",
             description = "Xóa một hình ảnh cụ thể của sản phẩm"

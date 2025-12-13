@@ -1,19 +1,27 @@
 package com.utephonehub.backend.mapper;
 
+import java.util.List;
+
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
+
 import com.utephonehub.backend.dto.request.product.CreateProductRequest;
 import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
-import com.utephonehub.backend.dto.response.product.*;
+import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
+import com.utephonehub.backend.dto.response.product.ProductListResponse;
+import com.utephonehub.backend.dto.response.product.ProductResponse;
 import com.utephonehub.backend.entity.Product;
-import org.mapstruct.*;
-
-import java.util.List;
 
 /**
  * MapStruct mapper for Product entity and DTOs
  */
 @Mapper(componentModel = "spring", 
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
-        uses = {ProductImageMapper.class})
+        uses = {CategoryMapper.class, BrandMapper.class, ProductImageMapper.class})
 public interface ProductMapper {
     
     /**
