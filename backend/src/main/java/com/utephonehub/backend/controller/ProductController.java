@@ -2,6 +2,7 @@ package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.request.product.CreateProductRequest;
+import com.utephonehub.backend.dto.request.product.ManageImagesRequest;
 import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
 import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
 import com.utephonehub.backend.dto.response.product.ProductListResponse;
@@ -169,5 +170,69 @@ public class ProductController {
         productService.restoreProduct(id, userId);
         
         return ResponseEntity.ok(ApiResponse.success("Khôi phục sản phẩm thành công", null));
+    }
+
+    @PostMapping("/{id}/images")
+    @PreAuthorize("hasRole('ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(
+            summary = "Quản lý hình ảnh sản phẩm (Admin)",
+            description = "Thêm, cập nhật hoặc sắp xếp lại hình ảnh sản phẩm. Sẽ thay thế toàn bộ ảnh hiện tại."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Cập nhật hình ảnh thành công"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Dữ liệu không hợp lệ"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Không tìm thấy sản phẩm"
+            )
+    })
+    public ResponseEntity<ApiResponse<Void>> manageProductImages(
+            @Parameter(description = "ID của sản phẩm") @PathVariable Long id,
+            @Valid @RequestBody ManageImagesRequest request
+    ) {
+        log.info("POST /api/v1/products/{}/images - Managing {} images", id, request.getImages().size());
+        
+        productService.manageProductImages(id, request);
+        
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật hình ảnh sản phẩm thành công", null));
+    }
+
+    @DeleteMapping("/{id}/images/{imageId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(
+            summary = "Xóa hình ảnh sản phẩm (Admin)",
+            description = "Xóa một hình ảnh cụ thể của sản phẩm"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Xóa hình ảnh thành công"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Không thể xóa ảnh cuối cùng"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Không tìm thấy sản phẩm hoặc hình ảnh"
+            )
+    })
+    public ResponseEntity<ApiResponse<Void>> deleteProductImage(
+            @Parameter(description = "ID của sản phẩm") @PathVariable Long id,
+            @Parameter(description = "ID của hình ảnh") @PathVariable Long imageId
+    ) {
+        log.info("DELETE /api/v1/products/{}/images/{}", id, imageId);
+        
+        productService.deleteProductImage(id, imageId);
+        
+        return ResponseEntity.ok(ApiResponse.success("Xóa hình ảnh thành công", null));
     }
 }

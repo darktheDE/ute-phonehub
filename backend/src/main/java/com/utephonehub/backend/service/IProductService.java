@@ -63,4 +63,18 @@ public interface IProductService {
      * @param userId ID of user restoring the product
      */
     void restoreProduct(Long id, Long userId);
+    
+    /**
+     * Manage product images (add/update/reorder)
+     * @param productId Product ID
+     * @param request Image management request
+     */
+    void manageProductImages(Long productId, com.utephonehub.backend.dto.request.product.ManageImagesRequest request);
+    
+    /**
+     * Delete a specific product image
+     * @param productId Product ID
+     * @param imageId Image ID
+     */
+    void deleteProductImage(Long productId, Long imageId);
 }

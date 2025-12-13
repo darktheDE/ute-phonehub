@@ -1,18 +1,22 @@
 package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.request.product.CreateProductRequest;
+import com.utephonehub.backend.dto.request.product.ManageImagesRequest;
+import com.utephonehub.backend.dto.request.product.ProductImageRequest;
 import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
 import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
 import com.utephonehub.backend.dto.response.product.ProductListResponse;
 import com.utephonehub.backend.entity.Brand;
 import com.utephonehub.backend.entity.Category;
 import com.utephonehub.backend.entity.Product;
+import com.utephonehub.backend.entity.ProductImage;
 import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.mapper.ProductMapper;
 import com.utephonehub.backend.repository.BrandRepository;
 import com.utephonehub.backend.repository.CategoryRepository;
+import com.utephonehub.backend.repository.ProductImageRepository;
 import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.service.IProductService;
@@ -24,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Implementation of Product Service
@@ -38,6 +43,7 @@ public class ProductServiceImpl implements IProductService {
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
     private final UserRepository userRepository;
+    private final ProductImageRepository productImageRepository;
     private final ProductMapper productMapper;
 
     @Override
@@ -221,5 +227,95 @@ public class ProductServiceImpl implements IProductService {
         
         productRepository.save(product);
         log.info("Restored product with ID: {}", id);
+    }
+
+    @Override
+    public void manageProductImages(Long productId, ManageImagesRequest request) {
+        log.info("Managing images for product ID: {}", productId);
+        
+        // Validate product exists
+        Product product = productRepository.findByIdAndIsDeletedFalse(productId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy sản phẩm với ID: " + productId));
+        
+        // Validate only one image is marked as primary
+        long primaryCount = request.getImages().stream()
+                .filter(ProductImageRequest::getIsPrimary)
+                .count();
+        
+        if (primaryCount != 1) {
+            throw new BadRequestException("Phải có đúng 1 ảnh được đặt làm ảnh chính");
+        }
+        
+        // Validate imageOrder uniqueness and sequential
+        List<Integer> orders = request.getImages().stream()
+                .map(ProductImageRequest::getImageOrder)
+                .sorted()
+                .toList();
+        
+        for (int i = 0; i < orders.size(); i++) {
+            if (orders.get(i) != i) {
+                throw new BadRequestException("Thứ tự ảnh phải liên tục từ 0 đến " + (orders.size() - 1));
+            }
+        }
+        
+        // Delete existing images
+        productImageRepository.deleteByProductId(productId);
+        
+        // Create new images
+        List<ProductImage> newImages = request.getImages().stream()
+                .map(imgRequest -> ProductImage.builder()
+                        .product(product)
+                        .imageUrl(imgRequest.getImageUrl())
+                        .altText(imgRequest.getAltText())
+                        .isPrimary(imgRequest.getIsPrimary())
+                        .imageOrder(imgRequest.getImageOrder())
+                        .build())
+                .toList();
+        
+        productImageRepository.saveAll(newImages);
+        log.info("Managed {} images for product ID: {}", newImages.size(), productId);
+    }
+
+    @Override
+    public void deleteProductImage(Long productId, Long imageId) {
+        log.info("Deleting image ID: {} for product ID: {}", imageId, productId);
+        
+        // Validate product exists
+        productRepository.findByIdAndIsDeletedFalse(productId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy sản phẩm với ID: " + productId));
+        
+        // Find image
+        ProductImage image = productImageRepository.findById(imageId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy hình ảnh với ID: " + imageId));
+        
+        // Validate image belongs to product
+        if (!image.getProduct().getId().equals(productId)) {
+            throw new BadRequestException("Hình ảnh không thuộc sản phẩm này");
+        }
+        
+        // Check if this is the only image
+        List<ProductImage> productImages = productImageRepository.findByProductIdOrderByImageOrderAsc(productId);
+        if (productImages.size() == 1) {
+            throw new BadRequestException("Không thể xóa ảnh cuối cùng. Sản phẩm cần ít nhất 1 ảnh");
+        }
+        
+        // Delete image
+        productImageRepository.delete(image);
+        
+        // If deleted image was primary, promote the first remaining image
+        if (image.getIsPrimary()) {
+            List<ProductImage> remainingImages = productImageRepository.findByProductIdOrderByImageOrderAsc(productId);
+            if (!remainingImages.isEmpty()) {
+                ProductImage newPrimary = remainingImages.get(0);
+                newPrimary.setIsPrimary(true);
+                productImageRepository.save(newPrimary);
+                log.info("Promoted image ID: {} as new primary for product ID: {}", newPrimary.getId(), productId);
+            }
+        }
+        
+        log.info("Deleted image ID: {} for product ID: {}", imageId, productId);
     }
 }

@@ -21,5 +21,7 @@ public class ProductImageResponse {
     
     private Boolean isPrimary;
     
+    private Integer imageOrder;
+    
     private LocalDateTime createdAt;
 }
