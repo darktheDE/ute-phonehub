@@ -43,16 +43,23 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/payments/**"
                 ).permitAll()
-                // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
+                // Cho phép truy cập tự do vào API danh mục, thương hiệu, và sản phẩm (public - chỉ GET)
                 .requestMatchers(
                     "/api/v1/categories",
                     "/api/v1/brands",
-                    "/api/v1/brands/**"
+                    "/api/v1/brands/**",
+                    "/api/v1/products",
+                    "/api/v1/products/*",
+                    "/api/v1/products/search",
+                    "/api/v1/products/filter",
+                    "/api/v1/products/category/*",
+                    "/api/v1/products/brand/*"
                 ).permitAll()
-                // Yêu cầu ADMIN cho các API quản lý danh mục và thương hiệu
+                // Yêu cầu ADMIN cho các API quản lý danh mục, thương hiệu, và sản phẩm
                 .requestMatchers(
                     "/api/v1/admin/categories/**",
-                    "/api/v1/admin/brands/**"
+                    "/api/v1/admin/brands/**",
+                    "/api/v1/admin/products/**"
                 ).hasAuthority("ADMIN")
                 // Cho phép truy cập tự do các API Promotion (tùy theo chính sách hiện tại)
                 .requestMatchers("/api/v1/admin/promotions/**").permitAll()
