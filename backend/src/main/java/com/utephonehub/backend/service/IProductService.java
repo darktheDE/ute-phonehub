@@ -1,11 +1,12 @@
 package com.utephonehub.backend.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.utephonehub.backend.dto.request.product.CreateProductRequest;
 import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
 import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
 import com.utephonehub.backend.dto.response.product.ProductListResponse;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 /**
  * Service interface for Product operations

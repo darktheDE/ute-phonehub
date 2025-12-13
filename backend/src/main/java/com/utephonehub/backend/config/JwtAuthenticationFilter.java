@@ -1,15 +1,8 @@
 package com.utephonehub.backend.config;
 
-import com.utephonehub.backend.entity.User;
-import com.utephonehub.backend.enums.UserStatus;
-import com.utephonehub.backend.repository.UserRepository;
-import com.utephonehub.backend.util.JwtTokenProvider;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.Collections;
+
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,8 +12,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.Collections;
+import com.utephonehub.backend.entity.User;
+import com.utephonehub.backend.enums.UserStatus;
+import com.utephonehub.backend.repository.UserRepository;
+import com.utephonehub.backend.util.JwtTokenProvider;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
