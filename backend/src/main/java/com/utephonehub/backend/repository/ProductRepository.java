@@ -64,9 +64,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "SELECT * FROM products WHERE id = :id", nativeQuery = true)
     Optional<Product> findByIdIncludingDeleted(@Param("id") Long id);
     
-    @Query(value = "SELECT * FROM products ORDER BY created_at DESC", 
-           countQuery = "SELECT COUNT(*) FROM products",
-           nativeQuery = true)
+    @Query(value = """
+           SELECT p FROM Product p 
+           LEFT JOIN FETCH p.category 
+           LEFT JOIN FETCH p.brand 
+           WHERE 1=1
+           ORDER BY p.createdAt DESC
+           """,
+           countQuery = "SELECT COUNT(p) FROM Product p")
     Page<Product> findAllIncludingDeleted(Pageable pageable);
     
     // Count queries
