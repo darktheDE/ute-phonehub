@@ -43,6 +43,12 @@ public class Order {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String shippingAddress;
 
+    @Column(precision = 15, scale = 2)
+    private BigDecimal shippingFee;
+
+    @Column(length = 50)
+    private String shippingUnit;
+
     @Column(columnDefinition = "TEXT")
     private String note;
 

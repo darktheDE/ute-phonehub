@@ -71,7 +71,7 @@ public class AdminCategoryController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Tạo danh mục thành công", category));
+                .body(ApiResponse.created("Tạo danh mục thành công", category));
     }
 
     @PutMapping("/{id}")

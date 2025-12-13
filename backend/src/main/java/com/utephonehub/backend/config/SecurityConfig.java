@@ -39,6 +39,10 @@ public class SecurityConfig {
                     "/api/v1/auth/**",
                     "/api/v1/health/**"
                 ).permitAll()
+                // Cho phép VNPay endpoints
+                .requestMatchers(
+                    "/api/payments/**"
+                ).permitAll()
                 // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
                 .requestMatchers(
                     "/api/v1/categories",
@@ -50,6 +54,9 @@ public class SecurityConfig {
                     "/api/v1/admin/categories/**",
                     "/api/v1/admin/brands/**"
                 ).hasAuthority("ADMIN")
+                // Cho phép truy cập tự do các API Promotion (tùy theo chính sách hiện tại)
+                .requestMatchers("/api/v1/admin/promotions/**").permitAll()
+                .requestMatchers("/api/v1/promotions/**").permitAll()
                 // Các request khác yêu cầu phải xác thực
                 .anyRequest().authenticated()
             )

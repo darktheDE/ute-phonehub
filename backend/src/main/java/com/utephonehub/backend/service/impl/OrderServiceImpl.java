@@ -6,17 +6,20 @@ import com.utephonehub.backend.dto.response.order.CreateOrderResponse;
 import com.utephonehub.backend.dto.response.order.OrderResponse;
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.entity.OrderItem;
+import com.utephonehub.backend.entity.Payment;
 import com.utephonehub.backend.entity.Product;
 import com.utephonehub.backend.entity.Promotion;
 import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.enums.PaymentMethod;
+import com.utephonehub.backend.enums.PaymentStatus;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ForbiddenException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.mapper.OrderMapper;
 import com.utephonehub.backend.repository.OrderItemRepository;
 import com.utephonehub.backend.repository.OrderRepository;
+import com.utephonehub.backend.repository.PaymentRepository;
 import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.repository.PromotionRepository;
 import com.utephonehub.backend.repository.UserRepository;
@@ -45,6 +48,7 @@ public class OrderServiceImpl implements IOrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final PromotionRepository promotionRepository;
+    private final PaymentRepository paymentRepository;
     private final OrderMapper orderMapper;
     
     @Override
@@ -119,7 +123,7 @@ public class OrderServiceImpl implements IOrderService {
         // 5. Áp dụng promotion nếu có
         Promotion promotion = null;
         if (request.getPromotionId() != null) {
-            promotion = promotionRepository.findById(request.getPromotionId())
+            promotion = promotionRepository.findById(String.valueOf(request.getPromotionId()))
                     .orElseThrow(() -> new ResourceNotFoundException("Promotion không tồn tại"));
             
             // TODO: Validate promotion còn hiệu lực, đủ điều kiện áp dụng
@@ -142,6 +146,8 @@ public class OrderServiceImpl implements IOrderService {
                 .recipientName(request.getRecipientName())
                 .phoneNumber(request.getPhoneNumber())
                 .shippingAddress(request.getShippingAddress())
+                .shippingFee(request.getShippingFee())
+                .shippingUnit(request.getShippingUnit())
                 .note(request.getNote())
                 .status(initialStatus)
                 .paymentMethod(request.getPaymentMethod())
@@ -169,14 +175,28 @@ public class OrderServiceImpl implements IOrderService {
             
             orderItemRepository.save(orderItem);
         }
-        
-        // 10. Giảm tồn kho (nếu thanh toán COD/Bank Transfer - thanh toán ngay)
+        // 10. Tạo Payment record cho COD/Bank Transfer (VNPay sẽ tạo trong callback)
         if (request.getPaymentMethod() != PaymentMethod.VNPAY) {
+            // 10.1. Giảm tồn kho ngay (thanh toán trực tiếp)
             for (OrderItemRequest itemReq : validatedItems) {
                 Product product = productMap.get(itemReq.getProductId());
                 product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
                 productRepository.save(product);
             }
+            
+            // 10.2. Tạo Payment record với status SUCCESS (đã thanh toán)
+            Payment payment = Payment.builder()
+                    .order(order)
+                    .provider(null)  // COD/Bank Transfer không có provider
+                    .transactionId(null)  // Không có transaction ID
+                    .amount(totalAmount)
+                    .status(PaymentStatus.SUCCESS)  // Thanh toán ngay = SUCCESS
+                    .note("Thanh toán " + request.getPaymentMethod().name())
+                    .reconciled(false)
+                    .build();
+            paymentRepository.save(payment);
+            log.info("Created payment record for COD/Bank Transfer: orderId={}, amount={}", 
+                    order.getId(), totalAmount);
         }
         
         // 11. Tạo response

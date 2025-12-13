@@ -1,22 +1,35 @@
 /**
  * AdminDashboard component - Dashboard for admin users
+ * Uses real API for endpoints that exist: /admin/dashboard/overview and /admin/dashboard/recent-orders
  */
 
 'use client';
 
-import { DollarSign, ShoppingCart, Users, Package, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatsCard } from './StatsCard';
 import { OrdersTable } from './OrdersTable';
-import { MOCK_STATS, MOCK_ORDERS } from '@/lib/mockData';
+import { useDashboard, useOrders } from '@/hooks';
 
 export function AdminDashboard() {
-  const stats = [
-    { ...MOCK_STATS[0], icon: DollarSign },
-    { ...MOCK_STATS[1], icon: ShoppingCart },
-    { ...MOCK_STATS[2], icon: Users },
-    { ...MOCK_STATS[3], icon: Package },
-  ];
+  // Using real API - these endpoints exist:
+  // GET /api/v1/admin/dashboard/overview
+  // GET /api/v1/admin/dashboard/recent-orders
+  const { stats, loading: statsLoading } = useDashboard();
+  const { orders, loading: ordersLoading } = useOrders(true);
+
+  if (statsLoading || ordersLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-card rounded-xl border border-border p-4 animate-pulse h-24" />
+          ))}
+        </div>
+        <div className="bg-card rounded-xl border border-border p-4 md:p-6 animate-pulse h-64" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -35,7 +48,7 @@ export function AdminDashboard() {
             Xem tất cả <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
-        <OrdersTable orders={MOCK_ORDERS.slice(0, 5)} isAdmin={true} />
+        <OrdersTable orders={orders.slice(0, 5)} isAdmin={true} />
       </div>
     </div>
   );

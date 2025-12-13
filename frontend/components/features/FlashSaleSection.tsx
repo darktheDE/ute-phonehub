@@ -6,6 +6,7 @@ import { formatPrice } from '@/lib/utils';
 import { MOCK_FLASH_SALE_PRODUCTS } from '@/lib/mockData';
 
 export function FlashSaleSection() {
+  // Using mock data - endpoint /api/v1/products doesn't exist yet
   return (
     <section className="py-8 md:py-12 bg-gradient-to-r from-red-600 to-orange-500">
       <div className="max-w-7xl mx-auto px-4">

@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Admin - User Management", description = "API quản lý người dùng dành cho Admin")
-@SecurityRequirement(name = "Bearer Authentication")
-@PreAuthorize("hasRole('ADMIN')")
+@SecurityRequirement(name = "bearerAuth")
+@PreAuthorize("hasAuthority('ADMIN')")
 public class AdminUserController {
 
     private final IUserService userService;
@@ -131,9 +131,10 @@ public class AdminUserController {
 
         UserResponse user = userService.createUser(request);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
-                "Tài khoản đã được tạo thành công",
-                user
-        ));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.created(
+                        "Tài khoản đã được tạo thành công",
+                        user
+                ));
     }
 }
