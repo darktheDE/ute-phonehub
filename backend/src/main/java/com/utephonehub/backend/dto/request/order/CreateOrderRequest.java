@@ -34,6 +34,10 @@ public class CreateOrderRequest {
     @NotBlank(message = "Địa chỉ giao hàng không được để trống")
     private String shippingAddress;
     
+    private java.math.BigDecimal shippingFee; // Phí vận chuyển (Optional)
+    
+    private String shippingUnit; // Đơn vị vận chuyển (Optional, VD: "GHN", "GHTK")
+    
     private String note; // Ghi chú đơn hàng (Optional)
     
     @NotNull(message = "Phương thức thanh toán không được để trống")

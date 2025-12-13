@@ -4,3 +4,7 @@
 
 export { useAuth } from './useAuth';
 export { useFormValidation } from './useFormValidation';
+export { useProducts, useFeaturedProducts } from './useProducts';
+export { useOrders } from './useOrders';
+export { useUsers } from './useUsers';
+export { useDashboard } from './useDashboard';

@@ -146,6 +146,8 @@ public class OrderServiceImpl implements IOrderService {
                 .recipientName(request.getRecipientName())
                 .phoneNumber(request.getPhoneNumber())
                 .shippingAddress(request.getShippingAddress())
+                .shippingFee(request.getShippingFee())
+                .shippingUnit(request.getShippingUnit())
                 .note(request.getNote())
                 .status(initialStatus)
                 .paymentMethod(request.getPaymentMethod())

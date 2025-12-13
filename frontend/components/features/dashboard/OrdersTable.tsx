@@ -8,7 +8,7 @@ import { Eye } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { getOrderStatus } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import type { Order } from '@/lib/mockData';
+import type { Order } from '@/types';
 
 interface OrdersTableProps {
   orders: Order[];
@@ -42,14 +42,22 @@ export function OrdersTable({ orders, isAdmin = false }: OrdersTableProps) {
               return (
                 <tr key={order.id} className="border-b border-border hover:bg-secondary/50">
                   <td className="py-3 px-4 font-medium">#{order.id}</td>
-                  {isAdmin && <td className="py-3 px-4 hidden sm:table-cell">{order.customer}</td>}
-                  <td className="py-3 px-4 font-semibold">{formatPrice(order.total)}</td>
+                  {isAdmin && (
+                    <td className="py-3 px-4 hidden sm:table-cell">
+                      {order.customer || order.recipientName || 'N/A'}
+                    </td>
+                  )}
+                  <td className="py-3 px-4 font-semibold">
+                    {formatPrice(order.total || order.totalAmount)}
+                  </td>
                   <td className="py-3 px-4">
                     <span className={cn("px-2 py-1 rounded-full text-xs font-semibold", statusConfig.class)}>
                       {statusConfig.label}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">{order.date}</td>
+                  <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">
+                    {order.date || new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                  </td>
                   <td className="py-3 px-4">
                     <button className="p-2 hover:bg-secondary rounded-lg text-blue-600">
                       <Eye className="w-4 h-4" />
