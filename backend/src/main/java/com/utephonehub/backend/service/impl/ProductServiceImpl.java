@@ -1,11 +1,9 @@
 package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.request.product.CreateProductRequest;
-import com.utephonehub.backend.dto.request.product.ProductFilterRequest;
 import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
 import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
 import com.utephonehub.backend.dto.response.product.ProductListResponse;
-import com.utephonehub.backend.dto.response.product.ProductResponse;
 import com.utephonehub.backend.entity.Brand;
 import com.utephonehub.backend.entity.Category;
 import com.utephonehub.backend.entity.Product;
@@ -149,130 +147,6 @@ public class ProductServiceImpl implements IProductService {
         
         productRepository.save(product);
         log.info("Soft deleted product with ID: {}", id);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ProductDetailResponse getProductById(Long id) {
-        log.info("Getting product with ID: {}", id);
-        
-        Product product = productRepository.findByIdAndIsDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + id));
-        
-        return productMapper.toDetailResponse(product);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ProductResponse getProductByIdSimple(Long id) {
-        log.info("Getting product (simple) with ID: {}", id);
-        
-        Product product = productRepository.findByIdAndIsDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + id));
-        
-        return productMapper.toResponse(product);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ProductListResponse> getAllProducts(Pageable pageable) {
-        log.info("Getting all products with pagination");
-        return productRepository.findByIsDeletedFalse(pageable)
-                .map(productMapper::toListResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ProductListResponse> getAllActiveProducts(Pageable pageable) {
-        log.info("Getting all active products with pagination");
-        return productRepository.findByStatusTrueAndIsDeletedFalse(pageable)
-                .map(productMapper::toListResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ProductListResponse> filterProducts(ProductFilterRequest filter, Pageable pageable) {
-        log.info("Filtering products with criteria: {}", filter);
-        
-        // If keyword is provided, use search
-        if (filter.getKeyword() != null && !filter.getKeyword().trim().isEmpty()) {
-            return searchProducts(filter.getKeyword(), pageable);
-        }
-        
-        // Otherwise use advanced filter
-        return productRepository.filterProducts(
-                filter.getCategoryId(),
-                filter.getBrandId(),
-                filter.getMinPrice(),
-                filter.getMaxPrice(),
-                pageable
-        ).map(productMapper::toListResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ProductListResponse> searchProducts(String keyword, Pageable pageable) {
-        log.info("Searching products with keyword: {}", keyword);
-        
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return getAllActiveProducts(pageable);
-        }
-        
-        return productRepository.searchProducts(keyword.trim(), pageable)
-                .map(productMapper::toListResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ProductListResponse> getProductsByCategory(Long categoryId, Pageable pageable) {
-        log.info("Getting products by category ID: {}", categoryId);
-        
-        // Validate category exists
-        if (!categoryRepository.existsById(categoryId)) {
-            throw new ResourceNotFoundException("Không tìm thấy danh mục với ID: " + categoryId);
-        }
-        
-        return productRepository.findByCategoryIdAndIsDeletedFalse(categoryId, pageable)
-                .map(productMapper::toListResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ProductListResponse> getProductsByBrand(Long brandId, Pageable pageable) {
-        log.info("Getting products by brand ID: {}", brandId);
-        
-        // Validate brand exists
-        if (!brandRepository.existsById(brandId)) {
-            throw new ResourceNotFoundException("Không tìm thấy thương hiệu với ID: " + brandId);
-        }
-        
-        return productRepository.findByBrandIdAndIsDeletedFalse(brandId, pageable)
-                .map(productMapper::toListResponse);
-    }
-
-    @Override
-    public void updateStock(Long id, Integer newStock, Long userId) {
-        log.info("Updating stock for product ID: {} to {}", id, newStock);
-        
-        if (newStock < 0) {
-            throw new BadRequestException("Số lượng không thể âm");
-        }
-        
-        Product product = productRepository.findByIdAndIsDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + id));
-        
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy người dùng với ID: " + userId));
-        
-        product.setStockQuantity(newStock);
-        product.setUpdatedBy(user);
-        
-        productRepository.save(product);
-        log.info("Updated stock for product ID: {}", id);
     }
 
     @Override
