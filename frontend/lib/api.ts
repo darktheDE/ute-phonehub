@@ -7,6 +7,13 @@ import type {
   RegisterRequest,
   ForgotPasswordRequest,
   VerifyOtpRequest,
+  Product,
+  ProductResponse,
+  Order,
+  OrderResponse,
+  RecentOrderResponse,
+  DashboardOverviewResponse,
+  TopProductResponse,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
@@ -76,10 +83,31 @@ async function fetchAPI<T>(
       headers,
     });
 
-    const data = await response.json();
+    // Try to parse JSON, but handle cases where response might not be JSON
+    let data: any;
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType?.includes('application/json');
+    
+    if (isJson) {
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        // If JSON parsing fails, use empty object
+        data = {};
+      }
+    } else {
+      // If not JSON, try to get text
+      try {
+        const text = await response.text();
+        data = text ? { message: text } : {};
+      } catch {
+        data = {};
+      }
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      const errorMessage = data?.message || data?.error || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return data;
@@ -165,5 +193,88 @@ export const healthCheck = async (): Promise<ApiResponse<any>> => {
   return fetchAPI<any>('/health', {
     method: 'GET',
   });
+};
+
+// Product API endpoints
+// Note: Public product endpoints don't exist yet, so using mock data in components
+// Only keeping admin endpoints that exist
+export const productAPI = {
+  // Get low stock products (for admin dashboard)
+  // This endpoint exists: GET /api/v1/admin/dashboard/low-stock-products
+  getLowStockProducts: async (threshold: number = 20): Promise<ApiResponse<any[]>> => {
+    return fetchAPI<any[]>(`/admin/dashboard/low-stock-products?threshold=${threshold}`, {
+      method: 'GET',
+    });
+  },
+};
+
+// Order API endpoints
+export const orderAPI = {
+  // Get order by ID
+  getById: async (orderId: number): Promise<ApiResponse<OrderResponse>> => {
+    return fetchAPI<OrderResponse>(`/orders/${orderId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Get user's orders (for customer)
+  // Note: Endpoint GET /api/v1/orders (list) doesn't exist
+  // Components will use mock data instead
+
+  // Get recent orders (for admin dashboard)
+  // This endpoint exists: GET /api/v1/admin/dashboard/recent-orders?limit={limit}
+  getRecentOrders: async (limit: number = 10): Promise<ApiResponse<RecentOrderResponse[]>> => {
+    return fetchAPI<RecentOrderResponse[]>(`/admin/dashboard/recent-orders?limit=${limit}`, {
+      method: 'GET',
+    });
+  },
+};
+
+// Admin API endpoints
+export const adminAPI = {
+  // Users
+  getAllUsers: async (params?: {
+    page?: number;
+    size?: number;
+    role?: string;
+    status?: string;
+    search?: string;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size !== undefined) queryParams.append('size', params.size.toString());
+    if (params?.role) queryParams.append('role', params.role);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.search) queryParams.append('search', params.search);
+    
+    const query = queryParams.toString();
+    return fetchAPI<any>(`/admin/users${query ? `?${query}` : ''}`, {
+      method: 'GET',
+    });
+  },
+
+  // Dashboard
+  getDashboardOverview: async (): Promise<ApiResponse<DashboardOverviewResponse>> => {
+    return fetchAPI<DashboardOverviewResponse>('/admin/dashboard/overview', {
+      method: 'GET',
+    });
+  },
+
+  // Products (admin management)
+  // Note: Using low-stock-products endpoint as fallback since ProductController doesn't exist
+  // TODO: Backend needs to add ProductController with GET /api/v1/admin/products endpoint
+  getAllProducts: async (params?: {
+    page?: number;
+    size?: number;
+    categoryId?: number;
+    brandId?: number;
+    search?: string;
+  }): Promise<ApiResponse<any>> => {
+    // For now, use low-stock-products endpoint as a workaround
+    // This will return products but only low stock ones
+    return fetchAPI<any>('/admin/dashboard/low-stock-products?threshold=1000', {
+      method: 'GET',
+    });
+  },
 };
 

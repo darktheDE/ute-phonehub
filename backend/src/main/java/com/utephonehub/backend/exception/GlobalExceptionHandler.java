@@ -65,6 +65,43 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.internalServerError(ex.getMessage()));
     }
 
+    @ExceptionHandler(OutOfStockException.class)
+    public ResponseEntity<ApiResponse<?>> handleOutOfStockException(
+            OutOfStockException ex, WebRequest request) {
+        log.error("Out of stock: {}", ex.getMessage());
+        Map<String, Object> data = new HashMap<>();
+        data.put("productId", ex.getProductId());
+        data.put("productName", ex.getProductName());
+        data.put("requestedQuantity", ex.getRequestedQuantity());
+        data.put("availableStock", ex.getAvailableStock());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(400, ex.getMessage(), data));
+    }
+
+    @ExceptionHandler(VersionConflictException.class)
+    public ResponseEntity<ApiResponse<?>> handleVersionConflictException(
+            VersionConflictException ex, WebRequest request) {
+        log.error("Version conflict: {}", ex.getMessage());
+        Map<String, Object> data = new HashMap<>();
+        if (ex.getCurrentQuantity() != null) {
+            data.put("currentQuantity", ex.getCurrentQuantity());
+            data.put("requestedQuantity", ex.getRequestedQuantity());
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(409, ex.getMessage(), data));
+    }
+
+    @ExceptionHandler(MaxQuantityExceededException.class)
+    public ResponseEntity<ApiResponse<?>> handleMaxQuantityExceededException(
+            MaxQuantityExceededException ex, WebRequest request) {
+        log.error("Max quantity exceeded: {}", ex.getMessage());
+        Map<String, Object> data = new HashMap<>();
+        data.put("maxQuantity", ex.getMaxQuantity());
+        data.put("requestedQuantity", ex.getRequestedQuantity());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(400, ex.getMessage(), data));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationException(
             MethodArgumentNotValidException ex, WebRequest request) {

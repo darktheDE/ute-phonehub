@@ -55,9 +55,25 @@ export const USER_STATUS: Record<UserStatus, StatusConfig> = {
 
 /**
  * Helper function to get order status configuration
+ * Handles both uppercase (backend) and lowercase (mock) status formats
  */
-export const getOrderStatus = (status: OrderStatus): StatusConfig => {
-  return ORDER_STATUS[status];
+export const getOrderStatus = (status: string | OrderStatus): StatusConfig => {
+  // Normalize status to lowercase for lookup
+  const normalizedStatus = status.toLowerCase() as OrderStatus;
+  
+  // Map backend statuses to frontend statuses
+  const statusMap: Record<string, OrderStatus> = {
+    'pending': 'pending',
+    'confirmed': 'processing',
+    'shipping': 'shipped',
+    'delivered': 'delivered',
+    'cancelled': 'cancelled',
+  };
+  
+  const mappedStatus = statusMap[normalizedStatus] || normalizedStatus;
+  
+  // Fallback to pending if status not found
+  return ORDER_STATUS[mappedStatus] || ORDER_STATUS.pending;
 };
 
 /**

@@ -19,7 +19,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("UTE Phone Hub API")
                         .version("1.0")
-                        .description("Tài liệu API cho dự án UTE Phone Hub - Module 01: Authentication & Authorization"))
+                        .description("Tài liệu API cho dự án UTE Phone Hub"))
                 .servers(List.of(
                         new Server().url("http://localhost:8081").description("Local Server"),
                         new Server().url("http://localhost:8081").description("Docker Server")

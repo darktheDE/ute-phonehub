@@ -6,6 +6,8 @@ import { ProductCard } from './ProductCard';
 import { MOCK_FEATURED_PRODUCTS } from '@/lib/mockData';
 
 export function FeaturedProducts() {
+  // Using mock data - endpoint /api/v1/products doesn't exist yet
+  // top-products endpoint requires admin auth, not suitable for public page
   return (
     <section className="py-8 md:py-12">
       <div className="max-w-7xl mx-auto px-4">

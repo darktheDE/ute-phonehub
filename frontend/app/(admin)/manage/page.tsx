@@ -31,7 +31,9 @@ import {
   UsersTable,
 } from '@/components/features/dashboard';
 import { Sidebar } from '@/components/features/layout/Sidebar';
-import { MOCK_ORDERS, MOCK_PRODUCTS, MOCK_USERS } from '@/lib/mockData';
+import { useOrders, useUsers } from '@/hooks';
+import { adminAPI } from '@/lib/api';
+import { MOCK_PRODUCTS, MOCK_ORDERS } from '@/lib/mockData';
 
 type TabType = 'dashboard' | 'orders' | 'products' | 'users' | 'profile' | 'addresses' | 'wishlist';
 
@@ -43,6 +45,15 @@ export default function ManagePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN';
+  
+  // Using real API for endpoints that exist:
+  // - GET /api/v1/admin/dashboard/recent-orders (for admin)
+  // - GET /api/v1/admin/users
+  // Using mock data for endpoints that don't exist:
+  // - GET /api/v1/admin/products (doesn't exist)
+  // - GET /api/v1/orders (for customer list - doesn't exist)
+  const { orders, loading: ordersLoading } = useOrders(isAdmin);
+  const { users, loading: usersLoading } = useUsers({ page: 0, size: 100 });
 
   // Admin menu items
   const adminMenuItems = [
@@ -159,13 +170,78 @@ export default function ManagePage() {
           {activeTab === 'dashboard' && isAdmin && <AdminDashboard />}
 
           {/* Products Management (Admin Only) */}
-          {activeTab === 'products' && isAdmin && <ProductsTable products={MOCK_PRODUCTS} />}
+          {/* Using mock data - GET /api/v1/admin/products doesn't exist */}
+          {activeTab === 'products' && isAdmin && (
+            <ProductsTable products={MOCK_PRODUCTS} />
+          )}
 
           {/* Orders */}
-          {activeTab === 'orders' && <OrdersTable orders={MOCK_ORDERS} isAdmin={isAdmin} />}
+          {activeTab === 'orders' && (
+            isAdmin ? (
+              // Admin: Use real API - GET /api/v1/admin/dashboard/recent-orders exists
+              ordersLoading ? (
+                <div className="bg-card rounded-xl border border-border p-6 animate-pulse h-64" />
+              ) : (
+                <OrdersTable 
+                  orders={orders} 
+                  isAdmin={isAdmin} 
+                />
+              )
+            ) : (
+              // Customer: Use mock data - GET /api/v1/orders (list) doesn't exist
+              // Need to transform MOCK_ORDERS to Order type from @/types
+              <OrdersTable 
+                orders={MOCK_ORDERS.map(mockOrder => {
+                  // Map mock status to OrderStatus from @/types
+                  const statusMap: Record<string, 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED'> = {
+                    'pending': 'PENDING',
+                    'processing': 'CONFIRMED',
+                    'shipped': 'SHIPPING',
+                    'delivered': 'DELIVERED',
+                    'cancelled': 'CANCELLED',
+                  };
+                  
+                  return {
+                    id: mockOrder.id,
+                    orderCode: `ORD-${mockOrder.id}`,
+                    email: '',
+                    recipientName: mockOrder.customer,
+                    phoneNumber: '',
+                    shippingAddress: '',
+                    status: statusMap[mockOrder.status] || 'PENDING',
+                    paymentMethod: '',
+                    totalAmount: mockOrder.total,
+                    createdAt: new Date(mockOrder.date).toISOString(),
+                    updatedAt: new Date(mockOrder.date).toISOString(),
+                    customer: mockOrder.customer,
+                    total: mockOrder.total,
+                    date: mockOrder.date,
+                    items: mockOrder.items,
+                  };
+                })} 
+                isAdmin={isAdmin} 
+              />
+            )
+          )}
 
           {/* Users Management (Admin Only) */}
-          {activeTab === 'users' && isAdmin && <UsersTable users={MOCK_USERS} />}
+          {/* Using real API - GET /api/v1/admin/users exists */}
+          {activeTab === 'users' && isAdmin && (
+            usersLoading ? (
+              <div className="bg-card rounded-xl border border-border p-6 animate-pulse h-64" />
+            ) : (
+              <UsersTable 
+                users={users.map(u => ({
+                  id: u.id,
+                  name: u.name,
+                  email: u.email,
+                  role: u.role,
+                  status: (u.status === 'LOCKED' ? 'BANNED' : u.status) as 'ACTIVE' | 'INACTIVE' | 'BANNED',
+                  joinDate: u.joinDate,
+                }))} 
+              />
+            )
+          )}
 
           {/* Customer Profile */}
           {activeTab === 'profile' && !isAdmin && <CustomerProfile user={user} />}

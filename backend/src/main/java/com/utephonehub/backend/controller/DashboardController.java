@@ -31,8 +31,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Admin - Dashboard", description = "API thống kê và báo cáo cho Admin Dashboard")
-@SecurityRequirement(name = "Bearer Authentication")
-@PreAuthorize("hasRole('ADMIN')")
+@SecurityRequirement(name = "bearerAuth")
+@PreAuthorize("hasAuthority('ADMIN')")
 public class DashboardController {
 
     private final IDashboardService dashboardService;

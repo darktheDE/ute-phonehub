@@ -1,6 +1,5 @@
 package com.utephonehub.backend.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -11,6 +10,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
@@ -39,16 +40,39 @@ public class SecurityConfig {
                     "/api/v1/auth/**",
                     "/api/v1/health/**"
                 ).permitAll()
+                // Cho phép VNPay endpoints
+                .requestMatchers(
+                    "/api/payments/**"
+                ).permitAll()
                 // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
                 .requestMatchers(
                     "/api/v1/categories",
                     "/api/v1/brands",
                     "/api/v1/brands/**"
                 ).permitAll()
-                // Yêu cầu ADMIN cho các API quản lý danh mục và thương hiệu
+                // Cho phép public POST /products/filter (public search)
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/products/filter").permitAll()
+                // Cho phép public POST /products/*/restore (sẽ override bên dưới)
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/products/*/restore").hasRole("ADMIN")
+                // Yêu cầu ADMIN cho POST /products (create - exact match)
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/products").hasRole("ADMIN")
+                // Yêu cầu ADMIN cho PUT (update product)
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/v1/products/**").hasRole("ADMIN")
+                // Yêu cầu ADMIN cho DELETE (soft delete)
+                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/v1/products/**").hasRole("ADMIN")
+                // Yêu cầu ADMIN cho PATCH (update stock)
+                .requestMatchers(org.springframework.http.HttpMethod.PATCH, "/api/v1/products/**").hasRole("ADMIN")
+                // Cho phép GET public cho products (search, filter, list, detail)
+                .requestMatchers(
+                    org.springframework.http.HttpMethod.GET,
+                    "/api/v1/products",
+                    "/api/v1/products/**"
+                ).permitAll()
+                // Yêu cầu ADMIN cho các API quản lý danh mục, thương hiệu
                 .requestMatchers(
                     "/api/v1/admin/categories/**",
-                    "/api/v1/admin/brands/**"
+                    "/api/v1/admin/brands/**",
+                    "/api/v1/admin/products/**"
                 ).hasAuthority("ADMIN")
                 // Cho phép truy cập tự do các API Promotion (tùy theo chính sách hiện tại)
                 .requestMatchers("/api/v1/admin/promotions/**").permitAll()

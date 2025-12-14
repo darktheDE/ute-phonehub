@@ -23,6 +23,8 @@ public class OrderResponse {
     private String recipientName;
     private String phoneNumber;
     private String shippingAddress;
+    private BigDecimal shippingFee;
+    private String shippingUnit;
     private String note;
     private OrderStatus status;
     private PaymentMethod paymentMethod;
@@ -32,5 +34,4 @@ public class OrderResponse {
     private LocalDateTime updatedAt;
     private List<OrderItemResponse> items;
     
-    // ❌ XÓA method fromEntity() - MapStruct lo
 }
