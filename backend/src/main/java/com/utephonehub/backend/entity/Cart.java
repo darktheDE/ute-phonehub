@@ -33,10 +33,6 @@ public class Cart {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @Version
-    @Column(nullable = false)
-    private Long version;
-
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> items;
 }
