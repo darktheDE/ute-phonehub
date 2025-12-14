@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/cart")
 @RequiredArgsConstructor
 @Tag(name = "Cart", description = "API quản lý giỏ hàng")
-@SecurityRequirement(name = "Bearer Authentication")
+@SecurityRequirement(name = "bearerAuth")
 public class CartController {
 
     private final ICartService cartService;

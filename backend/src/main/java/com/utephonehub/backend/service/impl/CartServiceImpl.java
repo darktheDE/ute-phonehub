@@ -101,9 +101,13 @@ public class CartServiceImpl implements ICartService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-            // Validate product exists and is active
-            Product product = productRepository.findById(request.getProductId())
+                // Validate product exists and is active (UC 1.1 - bước 4)
+                Product product = productRepository.findById(request.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
+
+                if (!Boolean.TRUE.equals(product.getStatus())) {
+                throw new ResourceNotFoundException("Sản phẩm không tồn tại");
+                }
 
             // Check stock quantity
             if (product.getStockQuantity() < request.getQuantity()) {
@@ -316,12 +320,12 @@ public class CartServiceImpl implements ICartService {
 
         for (MergeGuestCartRequest.GuestCartItem guestItem : request.getGuestCartItems()) {
             try {
-                // Validate product
+                // Validate product exists and is active
                 Product product = productRepository.findById(guestItem.getProductId())
                         .orElse(null);
-                
-                if (product == null) {
-                    log.warn("Product {} not found, skipping", guestItem.getProductId());
+
+                if (product == null || !Boolean.TRUE.equals(product.getStatus())) {
+                    log.warn("Product {} not found or inactive, skipping", guestItem.getProductId());
                     skippedCount++;
                     continue;
                 }
