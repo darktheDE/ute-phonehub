@@ -12,5 +12,8 @@ RUN ./mvnw dependency:go-offline
 # Copy source code
 COPY src ./src
 
+# Build application (clean compile để đảm bảo Lombok generate code)
+RUN ./mvnw clean package -DskipTests
+
 # Chạy ứng dụng
-CMD ["./mvnw", "spring-boot:run"]
+CMD ["java", "-jar", "target/backend-0.0.1-SNAPSHOT.jar"]

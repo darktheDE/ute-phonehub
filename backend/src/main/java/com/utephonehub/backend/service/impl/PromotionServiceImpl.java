@@ -3,16 +3,13 @@ package com.utephonehub.backend.service.impl;
 import com.utephonehub.backend.dto.request.PromotionRequest;
 import com.utephonehub.backend.dto.response.PromotionResponse;
 import com.utephonehub.backend.entity.Promotion;
-import com.utephonehub.backend.entity.PromotionTarget;
 import com.utephonehub.backend.entity.PromotionTemplate;
-import com.utephonehub.backend.entity.Product;
 import com.utephonehub.backend.enums.EPromotionStatus;
-import com.utephonehub.backend.enums.EPromotionTargetType;
+import com.utephonehub.backend.exception.PromotionNotFoundException;
 import com.utephonehub.backend.repository.PromotionRepository;
-import com.utephonehub.backend.repository.PromotionTargetRepository;
 import com.utephonehub.backend.repository.PromotionTemplateRepository;
-import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.service.IPromotionService;
+import com.utephonehub.backend.service.impl.promotion.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,23 +19,132 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of IPromotionService
+ * Refactored following SOLID, DRY, and GRASP principles:
+ * - Single Responsibility: Delegates specific tasks to helper classes
+ * - Open/Closed: Open for extension through new validators/calculators
+ * - Dependency Inversion: Depends on abstractions (helper components)
+ * - DRY: No code duplication, reusable components
+ * - High Cohesion: Each component has a clear, focused purpose
+ * - Low Coupling: Components are independent and loosely coupled
+ */
 @Service
 @RequiredArgsConstructor
 public class PromotionServiceImpl implements IPromotionService {
 
+    // Repositories
     private final PromotionRepository promotionRepository;
     private final PromotionTemplateRepository templateRepository;
-    private final PromotionTargetRepository targetRepository;
-    private final ProductRepository productRepository;
+
+    // Helper Components (following Dependency Injection and Indirection patterns)
+    private final PromotionValidator promotionValidator;
+    private final PromotionDiscountCalculator discountCalculator;
+    private final PromotionMapper promotionMapper;
+    private final PromotionTargetManager targetManager;
 
     // --- 1. CREATE PROMOTION ---
     @Override
     @Transactional
     public PromotionResponse createPromotion(PromotionRequest request) {
-        PromotionTemplate template = templateRepository.findById(request.getTemplateId())
-                .orElseThrow(() -> new RuntimeException("Template not found"));
+        PromotionTemplate template = findTemplateOrThrow(request.getTemplateId());
 
-        Promotion promotion = Promotion.builder()
+        Promotion promotion = buildPromotionFromRequest(request, template);
+        Promotion savedPromotion = promotionRepository.save(promotion);
+        
+        targetManager.saveTargets(savedPromotion, request.getTargets());
+
+        return promotionMapper.toResponse(savedPromotion);
+    }
+
+    // --- 2. MODIFY PROMOTION ---
+    @Override
+    @Transactional
+    public PromotionResponse modifyPromotion(String id, PromotionRequest request) {
+        Promotion promotion = findPromotionOrThrow(id);
+
+        updatePromotionFields(promotion, request);
+        updatePromotionTemplate(promotion, request.getTemplateId());
+        targetManager.replaceTargets(promotion, request.getTargets());
+
+        Promotion updatedPromotion = promotionRepository.save(promotion);
+        return promotionMapper.toResponse(updatedPromotion);
+    }
+
+    // --- 3. DISABLE PROMOTION ---
+    @Override
+    @Transactional
+    public void disable(String id) {
+        Promotion promotion = findPromotionOrThrow(id);
+        promotion.setStatus(EPromotionStatus.INACTIVE);
+        promotionRepository.save(promotion);
+    }
+
+    // --- 4. GET DETAILS ---
+    @Override
+    public PromotionResponse getDetails(String id) {
+        Promotion promotion = findPromotionOrThrow(id);
+        return promotionMapper.toResponse(promotion);
+    }
+
+    // --- 5. GET ALL PROMOTIONS ---
+    @Override
+    public List<PromotionResponse> getAllPromotions() {
+        List<Promotion> promotions = promotionRepository.findAll();
+        return promotionMapper.toResponseList(promotions);
+    }
+
+    // --- 6. CHECK AVAILABLE ---
+    @Override
+    public List<PromotionResponse> checkAndGetAvailablePromotions(Double orderTotal) {
+        LocalDateTime now = LocalDateTime.now();
+        List<Promotion> promotions = promotionRepository.findByEffectiveDateBeforeAndExpirationDateAfter(now, now);
+
+        return promotions.stream()
+                .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                .filter(p -> isMinValueMet(p, orderTotal))
+                .map(promotionMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    // --- 7. CALCULATE DISCOUNT ---
+    @Override
+    public Double calculateDiscount(String promotionId, Double orderTotal) {
+        Promotion promotion = findPromotionOrThrow(promotionId);
+        
+        // Validate promotion can be applied (following Single Responsibility)
+        promotionValidator.validatePromotionApplicability(promotion, orderTotal);
+        
+        // Calculate discount (following Single Responsibility)
+        return discountCalculator.calculateDiscountAmount(promotion, orderTotal);
+    }
+
+    // --- PRIVATE HELPER METHODS ---
+    
+    /**
+     * Find promotion by ID or throw exception
+     * Follows DRY principle - centralized error handling
+     */
+    private Promotion findPromotionOrThrow(String id) {
+        return promotionRepository.findById(id)
+                .orElseThrow(() -> new PromotionNotFoundException(id));
+    }
+
+    /**
+     * Find template by ID or throw exception
+     * Follows DRY principle - centralized error handling
+     */
+    private PromotionTemplate findTemplateOrThrow(String templateId) {
+        return templateRepository.findById(templateId)
+                .orElseThrow(() -> new RuntimeException("Template not found with ID: " + templateId));
+    }
+
+    /**
+     * Build Promotion entity from request
+     * Follows Creator (GRASP) pattern
+     */
+    private Promotion buildPromotionFromRequest(PromotionRequest request, PromotionTemplate template) {
+        return Promotion.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .effectiveDate(request.getEffectiveDate())
@@ -49,222 +155,38 @@ public class PromotionServiceImpl implements IPromotionService {
                 .template(template)
                 .targets(new ArrayList<>())
                 .build();
-
-        Promotion savedPromotion = promotionRepository.save(promotion);
-        saveTargets(savedPromotion, request.getTargets());
-
-        return mapToResponse(savedPromotion);
     }
 
-    // --- 2. MODIFY PROMOTION ---
-    @Override
-    @Transactional
-    public PromotionResponse modifyPromotion(String id, PromotionRequest request) {
-        Promotion promotion = promotionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Promotion not found"));
-
+    /**
+     * Update promotion fields from request
+     * Follows Information Expert (GRASP) - service knows how to update promotion
+     */
+    private void updatePromotionFields(Promotion promotion, PromotionRequest request) {
         promotion.setTitle(request.getTitle());
         promotion.setDescription(request.getDescription());
         promotion.setEffectiveDate(request.getEffectiveDate());
         promotion.setExpirationDate(request.getExpirationDate());
         promotion.setPercentDiscount(request.getPercentDiscount());
         promotion.setMinValueToBeApplied(request.getMinValueToBeApplied());
+    }
 
-        // Logic đổi Template nếu cần
-        if (!promotion.getTemplate().getId().equals(request.getTemplateId())) {
-            PromotionTemplate newTemplate = templateRepository.findById(request.getTemplateId())
-                    .orElseThrow(() -> new RuntimeException("Template not found"));
+    /**
+     * Update promotion template if changed
+     * Follows Single Responsibility - focused method for template update
+     */
+    private void updatePromotionTemplate(Promotion promotion, String newTemplateId) {
+        if (!promotion.getTemplate().getId().equals(newTemplateId)) {
+            PromotionTemplate newTemplate = findTemplateOrThrow(newTemplateId);
             promotion.setTemplate(newTemplate);
         }
-
-        if (promotion.getTargets() != null) {
-            promotion.getTargets().clear();
-        }
-        saveTargets(promotion, request.getTargets());
-
-        Promotion updatedPromotion = promotionRepository.save(promotion);
-        return mapToResponse(updatedPromotion);
-    }
-
-    // --- 3. DISABLE PROMOTION ---
-    @Override
-    public void disable(String id) {
-        Promotion promotion = promotionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Promotion not found"));
-
-        promotion.setStatus(EPromotionStatus.INACTIVE);
-        promotionRepository.save(promotion);
-    }
-
-    // --- 4. GET DETAILS ---
-    @Override
-    public PromotionResponse getDetails(String id) {
-        Promotion promotion = promotionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Promotion not found"));
-        return mapToResponse(promotion);
-    }
-
-    // --- 5. GET ALL PROMOTIONS ---
-    @Override
-    public List<PromotionResponse> getAllPromotions() {
-        List<Promotion> promotions = promotionRepository.findAll();
-        return promotions.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    // --- 6. CHECK AVAILABLE ---
-    @Override
-    public List<PromotionResponse> checkAndGetAvailablePromotions(Double orderTotal) {
-        LocalDateTime now = LocalDateTime.now();
-
-        // Lấy các khuyến mãi còn hạn
-        List<Promotion> campaigns = promotionRepository.findByEffectiveDateBeforeAndExpirationDateAfter(now, now);
-
-        return campaigns.stream()
-                .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
-                .filter(p -> {
-                    // Check Min Value nếu có
-                    if (p.getMinValueToBeApplied() != null && orderTotal < p.getMinValueToBeApplied()) {
-                        return false;
-                    }
-                    return true;
-                })
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    // --- 7. CALCULATE ---
-    @Override
-    public Double calculateDiscount(String promotionId, Double orderTotal) {
-        Promotion promotion = promotionRepository.findById(promotionId)
-                .orElseThrow(() -> new RuntimeException("Promotion not found"));
-
-        // Validate cơ bản
-        if (promotion.getStatus() != EPromotionStatus.ACTIVE) {
-            throw new RuntimeException("Promotion is inactive");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(promotion.getEffectiveDate()) || now.isAfter(promotion.getExpirationDate())) {
-            throw new RuntimeException("Promotion is expired");
-        }
-
-        if (promotion.getMinValueToBeApplied() != null && orderTotal < promotion.getMinValueToBeApplied()) {
-            throw new RuntimeException("Order total is not enough");
-        }
-
-        // Logic tính toán: Chỉ dựa trên Percent Discount
-        if (promotion.getPercentDiscount() != null) {
-            return orderTotal * (promotion.getPercentDiscount() / 100.0);
-        }
-
-        return 0.0;
-    }
-
-    // --- Helper Methods ---
-    private void saveTargets(Promotion promotion, List<PromotionRequest.TargetRequest> targetRequests) {
-        if (targetRequests != null && !targetRequests.isEmpty()) {
-            List<PromotionTarget> targets = targetRequests.stream().map(t -> {
-                return PromotionTarget.builder()
-                        .applicableObjectId(t.getApplicableObjectId())
-                        .type(t.getType())
-                        .promotion(promotion)
-                        .build();
-            }).collect(Collectors.toList());
-
-            if (promotion.getTargets() == null) {
-                promotion.setTargets(new ArrayList<>());
-            }
-            promotion.getTargets().addAll(targets);
-        }
-    }
-
-    private PromotionResponse mapToResponse(Promotion p) {
-        List<PromotionResponse.TargetResponse> targetResponses = new ArrayList<>();
-        if (p.getTargets() != null) {
-            targetResponses = p.getTargets().stream().map(t -> PromotionResponse.TargetResponse.builder()
-                    .id(t.getId())
-                    .applicableObjectId(t.getApplicableObjectId())
-                    .type(t.getType())
-                    .build()).collect(Collectors.toList());
-        }
-
-        return PromotionResponse.builder()
-                .id(p.getId())
-                .title(p.getTitle())
-                .description(p.getDescription())
-                .effectiveDate(p.getEffectiveDate())
-                .expirationDate(p.getExpirationDate())
-                .percentDiscount(p.getPercentDiscount())
-                .minValueToBeApplied(p.getMinValueToBeApplied())
-                .status(p.getStatus())
-                .templateId(p.getTemplate().getId())
-                .templateCode(p.getTemplate().getCode())
-                .templateType(p.getTemplate().getType())
-                .targets(targetResponses)
-                .build();
     }
 
     /**
-     * Kiểm tra xem promotion có áp dụng được cho danh sách sản phẩm trong đơn hàng không
-     * @param promotion Promotion cần kiểm tra
-     * @param productIds Danh sách ID sản phẩm trong đơn hàng
-     * @return true nếu promotion áp dụng được cho ít nhất 1 sản phẩm
+     * Check if order total meets minimum value requirement
+     * Follows DRY principle - reusable validation logic
      */
-    private boolean isPromotionApplicableToProducts(Promotion promotion, List<Long> productIds) {
-        List<PromotionTarget> targets = promotion.getTargets();
-
-        // Nếu không có target hoặc danh sách rỗng = áp dụng cho tất cả
-        if (targets == null || targets.isEmpty()) {
-            return true;
-        }
-
-        for (PromotionTarget target : targets) {
-            switch (target.getType()) {
-                case WHOLE:
-                    // Áp dụng cho toàn bộ đơn hàng
-                    return true;
-
-                case PRODUCT:
-                    // Kiểm tra xem có sản phẩm nào trong đơn hàng khớp với target không
-                    if (productIds.contains(target.getApplicableObjectId())) {
-                        return true;
-                    }
-                    break;
-
-                case CATEGORY:
-                case SUBCATEGORY:
-                    // Lấy danh sách sản phẩm và check category
-                    for (Long productId : productIds) {
-                        Product product = productRepository.findById(productId).orElse(null);
-                        if (product != null && product.getCategory() != null) {
-                            // Check category trực tiếp
-                            if (product.getCategory().getId().equals(target.getApplicableObjectId())) {
-                                return true;
-                            }
-                            // Check parent category nếu type là SUBCATEGORY
-                            if (target.getType() == EPromotionTargetType.SUBCATEGORY &&
-                                product.getCategory().getParent() != null &&
-                                product.getCategory().getParent().getId().equals(target.getApplicableObjectId())) {
-                                return true;
-                            }
-                        }
-                    }
-                    break;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Kiểm tra xem promotion có áp dụng được cho một sản phẩm cụ thể không
-     * @param promotion Promotion cần kiểm tra
-     * @param productId ID sản phẩm
-     * @return true nếu promotion áp dụng được
-     */
-    private boolean isPromotionApplicableToProduct(Promotion promotion, Long productId) {
-        return isPromotionApplicableToProducts(promotion, List.of(productId));
+    private boolean isMinValueMet(Promotion promotion, Double orderTotal) {
+        return promotion.getMinValueToBeApplied() == null 
+                || orderTotal >= promotion.getMinValueToBeApplied();
     }
 }

@@ -3,7 +3,7 @@ package com.utephonehub.backend.controller;
 import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.request.PromotionRequest;
 import com.utephonehub.backend.dto.response.PromotionResponse;
-import com.utephonehub.backend.service.PromotionService;
+import com.utephonehub.backend.service.IPromotionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,7 +20,7 @@ import java.util.List;
 @Tag(name = "Promotion Controller", description = "Quản lý Khuyến mãi & Voucher (M09)")
 public class PromotionController {
 
-    private final PromotionService promotionService;
+    private final IPromotionService promotionService;
 
     // ==========================================
     // ACTOR: ADMINISTRATOR (Path: /api/v1/admin/promotions)
