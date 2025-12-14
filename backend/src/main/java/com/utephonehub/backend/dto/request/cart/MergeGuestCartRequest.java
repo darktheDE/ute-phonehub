@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 public class MergeGuestCartRequest {
 
-    @NotEmpty(message = "Guest cart items must not be empty")
+    @NotEmpty(message = "Giỏ hàng tạm không được để trống")
     private List<GuestCartItem> guestCartItems;
 
     @Data

@@ -63,7 +63,7 @@ public class CartServiceImpl implements ICartService {
                 .orElseGet(() -> {
                     log.info("Creating new cart for user: {}", userId);
                     User user = userRepository.findById(userId)
-                            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                            .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
                     
                     Cart newCart = Cart.builder()
                             .user(user)
@@ -105,10 +105,10 @@ public class CartServiceImpl implements ICartService {
 
                 // Validate product exists and is active (UC 1.1 - step 4)
                 Product product = productRepository.findById(request.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
 
                 if (!Boolean.TRUE.equals(product.getStatus())) {
-                throw new ResourceNotFoundException("Product not found");
+                throw new ResourceNotFoundException("Sản phẩm không tồn tại");
                 }
 
             // Check stock quantity
@@ -196,10 +196,10 @@ public class CartServiceImpl implements ICartService {
         try {
             // Get cart item and validate ownership
             CartItem cartItem = cartItemRepository.findById(cartItemId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Cart item không tồn tại"));
 
             if (!cartItem.getCart().getUser().getId().equals(userId)) {
-                throw new UnauthorizedException("You do not have permission to perform this action");
+                throw new UnauthorizedException("Bạn không có quyền thực hiện thao tác này");
             }
 
             // If quantity is 0, remove item
@@ -253,7 +253,7 @@ public class CartServiceImpl implements ICartService {
                 cartItemId, userId);
 
             Cart cart = cartRepository.findByUserIdWithItems(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Giỏ hàng không tồn tại"));
 
             return cartMapper.toResponse(cart);
         }
@@ -261,7 +261,7 @@ public class CartServiceImpl implements ICartService {
         CartItem cartItem = optionalCartItem.get();
 
         if (!cartItem.getCart().getUser().getId().equals(userId)) {
-            throw new UnauthorizedException("You do not have permission to perform this action");
+            throw new UnauthorizedException("Bạn không có quyền thực hiện thao tác này");
         }
 
         Cart cart = cartItem.getCart();
@@ -330,7 +330,7 @@ public class CartServiceImpl implements ICartService {
         log.info("Merging guest cart for user: {}", userId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
         Cart cart = cartRepository.findByUserIdWithItems(userId)
                 .orElseGet(() -> {
@@ -402,9 +402,9 @@ public class CartServiceImpl implements ICartService {
 
         cartRepository.save(cart);
         
-        String message = String.format("Merged %d items from guest cart", mergedCount);
+        String message = String.format("Đã đồng bộ %d sản phẩm từ giỏ hàng tạm", mergedCount);
         if (skippedCount > 0) {
-            message += String.format(". %d items were skipped due to stock unavailability or not found", skippedCount);
+            message += String.format(". %d sản phẩm bị bỏ qua do hết hàng hoặc không tồn tại", skippedCount);
         }
 
         return MergeCartResponse.builder()
