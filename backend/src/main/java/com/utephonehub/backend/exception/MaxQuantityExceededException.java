@@ -9,7 +9,7 @@ public class MaxQuantityExceededException extends RuntimeException {
     private final Integer requestedQuantity;
     
     public MaxQuantityExceededException(Integer maxQuantity, Integer requestedQuantity) {
-        super(String.format("Chỉ được mua tối đa %d sản phẩm", maxQuantity));
+        super(String.format("Maximum %d items allowed per product", maxQuantity));
         this.maxQuantity = maxQuantity;
         this.requestedQuantity = requestedQuantity;
     }

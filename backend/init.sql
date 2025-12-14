@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS products (
     thumbnail_url VARCHAR(255),
     specifications JSONB,
     status BOOLEAN NOT NULL DEFAULT TRUE,
-    -- Soft delete fields (phù hợp với entity Product)
+    -- Soft delete fields (matches Product entity)
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMP,
     deleted_by BIGINT REFERENCES users(id) ON DELETE SET NULL,

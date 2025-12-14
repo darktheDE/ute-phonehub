@@ -14,11 +14,11 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AddToCartRequest {
 
-    @NotNull(message = "Product ID không được để trống")
+    @NotNull(message = "Product ID must not be empty")
     private Long productId;
 
-    @NotNull(message = "Số lượng không được để trống")
-    @Min(value = 1, message = "Số lượng phải lớn hơn 0")
-    @Max(value = 10, message = "Chỉ được mua tối đa 10 sản phẩm")
+    @NotNull(message = "Quantity must not be empty")
+    @Min(value = 1, message = "Quantity must be greater than 0")
+    @Max(value = 10, message = "Maximum 10 items allowed")
     private Integer quantity;
 }

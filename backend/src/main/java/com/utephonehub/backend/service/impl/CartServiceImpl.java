@@ -47,6 +47,7 @@ public class CartServiceImpl implements ICartService {
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final com.utephonehub.backend.repository.OrderRepository orderRepository;
+    private final com.utephonehub.backend.mapper.CartMapper cartMapper;
 
     private static final int MAX_QUANTITY_PER_PRODUCT = 10;
     private static final int BATCH_DELETE_SIZE = 50;
@@ -62,7 +63,7 @@ public class CartServiceImpl implements ICartService {
                 .orElseGet(() -> {
                     log.info("Creating new cart for user: {}", userId);
                     User user = userRepository.findById(userId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
                     
                     Cart newCart = Cart.builder()
                             .user(user)
@@ -72,18 +73,18 @@ public class CartServiceImpl implements ICartService {
                 });
 
         // Auto-remove items with deleted products (UC 1.2 Alternate 4.A.1)
-        List<CartItem> invalidItems = cart.getItems().stream()
+        List<CartItem> invalidItems = cart.getItemsInternal().stream()
                 .filter(item -> item.getProduct() == null || item.getProduct().getId() == null)
                 .toList();
         
         if (!invalidItems.isEmpty()) {
             log.warn("Found {} invalid items in cart, removing...", invalidItems.size());
-            cart.getItems().removeAll(invalidItems);
+            invalidItems.forEach(cart::removeItem);
             cartItemRepository.deleteAll(invalidItems);
             cartRepository.save(cart);
         }
 
-        return CartResponse.fromEntity(cart);
+        return cartMapper.toResponse(cart);
     }
 
     @Override
@@ -102,12 +103,12 @@ public class CartServiceImpl implements ICartService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-                // Validate product exists and is active (UC 1.1 - bước 4)
+                // Validate product exists and is active (UC 1.1 - step 4)
                 Product product = productRepository.findById(request.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
                 if (!Boolean.TRUE.equals(product.getStatus())) {
-                throw new ResourceNotFoundException("Sản phẩm không tồn tại");
+                throw new ResourceNotFoundException("Product not found");
                 }
 
             // Check stock quantity
@@ -166,14 +167,14 @@ public class CartServiceImpl implements ICartService {
                         .quantity(request.getQuantity())
                         .build();
                 cartItemRepository.save(newItem);
-                cart.getItems().add(newItem);
+                cart.addItem(newItem);
                 
                 // Publish event
                 publishCartEvent(cart, "ADDED", product, request.getQuantity());
             }
 
             cartRepository.save(cart);
-            return CartResponse.fromEntity(cart);
+            return cartMapper.toResponse(cart);
             
         } catch (OptimisticLockingFailureException | StaleObjectStateException ex) {
             log.warn("Optimistic locking conflict detected, retrying... Attempt: {}", ex.getClass().getSimpleName());
@@ -195,10 +196,10 @@ public class CartServiceImpl implements ICartService {
         try {
             // Get cart item and validate ownership
             CartItem cartItem = cartItemRepository.findById(cartItemId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Cart item không tồn tại"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
 
             if (!cartItem.getCart().getUser().getId().equals(userId)) {
-                throw new UnauthorizedException("Không có quyền thực hiện thao tác này");
+                throw new UnauthorizedException("You do not have permission to perform this action");
             }
 
             // If quantity is 0, remove item
@@ -227,7 +228,7 @@ public class CartServiceImpl implements ICartService {
             // Publish event
             publishCartEvent(cart, "UPDATED", product, request.getQuantity());
             
-            return CartResponse.fromEntity(cart);
+            return cartMapper.toResponse(cart);
             
         } catch (OptimisticLockingFailureException | StaleObjectStateException ex) {
             log.warn("Optimistic locking conflict detected, retrying...");
@@ -245,35 +246,35 @@ public class CartServiceImpl implements ICartService {
         Optional<CartItem> optionalCartItem = cartItemRepository.findById(cartItemId);
 
         // EF1 – CartItem đã bị xóa ở nơi khác:
-        // Nếu CartItem không còn tồn tại, coi như thao tác không có tác dụng
-        // và chỉ trả về trạng thái giỏ hiện tại mà không báo lỗi.
+        // If the CartItem no longer exists, treat the operation as a no-op
+        // and simply return the current cart state without raising an error.
         if (optionalCartItem.isEmpty()) {
             log.warn("Cart item {} not found when trying to remove. Returning current cart state for user {}.",
                 cartItemId, userId);
 
             Cart cart = cartRepository.findByUserIdWithItems(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Giỏ hàng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
-            return CartResponse.fromEntity(cart);
+            return cartMapper.toResponse(cart);
         }
 
         CartItem cartItem = optionalCartItem.get();
 
         if (!cartItem.getCart().getUser().getId().equals(userId)) {
-            throw new UnauthorizedException("Không có quyền thực hiện thao tác này");
+            throw new UnauthorizedException("You do not have permission to perform this action");
         }
 
         Cart cart = cartItem.getCart();
         Product product = cartItem.getProduct();
         
-        cart.getItems().remove(cartItem);
+        cart.removeItem(cartItem);
         cartItemRepository.delete(cartItem);
         cartRepository.save(cart);
         
         // Publish event
         publishCartEvent(cart, "REMOVED", product, 0);
 
-        return CartResponse.fromEntity(cart);
+        return cartMapper.toResponse(cart);
     }
 
     @Override
@@ -282,8 +283,8 @@ public class CartServiceImpl implements ICartService {
     public CartResponse clearCart(Long userId) {
         log.info("Clearing cart for user: {}", userId);
 
-        // EF3 – Nếu đang có đơn hàng đang xử lý, không cho phép xóa toàn bộ giỏ
-        // Ở đây coi các đơn hàng với trạng thái PENDING là "đang xử lý".
+        // EF3 – If there are orders being processed, do not allow clearing the entire cart
+        // Here, orders with status PENDING are considered "being processed".
         boolean hasPendingOrder = orderRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
             .anyMatch(order -> order.getStatus() == com.utephonehub.backend.enums.OrderStatus.PENDING);
 
@@ -313,13 +314,13 @@ public class CartServiceImpl implements ICartService {
             cartItemRepository.deleteAll(items);
         }
         
-        cart.getItems().clear();
+        cart.clearItems();
         cartRepository.save(cart);
         
         // Publish event
         publishCartEvent(cart, "CLEARED", null, 0);
 
-        return CartResponse.fromEntity(cart);
+        return cartMapper.toResponse(cart);
     }
 
     @Override
@@ -329,7 +330,7 @@ public class CartServiceImpl implements ICartService {
         log.info("Merging guest cart for user: {}", userId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Cart cart = cartRepository.findByUserIdWithItems(userId)
                 .orElseGet(() -> {
@@ -390,7 +391,7 @@ public class CartServiceImpl implements ICartService {
                             .quantity(Math.min(guestItem.getQuantity(), MAX_QUANTITY_PER_PRODUCT))
                             .build();
                     cartItemRepository.save(newItem);
-                    cart.getItems().add(newItem);
+                    cart.addItem(newItem);
                     mergedCount++;
                 }
             } catch (Exception ex) {
@@ -401,13 +402,13 @@ public class CartServiceImpl implements ICartService {
 
         cartRepository.save(cart);
         
-        String message = String.format("Đã đồng bộ %d sản phẩm từ giỏ hàng tạm", mergedCount);
+        String message = String.format("Merged %d items from guest cart", mergedCount);
         if (skippedCount > 0) {
-            message += String.format(". %d sản phẩm bị bỏ qua do hết hàng hoặc không tồn tại", skippedCount);
+            message += String.format(". %d items were skipped due to stock unavailability or not found", skippedCount);
         }
 
         return MergeCartResponse.builder()
-                .cart(CartResponse.fromEntity(cart))
+                .cart(cartMapper.toResponse(cart))
                 .mergedItemsCount(mergedCount)
                 .skippedItemsCount(skippedCount)
                 .message(message)
@@ -416,7 +417,7 @@ public class CartServiceImpl implements ICartService {
 
     private void publishCartEvent(Cart cart, String eventType, Product product, Integer quantity) {
         try {
-            CartResponse cartResponse = CartResponse.fromEntity(cart);
+            CartResponse cartResponse = cartMapper.toResponse(cart);
             
             CartUpdatedEvent event = CartUpdatedEvent.builder()
                     .cartId(cart.getId())

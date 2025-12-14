@@ -11,7 +11,7 @@ public class VersionConflictException extends RuntimeException {
     private final Integer requestedQuantity;
     
     public VersionConflictException(String resource, Long resourceId, Integer currentQuantity, Integer requestedQuantity) {
-        super(String.format("Giỏ hàng đã được cập nhật từ thiết bị khác. Số lượng hiện tại: %d", currentQuantity));
+        super(String.format("Cart has been updated from another device. Current quantity: %d", currentQuantity));
         this.resource = resource;
         this.resourceId = resourceId;
         this.currentQuantity = currentQuantity;

@@ -77,7 +77,7 @@ public class OrderServiceImpl implements IOrderService {
         
         // 3. Convert sang DTO bằng Mapper
         log.info("Get order {} by user {}", orderId, userId);
-        return orderMapper.toOrderResponse(order); // ✅ Dùng mapper
+        return orderMapper.toOrderResponse(order); 
     }
     
     @Override
@@ -205,15 +205,15 @@ public class OrderServiceImpl implements IOrderService {
                     order.getId(), totalAmount);
         }
 
-        // 11.1. AF2 – Sau khi tạo order thành công, tự động xóa
-        // các CartItem tương ứng trong giỏ hàng (không xóa toàn bộ giỏ).
+        // 11.1. AF2 – After successfully creating the order, automatically remove
+        // the corresponding CartItems in the cart (do not delete the entire cart).
         try {
             List<Long> orderedProductIds = validatedItems.stream()
                     .map(OrderItemRequest::getProductId)
                     .toList();
 
             cartRepository.findByUserIdWithItems(userId).ifPresent(cart -> {
-                List<CartItem> toRemove = cart.getItems().stream()
+                List<CartItem> toRemove = cart.getItemsInternal().stream()
                         .filter(item -> orderedProductIds.contains(item.getProduct().getId()))
                         .toList();
 
@@ -221,17 +221,17 @@ public class OrderServiceImpl implements IOrderService {
                     log.info("Clearing {} ordered items from cart for user {} after order {}",
                             toRemove.size(), userId, orderCode);
 
-                    cart.getItems().removeAll(toRemove);
+                    toRemove.forEach(cart::removeItem);
                     cartItemRepository.deleteAll(toRemove);
                     cartRepository.save(cart);
                 }
             });
         } catch (Exception ex) {
-            // Không để lỗi clear cart làm fail đơn hàng
+            // Don't let cart clearing errors fail the order
             log.error("Failed to clear ordered items from cart for user {} after order {}", userId, orderCode, ex);
         }
         
-        // 12. Tạo response
+        // 12. Create response
         CreateOrderResponse response = CreateOrderResponse.builder()
                 .orderId(order.getId())
                 .orderCode(orderCode)
@@ -241,7 +241,7 @@ public class OrderServiceImpl implements IOrderService {
                 .createdAt(order.getCreatedAt())
                 .build();
         
-        // 13. Nếu thanh toán VNPay, thêm message hướng dẫn
+        // 13. If payment method is VNPay, add instruction message
         if (request.getPaymentMethod() == PaymentMethod.VNPAY) {
             response.setMessage("Đơn hàng đã tạo. Vui lòng thanh toán qua VNPay.");
             // TODO: Tích hợp VNPay payment URL (sẽ làm sau)
