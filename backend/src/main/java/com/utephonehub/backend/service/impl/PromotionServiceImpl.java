@@ -12,7 +12,7 @@ import com.utephonehub.backend.repository.PromotionRepository;
 import com.utephonehub.backend.repository.PromotionTargetRepository;
 import com.utephonehub.backend.repository.PromotionTemplateRepository;
 import com.utephonehub.backend.repository.ProductRepository;
-import com.utephonehub.backend.service.PromotionService;
+import com.utephonehub.backend.service.IPromotionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class PromotionServiceImpl implements PromotionService {
+public class PromotionServiceImpl implements IPromotionService {
 
     private final PromotionRepository promotionRepository;
     private final PromotionTemplateRepository templateRepository;

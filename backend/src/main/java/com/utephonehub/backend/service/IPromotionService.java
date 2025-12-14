@@ -5,7 +5,11 @@ import com.utephonehub.backend.dto.response.PromotionResponse;
 
 import java.util.List;
 
-public interface PromotionService {
+/**
+ * Interface for Promotion Service operations
+ * Quản lý Khuyến mãi & Voucher (M09)
+ */
+public interface IPromotionService {
 
     // --- ADMIN: MANAGE PROMOTION ---
 
