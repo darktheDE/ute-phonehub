@@ -128,10 +128,6 @@ CREATE TABLE IF NOT EXISTS products (
     thumbnail_url VARCHAR(255),
     specifications JSONB,
     status BOOLEAN NOT NULL DEFAULT TRUE,
-    -- Soft delete fields (phù hợp với entity Product)
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    deleted_at TIMESTAMP,
-    deleted_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
     category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL,
     brand_id BIGINT REFERENCES brands(id) ON DELETE SET NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -429,8 +425,7 @@ CREATE TABLE IF NOT EXISTS carts (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    version BIGINT DEFAULT 0 NOT NULL
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Sample data: carts
@@ -448,8 +443,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
     product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    version BIGINT DEFAULT 0 NOT NULL
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Sample data: cart_items
