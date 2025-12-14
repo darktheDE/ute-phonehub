@@ -2,7 +2,7 @@ package com.utephonehub.backend.service.impl.promotion;
 
 import com.utephonehub.backend.entity.Promotion;
 import com.utephonehub.backend.enums.EPromotionStatus;
-import com.utephonehub.backend.exception.PromotionInvalidException;
+import com.utephonehub.backend.exception.promotion.PromotionInvalidException;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;

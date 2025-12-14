@@ -1,4 +1,4 @@
-package com.utephonehub.backend.exception;
+package com.utephonehub.backend.exception.promotion;
 
 /**
  * Exception thrown when a promotion validation fails

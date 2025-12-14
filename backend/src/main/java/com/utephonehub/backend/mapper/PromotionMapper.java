@@ -1,4 +1,4 @@
-package com.utephonehub.backend.service.impl.promotion;
+package com.utephonehub.backend.mapper;
 
 import com.utephonehub.backend.dto.response.PromotionResponse;
 import com.utephonehub.backend.entity.Promotion;
