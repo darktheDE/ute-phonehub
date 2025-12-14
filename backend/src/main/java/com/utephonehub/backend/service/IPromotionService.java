@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * Interface for Promotion Service operations
- * Quản lý Khuyến mãi & Voucher (M09)
+ * Promotion & Voucher Management (M09)
  */
 public interface IPromotionService {
 
@@ -31,7 +31,7 @@ public interface IPromotionService {
     // --- CUSTOMER: APPLY PROMOTION ---
 
     // SD: Access Promotion List -> checkAndGetAvailablePromotions()
-    // Hàm này lọc ra các khuyến mãi mà User có thể dùng được
+    // This method filters out promotions that the user can use
     List<PromotionResponse> checkAndGetAvailablePromotions(Double orderTotal);
 
     // SD: Request apply Promotion -> calculateDiscount()
