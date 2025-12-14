@@ -46,6 +46,7 @@ public class CartServiceImpl implements ICartService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final com.utephonehub.backend.repository.OrderRepository orderRepository;
 
     private static final int MAX_QUANTITY_PER_PRODUCT = 10;
     private static final int BATCH_DELETE_SIZE = 50;
@@ -241,8 +242,22 @@ public class CartServiceImpl implements ICartService {
         log.info("Removing cart item {} for user: {}", cartItemId, userId);
 
         // Get cart item and validate ownership
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart item không tồn tại"));
+        Optional<CartItem> optionalCartItem = cartItemRepository.findById(cartItemId);
+
+        // EF1 – CartItem đã bị xóa ở nơi khác:
+        // Nếu CartItem không còn tồn tại, coi như thao tác không có tác dụng
+        // và chỉ trả về trạng thái giỏ hiện tại mà không báo lỗi.
+        if (optionalCartItem.isEmpty()) {
+            log.warn("Cart item {} not found when trying to remove. Returning current cart state for user {}.",
+                cartItemId, userId);
+
+            Cart cart = cartRepository.findByUserIdWithItems(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Giỏ hàng không tồn tại"));
+
+            return CartResponse.fromEntity(cart);
+        }
+
+        CartItem cartItem = optionalCartItem.get();
 
         if (!cartItem.getCart().getUser().getId().equals(userId)) {
             throw new UnauthorizedException("Không có quyền thực hiện thao tác này");
@@ -266,6 +281,16 @@ public class CartServiceImpl implements ICartService {
     @CacheEvict(value = "cart", key = "#userId")
     public CartResponse clearCart(Long userId) {
         log.info("Clearing cart for user: {}", userId);
+
+        // EF3 – Nếu đang có đơn hàng đang xử lý, không cho phép xóa toàn bộ giỏ
+        // Ở đây coi các đơn hàng với trạng thái PENDING là "đang xử lý".
+        boolean hasPendingOrder = orderRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+            .anyMatch(order -> order.getStatus() == com.utephonehub.backend.enums.OrderStatus.PENDING);
+
+        if (hasPendingOrder) {
+            log.warn("User {} attempted to clear cart while having pending orders", userId);
+            throw new BadRequestException("Không thể xóa giỏ hàng vì đang có đơn hàng đang xử lý");
+        }
 
         Cart cart = cartRepository.findByUserIdWithItems(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Giỏ hàng không tồn tại"));
