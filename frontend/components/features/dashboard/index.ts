@@ -3,6 +3,7 @@
  */
 
 export { StatsCard } from './StatsCard';
+export { RevenueChart } from './RevenueChart';
 export { OrdersTable } from './OrdersTable';
 export { ProductsTable } from './ProductsTable';
 export { UsersTable } from './UsersTable';

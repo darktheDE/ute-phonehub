@@ -14,6 +14,16 @@ import type {
   RecentOrderResponse,
   DashboardOverviewResponse,
   TopProductResponse,
+  // New Dashboard imports
+  DashboardOverview,
+  RevenueChartData,
+  OrderStatusChartData,
+  UserRegistrationChartData,
+  TopProduct,
+  RecentOrder,
+  LowStockProduct,
+  DashboardPeriod,
+  RegistrationPeriod,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
@@ -105,7 +115,8 @@ async function fetchAPI<T>(
       }
     }
 
-    if (!response.ok) {
+    // Check both HTTP status AND success field from backend
+    if (!response.ok || !data.success) {
       const errorMessage = data?.message || data?.error || `HTTP error! status: ${response.status}`;
       throw new Error(errorMessage);
     }
@@ -278,3 +289,83 @@ export const adminAPI = {
   },
 };
 
+// ==================== DASHBOARD API ====================
+// Module M10.2 - View Dashboard
+// Comprehensive Dashboard endpoints for admin analytics
+export const dashboardAPI = {
+  /**
+   * GET /api/v1/admin/dashboard/overview
+   * Lấy 4 chỉ số tổng quan: Tổng doanh thu, Tổng đơn hàng, Tổng sản phẩm, Tổng người dùng
+   */
+  getOverview: async (): Promise<ApiResponse<DashboardOverview>> => {
+    return fetchAPI<DashboardOverview>('/admin/dashboard/overview', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/revenue-chart?period=THIRTY_DAYS
+   * Lấy dữ liệu biểu đồ doanh thu theo khoảng thời gian
+   * @param period - 'SEVEN_DAYS' | 'THIRTY_DAYS' | 'THREE_MONTHS'
+   */
+  getRevenueChart: async (period: DashboardPeriod = 'THIRTY_DAYS'): Promise<ApiResponse<RevenueChartData>> => {
+    return fetchAPI<RevenueChartData>(`/admin/dashboard/revenue-chart?period=${period}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/order-status-chart
+   * Lấy dữ liệu biểu đồ tròn về trạng thái đơn hàng
+   * Trả về labels, values, percentages, totalOrders
+   */
+  getOrderStatusChart: async (): Promise<ApiResponse<OrderStatusChartData>> => {
+    return fetchAPI<OrderStatusChartData>('/admin/dashboard/order-status-chart', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/user-registration-chart?period=MONTHLY
+   * Lấy dữ liệu biểu đồ cột về người dùng đăng ký mới
+   * @param period - 'WEEKLY' | 'MONTHLY'
+   */
+  getUserRegistrationChart: async (period: RegistrationPeriod = 'THIRTY_DAYS'): Promise<ApiResponse<UserRegistrationChartData>> => {
+    return fetchAPI<UserRegistrationChartData>(`/admin/dashboard/user-registration-chart?period=${period}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/top-products?limit=5
+   * Lấy danh sách Top sản phẩm bán chạy nhất
+   * @param limit - Số lượng sản phẩm cần lấy (mặc định: 5)
+   */
+  getTopProducts: async (limit: number = 5): Promise<ApiResponse<TopProduct[]>> => {
+    return fetchAPI<TopProduct[]>(`/admin/dashboard/top-products?limit=${limit}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/recent-orders?limit=10
+   * Lấy danh sách đơn hàng gần đây
+   * @param limit - Số lượng đơn hàng cần lấy (mặc định: 10)
+   */
+  getRecentOrders: async (limit: number = 10): Promise<ApiResponse<RecentOrder[]>> => {
+    return fetchAPI<RecentOrder[]>(`/admin/dashboard/recent-orders?limit=${limit}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/low-stock-products?threshold=10
+   * Lấy danh sách sản phẩm sắp hết hàng
+   * @param threshold - Ngưỡng tồn kho cảnh báo (mặc định: 10)
+   */
+  getLowStockProducts: async (threshold: number = 10): Promise<ApiResponse<LowStockProduct[]>> => {
+    return fetchAPI<LowStockProduct[]>(`/admin/dashboard/low-stock-products?threshold=${threshold}`, {
+      method: 'GET',
+    });
+  },
+};

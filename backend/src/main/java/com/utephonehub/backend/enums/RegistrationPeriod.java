@@ -7,8 +7,9 @@ import lombok.Getter;
  */
 @Getter
 public enum RegistrationPeriod {
-    WEEKLY(7),
-    MONTHLY(30);
+    SEVEN_DAYS(7),
+    THIRTY_DAYS(30),
+    THREE_MONTHS(90);
 
     private final int days;
 
