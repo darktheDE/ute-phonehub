@@ -31,7 +31,7 @@ public class AdminBrandController {
     private final IBrandService brandService;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "[ADMIN] Tạo thương hiệu mới",
             description = "Tạo một thương hiệu mới. " +
@@ -69,7 +69,7 @@ public class AdminBrandController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "[ADMIN] Cập nhật thương hiệu",
             description = "Cập nhật thông tin của thương hiệu đã tồn tại. " +
@@ -113,7 +113,7 @@ public class AdminBrandController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "[ADMIN] Xóa thương hiệu",
             description = "Xóa thương hiệu theo ID. " +
