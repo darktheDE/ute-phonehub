@@ -330,7 +330,7 @@ export const dashboardAPI = {
    * Lấy dữ liệu biểu đồ cột về người dùng đăng ký mới
    * @param period - 'WEEKLY' | 'MONTHLY'
    */
-  getUserRegistrationChart: async (period: RegistrationPeriod = 'THIRTY_DAYS'): Promise<ApiResponse<UserRegistrationChartData>> => {
+  getUserRegistrationChart: async (period: RegistrationPeriod = 'WEEKLY'): Promise<ApiResponse<UserRegistrationChartData>> => {
     return fetchAPI<UserRegistrationChartData>(`/admin/dashboard/user-registration-chart?period=${period}`, {
       method: 'GET',
     });

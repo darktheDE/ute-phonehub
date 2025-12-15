@@ -69,7 +69,7 @@ export interface UserRegistrationChartData {
 }
 
 // ✅ Match Backend enum: WEEKLY | MONTHLY
-export type RegistrationPeriod = 'SEVEN_DAYS' | 'THIRTY_DAYS' | 'THREE_MONTHS';
+export type RegistrationPeriod = 'WEEKLY' | 'MONTHLY';
 
 // ==================== TOP PRODUCTS ====================
 export interface TopProduct {
