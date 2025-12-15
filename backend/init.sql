@@ -430,7 +430,8 @@ CREATE TABLE IF NOT EXISTS carts (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    version BIGINT DEFAULT 0 NOT NULL
 );
 
 -- Sample data: carts
@@ -448,7 +449,8 @@ CREATE TABLE IF NOT EXISTS cart_items (
     product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    version BIGINT DEFAULT 0 NOT NULL
 );
 
 -- Sample data: cart_items
