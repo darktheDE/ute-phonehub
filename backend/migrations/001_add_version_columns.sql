@@ -8,10 +8,6 @@ ALTER TABLE carts ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 0 NOT NULL;
 -- Add version column to cart_items table
 ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 0 NOT NULL;
 
--- Update existing records to have version = 0
-UPDATE carts SET version = 0 WHERE version IS NULL;
-UPDATE cart_items SET version = 0 WHERE version IS NULL;
-
 -- Add comments
 COMMENT ON COLUMN carts.version IS 'Optimistic locking version for concurrent update handling';
 COMMENT ON COLUMN cart_items.version IS 'Optimistic locking version for concurrent update handling';

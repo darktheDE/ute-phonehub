@@ -1,6 +1,5 @@
 package com.utephonehub.backend.dto.response.cart;
 
-import com.utephonehub.backend.entity.CartItem;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

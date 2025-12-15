@@ -59,6 +59,7 @@ public class CartServiceImpl implements ICartService {
     public CartResponse getCurrentCart(Long userId) {
         log.info("Getting cart for user: {}", userId);
         
+        // Get or create cart
         Cart cart = cartRepository.findByUserIdWithItems(userId)
                 .orElseGet(() -> {
                     log.info("Creating new cart for user: {}", userId);
@@ -99,19 +100,24 @@ public class CartServiceImpl implements ICartService {
         log.info("Adding product {} to cart for user: {}", request.getProductId(), userId);
 
         try {
-            // Validate user
+            // Validate initial quantity
+            if (request.getQuantity() > MAX_QUANTITY_PER_PRODUCT) {
+                throw new MaxQuantityExceededException(MAX_QUANTITY_PER_PRODUCT, request.getQuantity());
+            }
+
+            // Validate user exists
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-                // Validate product exists and is active (UC 1.1 - step 4)
-                Product product = productRepository.findById(request.getProductId())
+            // Validate product exists and is active (UC 1.1 - step 4)
+            Product product = productRepository.findById(request.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
 
-                if (!Boolean.TRUE.equals(product.getStatus())) {
+            if (!Boolean.TRUE.equals(product.getStatus())) {
                 throw new ResourceNotFoundException("Sản phẩm không tồn tại");
-                }
+            }
 
-            // Check stock quantity
+            // Check stock availability
             if (product.getStockQuantity() < request.getQuantity()) {
                 throw new OutOfStockException(
                     product.getId(),
@@ -131,20 +137,22 @@ public class CartServiceImpl implements ICartService {
                         return cartRepository.save(newCart);
                     });
 
-            // Check if product already in cart
+            // Check if product already exists in cart
             Optional<CartItem> existingItem = cart.getItems().stream()
                     .filter(item -> item.getProduct().getId().equals(product.getId()))
                     .findFirst();
 
             if (existingItem.isPresent()) {
-                // Update quantity
+                // Update existing item quantity
                 CartItem item = existingItem.get();
                 int newQuantity = item.getQuantity() + request.getQuantity();
 
+                // Validate max quantity first
                 if (newQuantity > MAX_QUANTITY_PER_PRODUCT) {
                     throw new MaxQuantityExceededException(MAX_QUANTITY_PER_PRODUCT, newQuantity);
                 }
 
+                // Then check stock availability
                 if (newQuantity > product.getStockQuantity()) {
                     throw new OutOfStockException(
                         product.getId(),
@@ -160,11 +168,28 @@ public class CartServiceImpl implements ICartService {
                 // Publish event
                 publishCartEvent(cart, "UPDATED", product, newQuantity);
             } else {
-                // Add new item
+                // Add new item to cart
+                int quantity = request.getQuantity();
+
+                // Validate max quantity first
+                if (quantity > MAX_QUANTITY_PER_PRODUCT) {
+                    throw new MaxQuantityExceededException(MAX_QUANTITY_PER_PRODUCT, quantity);
+                }
+
+                // Then check stock availability
+                if (quantity > product.getStockQuantity()) {
+                    throw new OutOfStockException(
+                        product.getId(),
+                        product.getName(),
+                        quantity,
+                        product.getStockQuantity()
+                    );
+                }
+
                 CartItem newItem = CartItem.builder()
                         .cart(cart)
                         .product(product)
-                        .quantity(request.getQuantity())
+                        .quantity(quantity)
                         .build();
                 cartItemRepository.save(newItem);
                 cart.addItem(newItem);
@@ -207,7 +232,12 @@ public class CartServiceImpl implements ICartService {
                 return removeCartItem(userId, cartItemId);
             }
 
-            // Check stock quantity
+            // Validate max quantity first
+            if (request.getQuantity() > MAX_QUANTITY_PER_PRODUCT) {
+                throw new MaxQuantityExceededException(MAX_QUANTITY_PER_PRODUCT, request.getQuantity());
+            }
+
+            // Then check stock availability
             Product product = cartItem.getProduct();
             if (product.getStockQuantity() < request.getQuantity()) {
                 throw new OutOfStockException(
@@ -242,12 +272,10 @@ public class CartServiceImpl implements ICartService {
     public CartResponse removeCartItem(Long userId, Long cartItemId) {
         log.info("Removing cart item {} for user: {}", cartItemId, userId);
 
-        // Get cart item and validate ownership
+        // Get cart item and validate existence
         Optional<CartItem> optionalCartItem = cartItemRepository.findById(cartItemId);
 
-        // EF1 – CartItem đã bị xóa ở nơi khác:
-        // If the CartItem no longer exists, treat the operation as a no-op
-        // and simply return the current cart state without raising an error.
+        // EF1 – CartItem already removed elsewhere: return current cart state
         if (optionalCartItem.isEmpty()) {
             log.warn("Cart item {} not found when trying to remove. Returning current cart state for user {}.",
                 cartItemId, userId);
@@ -260,10 +288,12 @@ public class CartServiceImpl implements ICartService {
 
         CartItem cartItem = optionalCartItem.get();
 
+        // Validate ownership
         if (!cartItem.getCart().getUser().getId().equals(userId)) {
             throw new UnauthorizedException("Bạn không có quyền thực hiện thao tác này");
         }
 
+        // Remove item from cart
         Cart cart = cartItem.getCart();
         Product product = cartItem.getProduct();
         
@@ -283,8 +313,7 @@ public class CartServiceImpl implements ICartService {
     public CartResponse clearCart(Long userId) {
         log.info("Clearing cart for user: {}", userId);
 
-        // EF3 – If there are orders being processed, do not allow clearing the entire cart
-        // Here, orders with status PENDING are considered "being processed".
+        // EF3 – Check for pending orders before clearing
         boolean hasPendingOrder = orderRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
             .anyMatch(order -> order.getStatus() == com.utephonehub.backend.enums.OrderStatus.PENDING);
 
@@ -293,6 +322,7 @@ public class CartServiceImpl implements ICartService {
             throw new BadRequestException("Không thể xóa giỏ hàng vì đang có đơn hàng đang xử lý");
         }
 
+        // Get cart and items list
         Cart cart = cartRepository.findByUserIdWithItems(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Giỏ hàng không tồn tại"));
 
@@ -314,6 +344,7 @@ public class CartServiceImpl implements ICartService {
             cartItemRepository.deleteAll(items);
         }
         
+        // Clear all items and save cart
         cart.clearItems();
         cartRepository.save(cart);
         
@@ -329,9 +360,11 @@ public class CartServiceImpl implements ICartService {
     public MergeCartResponse mergeGuestCart(Long userId, MergeGuestCartRequest request) {
         log.info("Merging guest cart for user: {}", userId);
 
+        // Validate user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
+        // Get or create cart
         Cart cart = cartRepository.findByUserIdWithItems(userId)
                 .orElseGet(() -> {
                     Cart newCart = Cart.builder()
@@ -344,6 +377,7 @@ public class CartServiceImpl implements ICartService {
         int mergedCount = 0;
         int skippedCount = 0;
 
+        // Process each guest cart item
         for (MergeGuestCartRequest.GuestCartItem guestItem : request.getGuestCartItems()) {
             try {
                 // Validate product exists and is active
@@ -356,20 +390,20 @@ public class CartServiceImpl implements ICartService {
                     continue;
                 }
 
-                // Check stock
+                // Check stock availability
                 if (product.getStockQuantity() < guestItem.getQuantity()) {
                     log.warn("Product {} out of stock, skipping", guestItem.getProductId());
                     skippedCount++;
                     continue;
                 }
 
-                // Check if already in cart
+                // Check if product already in cart
                 Optional<CartItem> existingItem = cart.getItems().stream()
                         .filter(item -> item.getProduct().getId().equals(product.getId()))
                         .findFirst();
 
                 if (existingItem.isPresent()) {
-                    // Merge quantity
+                    // Merge quantity if already exists
                     CartItem item = existingItem.get();
                     int newQuantity = Math.min(
                         item.getQuantity() + guestItem.getQuantity(),
@@ -384,7 +418,7 @@ public class CartServiceImpl implements ICartService {
                         skippedCount++;
                     }
                 } else {
-                    // Add new item
+                    // Add new item if not exists
                     CartItem newItem = CartItem.builder()
                             .cart(cart)
                             .product(product)
@@ -400,11 +434,12 @@ public class CartServiceImpl implements ICartService {
             }
         }
 
+        // Save cart
         cartRepository.save(cart);
         
-        String message = String.format("Đã đồng bộ %d sản phẩm từ giỏ hàng tạm", mergedCount);
+        String message = String.format("Đã đồng bộ %d sản phẩm từ giỏ hàng khách", mergedCount);
         if (skippedCount > 0) {
-            message += String.format(". %d sản phẩm bị bỏ qua do hết hàng hoặc không tồn tại", skippedCount);
+            message += String.format(". %d sản phẩm đã bị bỏ qua do hết hàng hoặc không tồn tại", skippedCount);
         }
 
         return MergeCartResponse.builder()
