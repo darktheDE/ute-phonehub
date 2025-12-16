@@ -47,13 +47,21 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Product> searchProducts(@Param("keyword") String keyword);
     
-    // Advanced filtering with price range
-    @Query("SELECT p FROM Product p WHERE p.isDeleted = false " +
+    // Advanced filtering with price range - filters by cheapest template price
+    @Query("SELECT DISTINCT p FROM Product p " +
+           "LEFT JOIN p.templates t " +
+           "WHERE p.isDeleted = false " +
            "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
            "AND (:brandId IS NULL OR p.brand.id = :brandId) " +
-           "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
-           "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
-           "AND p.status = true")
+           "AND p.status = true " +
+           "AND (" +
+           "  (:minPrice IS NULL AND :maxPrice IS NULL) " + 
+           "  OR (" +
+           "    t.status = true " +
+           "    AND (:minPrice IS NULL OR t.price >= :minPrice) " +
+           "    AND (:maxPrice IS NULL OR t.price <= :maxPrice)" +
+           "  )" +
+           ")")
     Page<Product> filterProducts(@Param("categoryId") Long categoryId,
                                   @Param("brandId") Long brandId,
                                   @Param("minPrice") BigDecimal minPrice,
@@ -96,8 +104,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     
     boolean existsByBrandId(Long brandId);
     
-    // Low stock query (for Dashboard)
-    @Query("SELECT p FROM Product p WHERE p.stockQuantity <= :threshold AND p.status = true ORDER BY p.stockQuantity ASC")
+    // Low stock query (for Dashboard) - calculates total stock from templates
+    @Query("SELECT p FROM Product p " +
+           "LEFT JOIN p.templates t " +
+           "WHERE p.status = true " +
+           "GROUP BY p " +
+           "HAVING COALESCE(SUM(CASE WHEN t.status = true THEN t.stockQuantity ELSE 0 END), 0) <= :threshold " +
+           "ORDER BY COALESCE(SUM(CASE WHEN t.status = true THEN t.stockQuantity ELSE 0 END), 0) ASC")
     List<Product> findByStockQuantityLessThanEqualAndStatusTrueOrderByStockQuantityAsc(@Param("threshold") Integer threshold);
 }
 

@@ -8,8 +8,10 @@ import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.entity.OrderItem;
 import com.utephonehub.backend.entity.Payment;
 import com.utephonehub.backend.entity.Product;
+import com.utephonehub.backend.entity.ProductTemplate;
 import com.utephonehub.backend.entity.Promotion;
 import com.utephonehub.backend.entity.User;
+import java.util.Comparator;
 import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.enums.PaymentMethod;
 import com.utephonehub.backend.enums.PaymentStatus;
@@ -111,16 +113,29 @@ public class OrderServiceImpl implements IOrderService {
         for (OrderItemRequest item : request.getItems()) {
             Product product = productMap.get(item.getProductId());
             
+            // Calculate total stock from templates
+            int totalStock = product.getTemplates().stream()
+                    .filter(ProductTemplate::getStatus)
+                    .mapToInt(ProductTemplate::getStockQuantity)
+                    .sum();
+            
             // Kiểm tra tồn kho
-            if (product.getStockQuantity() < item.getQuantity()) {
+            if (totalStock < item.getQuantity()) {
                 throw new BadRequestException(
                     String.format("Sản phẩm '%s' chỉ còn %d sản phẩm trong kho", 
-                        product.getName(), product.getStockQuantity())
+                        product.getName(), totalStock)
                 );
             }
             
+            // Get cheapest price from active templates
+            BigDecimal price = product.getTemplates().stream()
+                    .filter(ProductTemplate::getStatus)
+                    .map(ProductTemplate::getPrice)
+                    .min(Comparator.naturalOrder())
+                    .orElse(BigDecimal.ZERO);
+            
             // Tính tổng tiền
-            BigDecimal itemTotal = product.getPrice().multiply(new BigDecimal(item.getQuantity()));
+            BigDecimal itemTotal = price.multiply(new BigDecimal(item.getQuantity()));
             totalAmount = totalAmount.add(itemTotal);
             
             validatedItems.add(item);
@@ -171,11 +186,18 @@ public class OrderServiceImpl implements IOrderService {
         for (OrderItemRequest itemReq : validatedItems) {
             Product product = productMap.get(itemReq.getProductId());
             
+            // Get cheapest price from active templates
+            BigDecimal price = product.getTemplates().stream()
+                    .filter(ProductTemplate::getStatus)
+                    .map(ProductTemplate::getPrice)
+                    .min(Comparator.naturalOrder())
+                    .orElse(BigDecimal.ZERO);
+            
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(product)
                     .quantity(itemReq.getQuantity())
-                    .price(product.getPrice())
+                    .price(price)
                     .createdAt(LocalDateTime.now())
                     .build();
             
@@ -186,8 +208,16 @@ public class OrderServiceImpl implements IOrderService {
             // 10.1. Giảm tồn kho ngay (thanh toán trực tiếp)
             for (OrderItemRequest itemReq : validatedItems) {
                 Product product = productMap.get(itemReq.getProductId());
-                product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
-                productRepository.save(product);
+                
+                // Decrease stock from first available template (simplified approach)
+                // TODO: Implement proper SKU-based stock management
+                ProductTemplate firstTemplate = product.getTemplates().stream()
+                        .filter(ProductTemplate::getStatus)
+                        .findFirst()
+                        .orElseThrow(() -> new BadRequestException("Sản phẩm không có template hợp lệ"));
+                
+                firstTemplate.setStockQuantity(firstTemplate.getStockQuantity() - itemReq.getQuantity());
+                productRepository.save(product);  // Cascade saves template
             }
             
             // 10.2. Tạo Payment record với status SUCCESS (đã thanh toán)

@@ -118,12 +118,12 @@ public class CartServiceImpl implements ICartService {
             }
 
             // Check stock availability
-            if (product.getStockQuantity() < request.getQuantity()) {
+            if (getTotalStockQuantity(product) < request.getQuantity()) {
                 throw new OutOfStockException(
                     product.getId(),
                     product.getName(),
                     request.getQuantity(),
-                    product.getStockQuantity()
+                    getTotalStockQuantity(product)
                 );
             }
 
@@ -153,12 +153,12 @@ public class CartServiceImpl implements ICartService {
                 }
 
                 // Then check stock availability
-                if (newQuantity > product.getStockQuantity()) {
+                if (newQuantity > getTotalStockQuantity(product)) {
                     throw new OutOfStockException(
                         product.getId(),
                         product.getName(),
                         newQuantity,
-                        product.getStockQuantity()
+                        getTotalStockQuantity(product)
                     );
                 }
 
@@ -177,12 +177,12 @@ public class CartServiceImpl implements ICartService {
                 }
 
                 // Then check stock availability
-                if (quantity > product.getStockQuantity()) {
+                if (quantity > getTotalStockQuantity(product)) {
                     throw new OutOfStockException(
                         product.getId(),
                         product.getName(),
                         quantity,
-                        product.getStockQuantity()
+                        getTotalStockQuantity(product)
                     );
                 }
 
@@ -239,12 +239,12 @@ public class CartServiceImpl implements ICartService {
 
             // Then check stock availability
             Product product = cartItem.getProduct();
-            if (product.getStockQuantity() < request.getQuantity()) {
+            if (getTotalStockQuantity(product) < request.getQuantity()) {
                 throw new OutOfStockException(
                     product.getId(),
                     product.getName(),
                     request.getQuantity(),
-                    product.getStockQuantity()
+                    getTotalStockQuantity(product)
                 );
             }
 
@@ -391,7 +391,8 @@ public class CartServiceImpl implements ICartService {
                 }
 
                 // Check stock availability
-                if (product.getStockQuantity() < guestItem.getQuantity()) {
+                int totalStock = getTotalStockQuantity(product);
+                if (totalStock < guestItem.getQuantity()) {
                     log.warn("Product {} out of stock, skipping", guestItem.getProductId());
                     skippedCount++;
                     continue;
@@ -410,7 +411,7 @@ public class CartServiceImpl implements ICartService {
                         MAX_QUANTITY_PER_PRODUCT
                     );
                     
-                    if (newQuantity <= product.getStockQuantity()) {
+                    if (newQuantity <= getTotalStockQuantity(product)) {
                         item.setQuantity(newQuantity);
                         cartItemRepository.save(item);
                         mergedCount++;
@@ -472,5 +473,17 @@ public class CartServiceImpl implements ICartService {
             log.error("Error publishing cart event", ex);
             // Don't fail the transaction due to event publishing failure
         }
+    }
+    
+    /**
+     * Helper method to get total stock quantity from all active product templates
+     * @param product Product entity with templates
+     * @return Total stock quantity across all active templates
+     */
+    private Integer getTotalStockQuantity(Product product) {
+        return product.getTemplates().stream()
+                .filter(template -> template.getStatus()) // Only active templates
+                .mapToInt(template -> template.getStockQuantity())
+                .sum();
     }
 }

@@ -73,7 +73,7 @@ public class SecurityConfig {
                     "/api/v1/admin/categories/**",
                     "/api/v1/admin/brands/**",
                     "/api/v1/admin/products/**"
-                ).hasAuthority("ADMIN")
+                ).hasRole("ADMIN")
                 // Cho phép truy cập tự do các API Promotion (tùy theo chính sách hiện tại)
                 .requestMatchers("/api/v1/admin/promotions/**").permitAll()
                 .requestMatchers("/api/v1/promotions/**").permitAll()

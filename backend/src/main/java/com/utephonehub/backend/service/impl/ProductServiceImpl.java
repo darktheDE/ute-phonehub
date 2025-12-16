@@ -3,22 +3,17 @@ package com.utephonehub.backend.service.impl;
 import com.utephonehub.backend.dto.request.product.CreateProductRequest;
 import com.utephonehub.backend.dto.request.product.ManageImagesRequest;
 import com.utephonehub.backend.dto.request.product.ProductImageRequest;
+import com.utephonehub.backend.dto.request.product.ProductTemplateRequest;
 import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
 import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
 import com.utephonehub.backend.dto.response.product.ProductListResponse;
-import com.utephonehub.backend.entity.Brand;
-import com.utephonehub.backend.entity.Category;
-import com.utephonehub.backend.entity.Product;
-import com.utephonehub.backend.entity.ProductImage;
-import com.utephonehub.backend.entity.User;
+import com.utephonehub.backend.entity.*;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.mapper.ProductMapper;
-import com.utephonehub.backend.repository.BrandRepository;
-import com.utephonehub.backend.repository.CategoryRepository;
-import com.utephonehub.backend.repository.ProductImageRepository;
-import com.utephonehub.backend.repository.ProductRepository;
-import com.utephonehub.backend.repository.UserRepository;
+import com.utephonehub.backend.mapper.ProductMetadataMapper;
+import com.utephonehub.backend.mapper.ProductTemplateMapper;
+import com.utephonehub.backend.repository.*;
 import com.utephonehub.backend.service.IProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,11 +22,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 /**
  * Implementation of Product Service
+ * Refactored to align with Class Diagram: Product + ProductTemplates + ProductMetadata
  */
 @Service
 @RequiredArgsConstructor
@@ -45,10 +43,16 @@ public class ProductServiceImpl implements IProductService {
     private final UserRepository userRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductMapper productMapper;
+    
+    // New dependencies for templates and metadata
+    private final ProductTemplateRepository productTemplateRepository;
+    private final ProductMetadataRepository productMetadataRepository;
+    private final ProductTemplateMapper productTemplateMapper;
+    private final ProductMetadataMapper productMetadataMapper;
 
     @Override
     public ProductDetailResponse createProduct(CreateProductRequest request, Long userId) {
-        log.info("Creating product with name: {}", request.getName());
+        log.info("Creating product with name: {} and {} templates", request.getName(), request.getTemplates().size());
         
         // Validate category exists
         Category category = categoryRepository.findById(request.getCategoryId())
@@ -70,16 +74,39 @@ public class ProductServiceImpl implements IProductService {
             throw new BadRequestException("Sản phẩm với tên '" + request.getName() + "' đã tồn tại");
         }
         
-        // Create product entity
+        // Validate templates: Check SKU uniqueness
+        for (ProductTemplateRequest templateReq : request.getTemplates()) {
+            if (productTemplateRepository.existsBySku(templateReq.getSku())) {
+                throw new BadRequestException("SKU đã tồn tại: " + templateReq.getSku());
+            }
+        }
+        
+        // Create product entity (base info only)
         Product product = productMapper.toEntity(request);
         product.setCategory(category);
         product.setBrand(brand);
         product.setCreatedBy(user);
         product.setUpdatedBy(user);
         
-        // Save product
+        // Create product templates (variants)
+        for (ProductTemplateRequest templateReq : request.getTemplates()) {
+            ProductTemplate template = productTemplateMapper.toEntity(templateReq);
+            template.setProduct(product);
+            template.setCreatedBy(user);
+            template.setUpdatedBy(user);
+            product.getTemplates().add(template);
+        }
+        
+        // Create product metadata (technical specs) if provided
+        if (request.getMetadata() != null) {
+            ProductMetadata metadata = productMetadataMapper.toEntity(request.getMetadata());
+            metadata.setProduct(product);
+            product.setMetadata(metadata);
+        }
+        
+        // Save product (cascade saves templates + metadata)
         Product savedProduct = productRepository.save(product);
-        log.info("Created product with ID: {}", savedProduct.getId());
+        log.info("Created product with ID: {} and {} templates", savedProduct.getId(), savedProduct.getTemplates().size());
         
         return productMapper.toDetailResponse(savedProduct);
     }
@@ -125,9 +152,53 @@ public class ProductServiceImpl implements IProductService {
         productMapper.updateEntity(product, request);
         product.setUpdatedBy(user);
         
+        // Update templates if provided (REPLACE all existing templates)
+        if (request.getTemplates() != null && !request.getTemplates().isEmpty()) {
+            log.info("Replacing all templates for product ID: {}", id);
+            
+            // Validate SKU uniqueness (except for current product's templates)
+            for (ProductTemplateRequest templateReq : request.getTemplates()) {
+                boolean skuExists = productTemplateRepository.existsBySku(templateReq.getSku());
+                if (skuExists) {
+                    // Check if SKU belongs to this product
+                    ProductTemplate existingTemplate = productTemplateRepository.findBySku(templateReq.getSku())
+                            .orElse(null);
+                    if (existingTemplate != null && !existingTemplate.getProduct().getId().equals(id)) {
+                        throw new BadRequestException("SKU đã tồn tại: " + templateReq.getSku());
+                    }
+                }
+            }
+            
+            // Clear existing templates (orphan removal will delete them)
+            product.getTemplates().clear();
+            
+            // Add new templates
+            for (ProductTemplateRequest templateReq : request.getTemplates()) {
+                ProductTemplate template = productTemplateMapper.toEntity(templateReq);
+                template.setProduct(product);
+                template.setCreatedBy(user);
+                template.setUpdatedBy(user);
+                product.getTemplates().add(template);
+            }
+        }
+        
+        // Update metadata if provided
+        if (request.getMetadata() != null) {
+            log.info("Updating metadata for product ID: {}", id);
+            if (product.getMetadata() != null) {
+                // Update existing metadata
+                productMetadataMapper.updateEntityFromRequest(request.getMetadata(), product.getMetadata());
+            } else {
+                // Create new metadata
+                ProductMetadata metadata = productMetadataMapper.toEntity(request.getMetadata());
+                metadata.setProduct(product);
+                product.setMetadata(metadata);
+            }
+        }
+        
         // Save updated product
         Product updatedProduct = productRepository.save(product);
-        log.info("Updated product with ID: {}", updatedProduct.getId());
+        log.info("Updated product with ID: {} and {} templates", updatedProduct.getId(), updatedProduct.getTemplates().size());
         
         return productMapper.toDetailResponse(updatedProduct);
     }
@@ -155,6 +226,10 @@ public class ProductServiceImpl implements IProductService {
         log.info("Soft deleted product with ID: {}", id);
     }
 
+    /**
+     * Increase stock for all templates of a product
+     * Note: This updates ALL templates equally. For SKU-specific updates, use updateProduct with templates.
+     */
     @Override
     public void increaseStock(Long id, Integer amount) {
         log.info("Increasing stock for product ID: {} by {}", id, amount);
@@ -167,12 +242,24 @@ public class ProductServiceImpl implements IProductService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy sản phẩm với ID: " + id));
         
-        product.setStockQuantity(product.getStockQuantity() + amount);
-        productRepository.save(product);
+        if (product.getTemplates().isEmpty()) {
+            throw new BadRequestException("Sản phẩm không có template nào để cập nhật stock");
+        }
         
-        log.info("Increased stock for product ID: {} to {}", id, product.getStockQuantity());
+        // Update stock for all templates
+        for (ProductTemplate template : product.getTemplates()) {
+            template.setStockQuantity(template.getStockQuantity() + amount);
+        }
+        
+        productRepository.save(product); // Cascade saves templates
+        
+        log.info("Increased stock for product ID: {} ({} templates updated)", id, product.getTemplates().size());
     }
 
+    /**
+     * Decrease stock for all templates of a product
+     * Note: This updates ALL templates equally. For SKU-specific updates, use updateProduct with templates.
+     */
     @Override
     public void decreaseStock(Long id, Integer amount) {
         log.info("Decreasing stock for product ID: {} by {}", id, amount);
@@ -185,23 +272,118 @@ public class ProductServiceImpl implements IProductService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy sản phẩm với ID: " + id));
         
-        if (product.getStockQuantity() < amount) {
-            throw new BadRequestException(
-                    "Số lượng trong kho không đủ. Hiện tại: " + product.getStockQuantity());
+        if (product.getTemplates().isEmpty()) {
+            throw new BadRequestException("Sản phẩm không có template nào để cập nhật stock");
         }
         
-        product.setStockQuantity(product.getStockQuantity() - amount);
-        productRepository.save(product);
+        // Calculate total stock across all templates
+        Integer totalStock = product.getTemplates().stream()
+                .mapToInt(ProductTemplate::getStockQuantity)
+                .sum();
         
-        log.info("Decreased stock for product ID: {} to {}", id, product.getStockQuantity());
+        if (totalStock < amount) {
+            throw new BadRequestException(
+                    "Số lượng trong kho không đủ. Hiện tại: " + totalStock);
+        }
+        
+        // Decrease stock for all templates proportionally or equally
+        // Simple approach: decrease equally from all templates
+        int amountPerTemplate = amount / product.getTemplates().size();
+        int remainder = amount % product.getTemplates().size();
+        
+        for (int i = 0; i < product.getTemplates().size(); i++) {
+            ProductTemplate template = product.getTemplates().get(i);
+            int decreaseAmount = amountPerTemplate + (i < remainder ? 1 : 0);
+            
+            if (template.getStockQuantity() < decreaseAmount) {
+                throw new BadRequestException(
+                        "Template " + template.getSku() + " không đủ stock để giảm");
+            }
+            
+            template.setStockQuantity(template.getStockQuantity() - decreaseAmount);
+        }
+        
+        productRepository.save(product); // Cascade saves templates
+        
+        log.info("Decreased stock for product ID: {} ({} templates updated)", id, product.getTemplates().size());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProductListResponse> getAllProductsIncludingDeleted(Pageable pageable) {
-        log.info("Getting all products including deleted");
-        return productRepository.findAllIncludingDeleted(pageable)
-                .map(productMapper::toListResponse);
+    public Page<ProductListResponse> getProducts(
+            String keyword,
+            Long categoryId,
+            Long brandId,
+            Double minPrice,
+            Double maxPrice,
+            Boolean status,
+            Boolean includeDeleted,
+            String sortBy,
+            String sortDirection,
+            Pageable pageable) {
+        
+        log.info("Getting products - keyword: {}, categoryId: {}, brandId: {}, priceRange: [{}-{}], status: {}, includeDeleted: {}, sort: {}({})", 
+                keyword, categoryId, brandId, minPrice, maxPrice, status, includeDeleted, sortBy, sortDirection);
+        
+        // Convert Double to BigDecimal for repository query
+        BigDecimal minPriceBD = minPrice != null ? BigDecimal.valueOf(minPrice) : null;
+        BigDecimal maxPriceBD = maxPrice != null ? BigDecimal.valueOf(maxPrice) : null;
+        
+        Page<Product> products;
+        
+        // Determine which repository query to use based on parameters
+        if (includeDeleted != null && includeDeleted) {
+            // Admin view: show all including deleted
+            products = productRepository.findAllIncludingDeleted(pageable);
+        } else if (keyword != null && !keyword.trim().isEmpty()) {
+            // Search mode
+            products = productRepository.searchProducts(keyword.trim(), pageable);
+        } else if (categoryId != null || brandId != null || minPriceBD != null || maxPriceBD != null) {
+            // Filter mode
+            products = productRepository.filterProducts(categoryId, brandId, minPriceBD, maxPriceBD, pageable);
+        } else {
+            // Default: get all active products
+            products = productRepository.findByIsDeletedFalse(pageable);
+        }
+        
+        // Map to response DTOs and enrich with template data
+        List<ProductListResponse> responseList = products.stream()
+                .map(product -> {
+                    ProductListResponse response = productMapper.toListResponse(product);
+                    enrichListResponseWithTemplateData(response, product);
+                    return response;
+                })
+                .toList();
+        
+        // Apply sorting if specified (for price/stock which need in-memory sorting)
+        if (sortBy != null && !sortBy.isEmpty()) {
+            boolean ascending = !"desc".equalsIgnoreCase(sortDirection);
+            
+            switch (sortBy.toLowerCase()) {
+                case "price":
+                    responseList = responseList.stream()
+                            .sorted(ascending 
+                                ? Comparator.comparing(ProductListResponse::getPrice)
+                                : Comparator.comparing(ProductListResponse::getPrice).reversed())
+                            .toList();
+                    break;
+                case "stock":
+                    responseList = responseList.stream()
+                            .sorted(ascending 
+                                ? Comparator.comparing(ProductListResponse::getStockQuantity)
+                                : Comparator.comparing(ProductListResponse::getStockQuantity).reversed())
+                            .toList();
+                    break;
+                // For name and createdAt, database sorting (via pageable) is already applied
+            }
+        }
+        
+        // Reconstruct Page with sorted list
+        return new org.springframework.data.domain.PageImpl<>(
+                responseList,
+                products.getPageable(),
+                products.getTotalElements()
+        );
     }
 
     @Override
@@ -317,5 +499,36 @@ public class ProductServiceImpl implements IProductService {
         }
         
         log.info("Deleted image ID: {} for product ID: {}", imageId, productId);
+    }
+    
+    /**
+     * Enriches ProductListResponse with price and stock calculated from templates
+     * Price = lowest price among active templates
+     * Stock = sum of stockQuantity across all active templates
+     */
+    private void enrichListResponseWithTemplateData(ProductListResponse response, Product product) {
+        List<ProductTemplate> activeTemplates = product.getTemplates().stream()
+                .filter(ProductTemplate::getStatus)
+                .toList();
+        
+        if (activeTemplates.isEmpty()) {
+            response.setPrice(BigDecimal.ZERO);
+            response.setStockQuantity(0);
+            return;
+        }
+        
+        // Calculate lowest price
+        BigDecimal lowestPrice = activeTemplates.stream()
+                .map(ProductTemplate::getPrice)
+                .min(Comparator.naturalOrder())
+                .orElse(BigDecimal.ZERO);
+        
+        // Calculate total stock
+        Integer totalStock = activeTemplates.stream()
+                .mapToInt(ProductTemplate::getStockQuantity)
+                .sum();
+        
+        response.setPrice(lowestPrice);
+        response.setStockQuantity(totalStock);
     }
 }
