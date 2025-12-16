@@ -152,23 +152,9 @@ public class AuthServiceImpl implements IAuthService {
             throw new UnauthorizedException("Tên đăng nhập/email hoặc mật khẩu không chính xác");
         }
 
-        // Generate tokens
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getEmail());
-
-        // Store refresh token in Redis
-        String refreshTokenKey = "refresh_token:" + user.getId();
-        redisTemplate.opsForValue().set(refreshTokenKey, refreshToken, 7, TimeUnit.DAYS);
-
+        AuthResponse response = buildAuthResponse(user);
         log.info("User logged in successfully with id: {}", user.getId());
-
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(jwtTokenProvider.getExpirationTime() / 1000)
-                .user(userMapper.toResponse(user))
-                .build();
+        return response;
     }
 
     @Override
@@ -198,6 +184,25 @@ public class AuthServiceImpl implements IAuthService {
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(request.getRefreshToken())
+                .tokenType("Bearer")
+                .expiresIn(jwtTokenProvider.getExpirationTime() / 1000)
+                .user(userMapper.toResponse(user))
+                .build();
+    }
+
+    /**
+     * Generate access/refresh tokens for a user, store refresh token in Redis, and build AuthResponse.
+     */
+    public AuthResponse buildAuthResponse(User user) {
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getEmail());
+
+        String refreshTokenKey = "refresh_token:" + user.getId();
+        redisTemplate.opsForValue().set(refreshTokenKey, refreshToken, 7, TimeUnit.DAYS);
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(jwtTokenProvider.getExpirationTime() / 1000)
                 .user(userMapper.toResponse(user))
