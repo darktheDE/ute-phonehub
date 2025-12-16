@@ -106,6 +106,14 @@ async function fetchAPI<T>(
     }
 
     if (!response.ok) {
+      // Log more details for debugging
+      console.error('API Error Details:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        data,
+      });
+      
       const errorMessage = data?.message || data?.error || `HTTP error! status: ${response.status}`;
       throw new Error(errorMessage);
     }
