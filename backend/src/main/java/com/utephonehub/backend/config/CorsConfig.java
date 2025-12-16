@@ -26,11 +26,14 @@ public class CorsConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Cho phép tất cả localhost với các port phổ biến của frontend dev server
+        // Bao gồm cả Next.js default port (3000) và các port khác
         configuration.setAllowedOriginPatterns(List.of(
             "http://localhost:*",
             "http://127.0.0.1:*",
             "http://172.*:*",
-            "http://192.168.*:*"
+            "http://192.168.*:*",
+            "https://localhost:*",
+            "https://127.0.0.1:*"
         ));
         
         // Cho phép các HTTP methods

@@ -53,7 +53,10 @@ export default function ManagePage() {
   // - GET /api/v1/admin/products (doesn't exist)
   // - GET /api/v1/orders (for customer list - doesn't exist)
   const { orders, loading: ordersLoading } = useOrders(isAdmin);
-  const { users, loading: usersLoading } = useUsers({ page: 0, size: 100 });
+  // Only fetch users if user is admin to avoid unnecessary API calls
+  const { users, loading: usersLoading } = useUsers(
+    isAdmin ? { page: 0, size: 100 } : null
+  );
 
   // Admin menu items
   const adminMenuItems = [
