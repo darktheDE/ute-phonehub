@@ -115,8 +115,15 @@ async function fetchAPI<T>(
       }
     }
 
-    // Check both HTTP status AND success field from backend
     if (!response.ok || !data.success) {
+      // Log more details for debugging
+      console.error('API Error Details:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        data,
+      });
+      
       const errorMessage = data?.message || data?.error || `HTTP error! status: ${response.status}`;
       throw new Error(errorMessage);
     }

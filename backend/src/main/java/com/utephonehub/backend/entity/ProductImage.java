@@ -32,6 +32,9 @@ public class ProductImage {
     @Column(nullable = false)
     private Boolean isPrimary = false;
 
+    @Column(nullable = false)
+    private Integer imageOrder = 0;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
