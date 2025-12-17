@@ -65,6 +65,7 @@ export interface UserRegistrationChartData {
   labels: string[];
   values: number[];
   total: number;
+  totalUsers: number; // ✅ Added for summary stats
   period: string;
 }
 
@@ -75,9 +76,9 @@ export type RegistrationPeriod = 'WEEKLY' | 'MONTHLY';
 export interface TopProduct {
   productId: number;
   productName: string;
-  imagePath: string;
-  quantitySold: number;
-  totalRevenue: number;
+  imageUrl?: string;        // ✅ Match backend response
+  totalSold: number;        // ✅ Changed from soldQuantity to match backend
+  revenue: number;          // ✅ Correct
 }
 
 // ==================== RECENT ORDERS ====================
@@ -92,10 +93,13 @@ export interface RecentOrder {
 }
 
 // ==================== LOW STOCK PRODUCTS ====================
+// ==================== LOW STOCK PRODUCTS ====================
 export interface LowStockProduct {
   productId: number;
   productName: string;
-  imagePath: string;
+  imageUrl: string; // ✅ Changed from imagePath
   stockQuantity: number;
-  price: number;
+  categoryName: string; // ✅ Added
+  brandName: string; // ✅ Added
+  status: boolean; // ✅ Added
 }

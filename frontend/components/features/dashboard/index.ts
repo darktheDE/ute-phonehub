@@ -4,6 +4,11 @@
 
 export { StatsCard } from './StatsCard';
 export { RevenueChart } from './RevenueChart';
+export { OrderStatusChart } from './OrderStatusChart';
+export { UserRegistrationChart } from './UserRegistrationChart';
+export { TopProductsChart } from './TopProductsChart';
+export { RecentOrdersTable } from './RecentOrdersTable';
+export { LowStockProductsTable } from './LowStockProductsTable';
 export { OrdersTable } from './OrdersTable';
 export { ProductsTable } from './ProductsTable';
 export { UsersTable } from './UsersTable';
