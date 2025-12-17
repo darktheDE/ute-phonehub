@@ -173,12 +173,10 @@ WHERE p.specifications IS NOT NULL
 -- PART 4: DROP OLD COLUMNS FROM PRODUCTS TABLE
 -- ============================================================================
 
--- IMPORTANT: Uncomment these lines AFTER verifying data migration succeeded
--- and all services are working correctly with new structure
-
--- ALTER TABLE products DROP COLUMN IF EXISTS price;
--- ALTER TABLE products DROP COLUMN IF EXISTS stock_quantity;
--- ALTER TABLE products DROP COLUMN IF EXISTS specifications;
+-- Drop old columns now that data is migrated to new structure
+ALTER TABLE products DROP COLUMN IF EXISTS price;
+ALTER TABLE products DROP COLUMN IF EXISTS stock_quantity;
+ALTER TABLE products DROP COLUMN IF EXISTS specifications;
 
 -- ============================================================================
 -- PART 5: ADD COMMENTS FOR DOCUMENTATION

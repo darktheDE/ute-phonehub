@@ -40,6 +40,7 @@ public class ProductController {
 
     private final IProductService productService;
     private final SecurityUtils securityUtils;
+    private final com.utephonehub.backend.validator.ProductFilterValidator productFilterValidator;
 
     /**
      * ADMIN ENDPOINTS - Require ADMIN role
@@ -132,7 +133,7 @@ public class ProductController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
-            summary = "Xem danh sách sản phẩm (Admin)",
+            summary = "Xem danh sách tất cả sản phẩm (Admin)",
             description = "Lấy danh sách sản phẩm với tùy chọn lọc, tìm kiếm và sắp xếp. " +
                          "Nếu không truyền tham số gì thì mặc định trả về tất cả sản phẩm đang hoạt động."
     )
@@ -183,49 +184,8 @@ public class ProductController {
         log.info("GET /api/v1/admin/products/products - keyword: {}, categoryId: {}, brandId: {}, priceRange: [{}-{}], includeDeleted: {}, sort: {}({})",
                 keyword, categoryId, brandId, minPrice, maxPrice, includeDeleted, sortBy, sortDirection);
         
-        // Validation: minPrice <= maxPrice
-        if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
-            log.error("Invalid price range: minPrice ({}) > maxPrice ({})", minPrice, maxPrice);
-            throw new com.utephonehub.backend.exception.BadRequestException(
-                    "Giá tối thiểu không thể lớn hơn giá tối đa"
-            );
-        }
-        
-        // Validation: prices must be non-negative
-        if (minPrice != null && minPrice < 0) {
-            throw new com.utephonehub.backend.exception.BadRequestException(
-                    "Giá tối thiểu phải lớn hơn hoặc bằng 0"
-            );
-        }
-        if (maxPrice != null && maxPrice < 0) {
-            throw new com.utephonehub.backend.exception.BadRequestException(
-                    "Giá tối đa phải lớn hơn hoặc bằng 0"
-            );
-        }
-        
-        // Validation: sortBy must be valid field
-        if (!sortBy.matches("^(name|price|stock|createdAt)$")) {
-            log.error("Invalid sortBy parameter: {}", sortBy);
-            throw new com.utephonehub.backend.exception.BadRequestException(
-                    "Tham số sortBy không hợp lệ. Chỉ chấp nhận: name, price, stock, createdAt"
-            );
-        }
-        
-        // Validation: sortDirection must be asc or desc
-        if (!sortDirection.matches("^(asc|desc)$")) {
-            log.error("Invalid sortDirection parameter: {}", sortDirection);
-            throw new com.utephonehub.backend.exception.BadRequestException(
-                    "Tham số sortDirection không hợp lệ. Chỉ chấp nhận: asc, desc"
-            );
-        }
-        
-        // Validation: keyword min length
-        if (keyword != null && !keyword.trim().isEmpty() && keyword.trim().length() < 2) {
-            log.error("Search keyword too short: {}", keyword);
-            throw new com.utephonehub.backend.exception.BadRequestException(
-                    "Từ khóa tìm kiếm phải có ít nhất 2 ký tự"
-            );
-        }
+        // Validate all filter parameters
+        productFilterValidator.validateAll(keyword, minPrice, maxPrice, sortBy, sortDirection);
         
         // Create Sort object for database-level sorting (name, createdAt only)
         Sort sort = null;
@@ -297,7 +257,7 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật hình ảnh sản phẩm thành công", null));
     }
 
-    @DeleteMapping("/delete-image/{id}/{imageId}")
+    @DeleteMapping("/{id}/images/{imageId}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Xóa hình ảnh sản phẩm (Admin)",

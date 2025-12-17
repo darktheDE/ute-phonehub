@@ -176,10 +176,18 @@ public class Product {
     /**
      * Helper method to set metadata
      * Maintains bidirectional relationship
+     * Clears old relationship if metadata is being replaced
      */
     public void setMetadata(ProductMetadata metadata) {
+        // Clear old relationship if exists
+        if (this.metadata != null && this.metadata != metadata) {
+            this.metadata.setProduct(null);
+        }
+        
         this.metadata = metadata;
-        if (metadata != null) {
+        
+        // Set bidirectional relationship
+        if (metadata != null && metadata.getProduct() != this) {
             metadata.setProduct(this);
         }
     }

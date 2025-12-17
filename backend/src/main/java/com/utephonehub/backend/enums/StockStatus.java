@@ -18,15 +18,5 @@ public enum StockStatus {
     /**
      * Product is out of stock (quantity = 0)
      */
-    OUT_OF_STOCK,
-    
-    /**
-     * Product has been sold out completely
-     */
-    SOLD,
-    
-    /**
-     * Product available for backorder/pre-order
-     */
-    BTORDER
+    OUT_OF_STOCK
 }

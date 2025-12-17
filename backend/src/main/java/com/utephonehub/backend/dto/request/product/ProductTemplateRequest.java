@@ -20,10 +20,10 @@ public class ProductTemplateRequest {
 
     /**
      * Stock Keeping Unit - Unique identifier
-     * Format: PRODUCT_CODE-STORAGE-COLOR (e.g., IP15PM-256-BLK)
+     * Format: PRODUCT_CODE-STORAGE-COLOR (e.g., IP15PM-256-BLK, ip15pm-256-blk)
      */
     @NotBlank(message = "SKU không được để trống")
-    @Pattern(regexp = "^[A-Z0-9-]{6,50}$", message = "SKU phải là chữ hoa, số và dấu gạch ngang (6-50 ký tự)")
+    @Pattern(regexp = "^[A-Za-z0-9-_]{3,50}$", message = "SKU phải là chữ cái, số, dấu gạch ngang hoặc gạch dưới (3-50 ký tự)")
     private String sku;
 
     /**

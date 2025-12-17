@@ -40,8 +40,12 @@ public class UpdateProductRequest {
 
     /**
      * Product variants (templates)
-     * If provided, will REPLACE all existing templates
-     * To add/update single template, use dedicated template management API
+     * 
+     * ⚠️ WARNING: If provided, will REPLACE ALL existing templates (destructive operation)
+     * This means all old templates will be deleted and replaced with the new list.
+     * To add/update/delete single template, use dedicated template management API instead.
+     * 
+     * Use this only when you need to completely rebuild the product's variant structure.
      */
     @Valid
     @Size(min = 1, message = "Nếu cập nhật templates, phải có ít nhất 1 biến thể")

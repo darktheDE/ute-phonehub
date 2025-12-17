@@ -1,6 +1,8 @@
 package com.utephonehub.backend.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -61,6 +63,8 @@ public class ProductMetadata {
     private String screenResolution; // "2796 x 1290", "2532 x 1170"
 
     @Column
+    @DecimalMin(value = "1.0", message = "Kích thước màn hình phải >= 1.0 inch")
+    @DecimalMax(value = "50.0", message = "Kích thước màn hình phải <= 50.0 inch")
     private Double screenSize; // 6.7, 6.1, 10.9 (inches)
 
     @Column(length = 100)

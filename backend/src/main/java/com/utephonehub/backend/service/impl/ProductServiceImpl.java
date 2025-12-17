@@ -301,21 +301,19 @@ public class ProductServiceImpl implements IProductService {
                     "Số lượng trong kho không đủ. Hiện tại: " + totalStock);
         }
         
-        // Decrease stock for all templates proportionally or equally
-        // Simple approach: decrease equally from all templates
-        int amountPerTemplate = amount / product.getTemplates().size();
-        int remainder = amount % product.getTemplates().size();
+        // Decrease stock sequentially from templates (prioritize templates with higher stock)
+        // Sort templates by stock quantity descending to avoid partial deductions
+        List<ProductTemplate> sortedTemplates = product.getTemplates().stream()
+                .sorted(Comparator.comparingInt(ProductTemplate::getStockQuantity).reversed())
+                .toList();
         
-        for (int i = 0; i < product.getTemplates().size(); i++) {
-            ProductTemplate template = product.getTemplates().get(i);
-            int decreaseAmount = amountPerTemplate + (i < remainder ? 1 : 0);
+        int remaining = amount;
+        for (ProductTemplate template : sortedTemplates) {
+            if (remaining <= 0) break;
             
-            if (template.getStockQuantity() < decreaseAmount) {
-                throw new BadRequestException(
-                        "Template " + template.getSku() + " không đủ stock để giảm");
-            }
-            
-            template.setStockQuantity(template.getStockQuantity() - decreaseAmount);
+            int deductAmount = Math.min(template.getStockQuantity(), remaining);
+            template.setStockQuantity(template.getStockQuantity() - deductAmount);
+            remaining -= deductAmount;
         }
         
         productRepository.save(product); // Cascade saves templates
