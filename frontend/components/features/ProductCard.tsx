@@ -1,0 +1,81 @@
+'use client';
+
+import { Heart, Star } from 'lucide-react';
+import { formatPrice } from '@/lib/utils';
+
+interface ProductCardProps {
+  id: number;
+  name: string;
+  image: string;
+  originalPrice: number;
+  salePrice: number;
+  rating: number;
+  reviews: number;
+  discount: number;
+  isNew?: boolean;
+}
+
+export function ProductCard({
+  name,
+  image,
+  originalPrice,
+  salePrice,
+  rating,
+  reviews,
+  discount,
+  isNew = false,
+}: ProductCardProps) {
+  return (
+    <div className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+      <div className="relative">
+        <div className="h-40 md:h-52 bg-gradient-to-br from-[#fdf7e3] to-[#f8f1d6] flex items-center justify-center text-6xl md:text-7xl group-hover:scale-105 transition-transform">
+          {image}
+        </div>
+        {isNew && (
+          <span className="absolute top-2 left-2 bg-[#16a34a] text-white text-[11px] font-semibold px-2 py-1 rounded-md shadow-sm">
+            Mới
+          </span>
+        )}
+        {discount > 0 && (
+          <span className="absolute top-2 right-2 bg-primary text-primary-foreground text-[11px] font-semibold px-2 py-1 rounded-md shadow-sm">
+            -{discount}%
+          </span>
+        )}
+        <button
+          className="absolute bottom-2 right-2 rounded-full bg-white p-2 shadow-md opacity-0 transition-all group-hover:opacity-100 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Thêm vào yêu thích"
+        >
+          <Heart className="w-5 h-5 text-muted-foreground hover:text-primary" />
+        </button>
+      </div>
+      <div className="p-3 md:p-4">
+        <h3 className="font-medium text-foreground mb-2 line-clamp-2 min-h-[2.5rem] text-sm md:text-base">
+          {name}
+        </h3>
+        <div className="flex items-center gap-1 mb-2">
+          {[...Array(5)].map((_, i) => (
+            <Star
+              key={i}
+              className={`w-3 h-3 ${
+                i < Math.floor(rating)
+                  ? 'fill-primary text-primary'
+                  : 'fill-gray-200 text-gray-200'
+              }`}
+            />
+          ))}
+          <span className="text-xs text-muted-foreground ml-1">
+            ({reviews})
+          </span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-base md:text-lg font-bold text-primary">
+            {formatPrice(salePrice)}
+          </span>
+          <span className="text-xs md:text-sm text-muted-foreground line-through">
+            {formatPrice(originalPrice)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}

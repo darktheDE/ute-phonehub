@@ -1,0 +1,65 @@
+services:
+  # 1. DATABASE
+  postgres:
+    image: postgres:15-alpine
+    container_name: utephonehub-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ute-net
+
+  # 2. REDIS
+  redis:
+    image: redis:7-alpine
+    container_name: utephonehub-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ute-net
+
+  # 3. BACKEND API
+  backend:
+    build: .
+    container_name: utephonehub-backend
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_USERNAME=${DB_USERNAME:-${POSTGRES_USER}}
+      - DB_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD}}
+      - REDIS_HOST=${REDIS_HOST}
+      - VNPAY_TMN_CODE=${VNPAY_TMN_CODE}
+      - VNPAY_HASH_SECRET=${VNPAY_HASH_SECRET}
+      - VNPAY_URL=${VNPAY_URL}
+      - VNPAY_RETURN_URL=${VNPAY_RETURN_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./src:/app/src
+    networks:
+      - ute-net
+
+volumes:
+  postgres_data:
+
+networks:
+  ute-net:
+    name: ute-network
+    driver: bridge
