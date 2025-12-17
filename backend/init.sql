@@ -251,7 +251,8 @@ CREATE TABLE IF NOT EXISTS orders (
     total_amount DECIMAL(15,2) NOT NULL,
     promotion_id VARCHAR(255) REFERENCES promotions(id) ON DELETE SET NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    version BIGINT DEFAULT 0
 );
 
 -- Sample data: orders (20 đơn hàng phân bố 7 ngày - có created_at và updated_at động)
