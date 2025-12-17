@@ -8,21 +8,22 @@ import { MOCK_FLASH_SALE_PRODUCTS } from '@/lib/mockData';
 export function FlashSaleSection() {
   // Using mock data - endpoint /api/v1/products doesn't exist yet
   return (
-    <section className="py-8 md:py-12 bg-gradient-to-r from-red-600 to-orange-500">
+    <section className="py-8 md:py-10 bg-background">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-2xl md:text-3xl font-bold text-white">
-              ⚡ FLASH SALE
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-1 text-xs font-semibold tracking-wide uppercase">
+              <span>⚡</span>
+              <span>Flash sale</span>
             </span>
-            <div className="hidden sm:flex items-center gap-2 bg-white/20 px-3 py-1 rounded-lg">
-              <Clock className="w-4 h-4 text-white" />
-              <span className="text-white font-mono">02:45:30</span>
+            <div className="hidden sm:flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span className="font-mono">02:45:30</span>
             </div>
           </div>
           <Link
             href="#"
-            className="text-white hover:underline flex items-center gap-1"
+            className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
           >
             Xem tất cả <ChevronRight className="w-4 h-4" />
           </Link>
@@ -32,13 +33,13 @@ export function FlashSaleSection() {
           {MOCK_FLASH_SALE_PRODUCTS.map((product) => (
             <div
               key={product.id}
-              className="bg-white rounded-xl overflow-hidden hover:shadow-xl transition-shadow group"
+              className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
               <div className="relative">
-                <div className="h-36 md:h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-5xl md:text-6xl group-hover:scale-105 transition-transform">
+                <div className="h-36 md:h-48 bg-gradient-to-br from-[#fdf7e3] to-[#f9f5d7] flex items-center justify-center text-5xl md:text-6xl group-hover:scale-105 transition-transform">
                   {product.image}
                 </div>
-                <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                <span className="absolute top-2 left-2 rounded-md bg-destructive text-[11px] font-semibold text-white px-2 py-1 shadow-sm">
                   -{product.discount}%
                 </span>
               </div>
@@ -62,7 +63,7 @@ export function FlashSaleSection() {
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-base md:text-lg font-bold text-red-600">
+                  <span className="text-base md:text-lg font-bold text-primary">
                     {formatPrice(product.salePrice)}
                   </span>
                   <span className="text-xs md:text-sm text-muted-foreground line-through">

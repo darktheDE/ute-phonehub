@@ -118,15 +118,11 @@ INSERT INTO brands (name, logo_url) VALUES
 ('OPPO', 'https://example.com/logos/oppo.png'),
 ('Dell', 'https://example.com/logos/dell.png');
 
--- Table: products
 CREATE TABLE IF NOT EXISTS products (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    price DECIMAL(15,2) NOT NULL,
-    stock_quantity INTEGER NOT NULL DEFAULT 0,
     thumbnail_url VARCHAR(255),
-    specifications JSONB,
     status BOOLEAN NOT NULL DEFAULT TRUE,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMP,
@@ -139,23 +135,122 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-INSERT INTO products (name, description, price, stock_quantity, thumbnail_url, specifications, status, is_deleted, category_id, brand_id) VALUES
-('iPhone 15 Pro Max', 'iPhone 15 Pro Max - Điện thoại cao cấp với chip A17 Pro, camera 48MP, pin 4422mAh', 32990000.00, 50, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/iphone-15-pro-max.jpg', '{"Màn hình": "6.7 inch Super Retina XDR OLED", "Chip": "Apple A17 Pro", "RAM": "8GB", "Bộ nhớ": "256GB", "Pin": "4422mAh", "Camera": "48MP + 12MP + 12MP", "Hệ điều hành": "iOS 17"}'::jsonb, TRUE, FALSE, 1, 1),
-('iPhone 15 Pro', 'iPhone 15 Pro - Flagship với chip A17 Pro, thiết kế titan cao cấp', 28990000.00, 45, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/iphone-15-pro.jpg', '{"Màn hình": "6.1 inch Super Retina XDR OLED", "Chip": "Apple A17 Pro", "RAM": "8GB", "Bộ nhớ": "256GB", "Pin": "3274mAh", "Camera": "48MP + 12MP + 12MP", "Hệ điều hành": "iOS 17"}'::jsonb, TRUE, FALSE, 1, 1),
-('iPhone 15', 'iPhone 15 - Điện thoại thông minh với chip A16 Bionic, camera 48MP', 21990000.00, 60, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/iphone-15.jpg', '{"Màn hình": "6.1 inch Super Retina XDR OLED", "Chip": "Apple A16 Bionic", "RAM": "6GB", "Bộ nhớ": "128GB", "Pin": "3349mAh", "Camera": "48MP + 12MP", "Hệ điều hành": "iOS 17"}'::jsonb, TRUE, FALSE, 1, 1),
-('Samsung Galaxy S24 Ultra', 'Samsung Galaxy S24 Ultra - Flagship Android với bút S Pen, camera 200MP', 29990000.00, 40, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/s/a/samsung-galaxy-s24-ultra.jpg', '{"Màn hình": "6.8 inch Dynamic AMOLED 2X", "Chip": "Snapdragon 8 Gen 3", "RAM": "12GB", "Bộ nhớ": "512GB", "Pin": "5000mAh", "Camera": "200MP + 50MP + 12MP + 10MP", "Hệ điều hành": "Android 14"}'::jsonb, TRUE, FALSE, 1, 2),
-('Samsung Galaxy S24', 'Samsung Galaxy S24 - Flagship nhỏ gọn với hiệu năng mạnh mẽ', 19990000.00, 55, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/s/a/samsung-galaxy-s24.jpg', '{"Màn hình": "6.2 inch Dynamic AMOLED 2X", "Chip": "Snapdragon 8 Gen 3", "RAM": "8GB", "Bộ nhớ": "256GB", "Pin": "4000mAh", "Camera": "50MP + 12MP + 10MP", "Hệ điều hành": "Android 14"}'::jsonb, TRUE, FALSE, 1, 2),
-('Samsung Galaxy A55', 'Samsung Galaxy A55 - Điện thoại tầm trung với camera 50MP', 8990000.00, 70, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/s/a/samsung-galaxy-a55.jpg', '{"Màn hình": "6.6 inch Super AMOLED", "Chip": "Exynos 1480", "RAM": "8GB", "Bộ nhớ": "128GB", "Pin": "5000mAh", "Camera": "50MP + 12MP + 5MP", "Hệ điều hành": "Android 14"}'::jsonb, TRUE, FALSE, 1, 2),
-('Xiaomi 14', 'Xiaomi 14 - Smartphone hiệu năng cao với chip Snapdragon 8 Gen 3', 17990000.00, 65, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/x/i/xiaomi-14.jpg', '{"Màn hình": "6.36 inch AMOLED", "Chip": "Snapdragon 8 Gen 3", "RAM": "12GB", "Bộ nhớ": "256GB", "Pin": "4610mAh", "Camera": "50MP + 50MP + 50MP", "Hệ điều hành": "Android 14"}'::jsonb, TRUE, FALSE, 1, 3),
-('Xiaomi Redmi Note 13', 'Xiaomi Redmi Note 13 - Điện thoại giá rẻ hiệu năng tốt', 5990000.00, 80, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/x/i/xiaomi-redmi-note-13.jpg', '{"Màn hình": "6.67 inch AMOLED", "Chip": "Snapdragon 685", "RAM": "8GB", "Bộ nhớ": "128GB", "Pin": "5000mAh", "Camera": "108MP + 8MP + 2MP", "Hệ điều hành": "Android 13"}'::jsonb, TRUE, FALSE, 1, 3),
-('OPPO Reno11', 'OPPO Reno11 - Điện thoại camera chuyên nghiệp với chip MediaTek Dimensity 7050', 10990000.00, 50, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/o/p/oppo-reno11.jpg', '{"Màn hình": "6.7 inch AMOLED", "Chip": "MediaTek Dimensity 7050", "RAM": "8GB", "Bộ nhớ": "256GB", "Pin": "5000mAh", "Camera": "50MP + 32MP + 8MP", "Hệ điều hành": "Android 14"}'::jsonb, TRUE, FALSE, 1, 4),
-('OPPO Find X7', 'OPPO Find X7 - Flagship với camera Hasselblad, chip Snapdragon 8 Gen 3', 19990000.00, 35, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/o/p/oppo-find-x7.jpg', '{"Màn hình": "6.78 inch AMOLED", "Chip": "Snapdragon 8 Gen 3", "RAM": "16GB", "Bộ nhớ": "512GB", "Pin": "5000mAh", "Camera": "50MP + 50MP + 64MP", "Hệ điều hành": "Android 14"}'::jsonb, TRUE, FALSE, 1, 4),
-('MacBook Pro 14" M3', 'MacBook Pro 14 inch M3 - Laptop chuyên dụng cho developer và designer', 42990000.00, 30, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/m/a/macbook-pro-14-m3.jpg', '{"Màn hình": "14.2 inch Liquid Retina XDR", "Chip": "Apple M3", "RAM": "16GB", "Bộ nhớ": "512GB SSD", "Pin": "70Wh", "Trọng lượng": "1.55kg", "Hệ điều hành": "macOS Sonoma"}'::jsonb, TRUE, FALSE, 3, 1),
-('MacBook Air 15" M3', 'MacBook Air 15 inch M3 - Laptop mỏng nhẹ hiệu năng cao', 32990000.00, 40, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/m/a/macbook-air-15-m3.jpg', '{"Màn hình": "15.3 inch Liquid Retina", "Chip": "Apple M3", "RAM": "16GB", "Bộ nhớ": "512GB SSD", "Pin": "66.5Wh", "Trọng lượng": "1.51kg", "Hệ điều hành": "macOS Sonoma"}'::jsonb, TRUE, FALSE, 3, 1),
-('Dell XPS 13 Plus', 'Dell XPS 13 Plus - Laptop mỏng nhẹ cao cấp với màn hình OLED', 35990000.00, 25, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/d/e/dell-xps-13-plus.jpg', '{"Màn hình": "13.4 inch FHD+ OLED", "Chip": "Intel Core i7-1360P", "RAM": "16GB", "Bộ nhớ": "1TB SSD", "Pin": "55Wh", "Trọng lượng": "1.24kg", "Hệ điều hành": "Windows 11"}'::jsonb, TRUE, FALSE, 3, 5),
-('Dell Inspiron 15 3520', 'Dell Inspiron 15 3520 - Laptop phổ thông giá tốt', 14990000.00, 50, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/d/e/dell-inspiron-15-3520.jpg', '{"Màn hình": "15.6 inch FHD", "Chip": "Intel Core i5-1235U", "RAM": "8GB", "Bộ nhớ": "512GB SSD", "Pin": "41Wh", "Trọng lượng": "1.78kg", "Hệ điều hành": "Windows 11"}'::jsonb, TRUE, FALSE, 3, 5),
-('iPad Pro 11" M2', 'iPad Pro 11 inch M2 - Máy tính bảng cao cấp với chip M2', 24990000.00, 35, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/ipad-pro-11-m2.jpg', '{"Màn hình": "11 inch Liquid Retina", "Chip": "Apple M2", "RAM": "8GB", "Bộ nhớ": "256GB", "Pin": "28.65Wh", "Trọng lượng": "466g", "Hệ điều hành": "iPadOS 17"}'::jsonb, TRUE, FALSE, 2, 1),
-('iPad Air 11" M2', 'iPad Air 11 inch M2 - Máy tính bảng mỏng nhẹ hiệu năng cao', 18990000.00, 45, 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/ipad-air-11-m2.jpg', '{"Màn hình": "11 inch Liquid Retina", "Chip": "Apple M2", "RAM": "8GB", "Bộ nhớ": "128GB", "Pin": "28.93Wh", "Trọng lượng": "462g", "Hệ điều hành": "iPadOS 17"}'::jsonb, TRUE, FALSE, 2, 1);
+INSERT INTO products (name, description, thumbnail_url, status, is_deleted, category_id, brand_id, created_by, updated_by, deleted_by) VALUES
+('iPhone 15 Pro Max', 'iPhone 15 Pro Max - Điện thoại cao cấp với chip A17 Pro, camera 48MP, pin 4422mAh', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/iphone-15-pro-max.jpg', TRUE, FALSE, 1, 1, NULL, NULL, NULL),
+('iPhone 15 Pro', 'iPhone 15 Pro - Flagship với chip A17 Pro, thiết kế titan cao cấp', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/iphone-15-pro.jpg', TRUE, FALSE, 1, 1, NULL, NULL, NULL),
+('iPhone 15', 'iPhone 15 - Điện thoại thông minh với chip A16 Bionic, camera 48MP', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/iphone-15.jpg', TRUE, FALSE, 1, 1, NULL, NULL, NULL),
+('Samsung Galaxy S24 Ultra', 'Samsung Galaxy S24 Ultra - Flagship Android với bút S Pen, camera 200MP', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/s/a/samsung-galaxy-s24-ultra.jpg', TRUE, FALSE, 1, 2, NULL, NULL, NULL),
+('Samsung Galaxy S24', 'Samsung Galaxy S24 - Flagship nhỏ gọn với hiệu năng mạnh mẽ', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/s/a/samsung-galaxy-s24.jpg', TRUE, FALSE, 1, 2, NULL, NULL, NULL),
+('Samsung Galaxy A55', 'Samsung Galaxy A55 - Điện thoại tầm trung với camera 50MP', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/s/a/samsung-galaxy-a55.jpg', TRUE, FALSE, 1, 2, NULL, NULL, NULL),
+('Xiaomi 14', 'Xiaomi 14 - Smartphone hiệu năng cao với chip Snapdragon 8 Gen 3', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/x/i/xiaomi-14.jpg', TRUE, FALSE, 1, 3, NULL, NULL, NULL),
+('Xiaomi Redmi Note 13', 'Xiaomi Redmi Note 13 - Điện thoại giá rẻ hiệu năng tốt', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/x/i/xiaomi-redmi-note-13.jpg', TRUE, FALSE, 1, 3, NULL, NULL, NULL),
+('OPPO Reno11', 'OPPO Reno11 - Điện thoại camera chuyên nghiệp với chip MediaTek Dimensity 7050', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/o/p/oppo-reno11.jpg', TRUE, FALSE, 1, 4, NULL, NULL, NULL),
+('OPPO Find X7', 'OPPO Find X7 - Flagship với camera Hasselblad, chip Snapdragon 8 Gen 3', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/o/p/oppo-find-x7.jpg', TRUE, FALSE, 1, 4, NULL, NULL, NULL),
+('MacBook Pro 14" M3', 'MacBook Pro 14 inch M3 - Laptop chuyên dụng cho developer và designer', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/m/a/macbook-pro-14-m3.jpg', TRUE, FALSE, 3, 1, NULL, NULL, NULL),
+('MacBook Air 15" M3', 'MacBook Air 15 inch M3 - Laptop mỏng nhẹ hiệu năng cao', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/m/a/macbook-air-15-m3.jpg', TRUE, FALSE, 3, 1, NULL, NULL, NULL),
+('Dell XPS 13 Plus', 'Dell XPS 13 Plus - Laptop mỏng nhẹ cao cấp với màn hình OLED', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/d/e/dell-xps-13-plus.jpg', TRUE, FALSE, 3, 5, NULL, NULL, NULL),
+('Dell Inspiron 15 3520', 'Dell Inspiron 15 3520 - Laptop phổ thông giá tốt', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/d/e/dell-inspiron-15-3520.jpg', TRUE, FALSE, 3, 5, NULL, NULL, NULL),
+('iPad Pro 11" M2', 'iPad Pro 11 inch M2 - Máy tính bảng cao cấp với chip M2', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/ipad-pro-11-m2.jpg', TRUE, FALSE, 2, 1, NULL, NULL, NULL),
+('iPad Air 11" M2', 'iPad Air 11 inch M2 - Máy tính bảng mỏng nhẹ hiệu năng cao', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/ipad-air-11-m2.jpg', TRUE, FALSE, 2, 1, NULL, NULL, NULL);
+
+-- Table: product_templates
+CREATE TABLE IF NOT EXISTS product_templates (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    sku VARCHAR(100) UNIQUE NOT NULL,
+    color VARCHAR(50),
+    storage VARCHAR(50),
+    ram VARCHAR(50),
+    price DECIMAL(15,2) NOT NULL,
+    stock_quantity INTEGER NOT NULL DEFAULT 0,
+    stock_status VARCHAR(20) NOT NULL,
+    status BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_template_sku ON product_templates (sku);
+CREATE INDEX IF NOT EXISTS idx_product_template_product_id ON product_templates (product_id);
+CREATE INDEX IF NOT EXISTS idx_product_template_stock_status ON product_templates (stock_status);
+
+-- Sample data: product_templates
+INSERT INTO product_templates (product_id, sku, color, storage, ram, price, stock_quantity, stock_status, status) VALUES
+(1, 'IP15PM-256-BLK', 'Titan Black', '256GB', '8GB', 32990000.00, 50, 'IN_STOCK', TRUE),
+(2, 'IP15P-256-BLK', 'Black', '256GB', '8GB', 28990000.00, 45, 'IN_STOCK', TRUE),
+(3, 'IP15-128-PNK', 'Pink', '128GB', '6GB', 21990000.00, 60, 'IN_STOCK', TRUE),
+(4, 'S24U-512-BLK', 'Black', '512GB', '12GB', 29990000.00, 40, 'IN_STOCK', TRUE),
+(5, 'S24-256-VIO', 'Violet', '256GB', '8GB', 19990000.00, 55, 'IN_STOCK', TRUE),
+(6, 'A55-128-BLU', 'Blue', '128GB', '8GB', 8990000.00, 70, 'IN_STOCK', TRUE),
+(7, 'XM14-256-GRN', 'Green', '256GB', '12GB', 17990000.00, 65, 'IN_STOCK', TRUE),
+(8, 'RN13-128-BLK', 'Black', '128GB', '8GB', 5990000.00, 80, 'IN_STOCK', TRUE),
+(9, 'OPR11-256-GRN', 'Green', '256GB', '8GB', 10990000.00, 50, 'IN_STOCK', TRUE),
+(10, 'OPX7-512-BLK', 'Black', '512GB', '16GB', 19990000.00, 35, 'IN_STOCK', TRUE),
+(11, 'MBP14M3-16-512-SLV', 'Silver', '512GB', '16GB', 42990000.00, 30, 'IN_STOCK', TRUE),
+(12, 'MBA15M3-16-512-GLD', 'Gold', '512GB', '16GB', 32990000.00, 40, 'IN_STOCK', TRUE),
+(13, 'XPS13P-1T-SLV', 'Silver', '1TB', '16GB', 35990000.00, 25, 'IN_STOCK', TRUE),
+(14, 'INS15-512-SLV', 'Silver', '512GB', '8GB', 14990000.00, 50, 'IN_STOCK', TRUE),
+(15, 'IPDP11-256-SLV', 'Silver', '256GB', '8GB', 24990000.00, 35, 'IN_STOCK', TRUE),
+(16, 'IPDA11-128-BLU', 'Blue', '128GB', '8GB', 18990000.00, 45, 'IN_STOCK', TRUE);
+
+-- Table: product_metadata
+CREATE TABLE IF NOT EXISTS product_metadata (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL UNIQUE REFERENCES products(id) ON DELETE CASCADE,
+    import_price DECIMAL(15,2),
+    sale_price DECIMAL(15,2),
+    screen_resolution VARCHAR(100),
+    screen_size DOUBLE PRECISION CHECK (screen_size >= 1.0 AND screen_size <= 50.0),
+    screen_technology VARCHAR(100),
+    refresh_rate INTEGER,
+    cpu_chipset VARCHAR(100),
+    gpu VARCHAR(100),
+    camera_megapixels DOUBLE PRECISION,
+    camera_details VARCHAR(200),
+    front_camera_megapixels DOUBLE PRECISION,
+    battery_capacity INTEGER,
+    charging_power INTEGER,
+    charging_type VARCHAR(100),
+    weight DOUBLE PRECISION,
+    dimensions VARCHAR(100),
+    material VARCHAR(100),
+    operating_system VARCHAR(100),
+    keyboard_type VARCHAR(100),
+    ports VARCHAR(200),
+    case_size VARCHAR(50),
+    health_features VARCHAR(200),
+    battery_life_days INTEGER,
+    wireless_connectivity VARCHAR(100),
+    sim_type VARCHAR(100),
+    water_resistance VARCHAR(200),
+    audio_features VARCHAR(200),
+    security_features VARCHAR(200),
+    additional_specs TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_metadata_product_id ON product_metadata (product_id);
+
+-- Sample data: product_metadata
+INSERT INTO product_metadata (product_id, import_price, sale_price, screen_resolution, screen_size, screen_technology, refresh_rate, cpu_chipset, gpu, camera_megapixels, camera_details, front_camera_megapixels, battery_capacity, charging_power, charging_type, weight, dimensions, material, operating_system, keyboard_type, ports, case_size, health_features, battery_life_days, wireless_connectivity, sim_type, water_resistance, audio_features, security_features, additional_specs) VALUES
+(1, 25000000.00, 32990000.00, '2796 x 1290', 6.7, 'Super Retina XDR OLED', 120, 'Apple A17 Pro', 'Apple GPU', 48.0, '48MP + 12MP + 12MP', 12.0, 4422, 20, 'USB-C / MagSafe', 221.0, '159.9 x 76.7 x 8.25 mm', 'Titanium', 'iOS 17', NULL, NULL, NULL, NULL, NULL, '5G, Wi-Fi 6E, Bluetooth 5.3', 'Dual SIM + eSIM', 'IP68', 'Stereo speakers', 'Face ID', NULL),
+(2, 23000000.00, 28990000.00, '2556 x 1179', 6.1, 'Super Retina XDR OLED', 120, 'Apple A17 Pro', 'Apple GPU', 48.0, '48MP + 12MP + 12MP', 12.0, 3274, 20, 'USB-C / MagSafe', 187.0, '146.6 x 70.6 x 8.25 mm', 'Titanium', 'iOS 17', NULL, NULL, NULL, NULL, NULL, '5G, Wi-Fi 6E, Bluetooth 5.3', 'Dual SIM + eSIM', 'IP68', 'Stereo speakers', 'Face ID', NULL),
+(3, 17000000.00, 21990000.00, '2556 x 1179', 6.1, 'Super Retina XDR OLED', 60, 'Apple A16 Bionic', 'Apple GPU', 48.0, '48MP + 12MP', 12.0, 3349, 20, 'USB-C', 171.0, '147.6 x 71.6 x 7.8 mm', 'Aluminum', 'iOS 17', NULL, NULL, NULL, NULL, NULL, '5G, Wi-Fi 6E, Bluetooth 5.3', 'Dual SIM + eSIM', 'IP68', 'Stereo speakers', 'Face ID', NULL),
+(4, 25000000.00, 29990000.00, '3120 x 1440', 6.8, 'Dynamic AMOLED 2X', 120, 'Snapdragon 8 Gen 3', 'Adreno 750', 200.0, '200MP + 50MP + 12MP + 10MP', 12.0, 5000, 45, 'USB-C PD', 232.0, '162.3 x 79 x 8.6 mm', 'Armor Aluminum', 'Android 14', NULL, NULL, NULL, NULL, NULL, '5G, Wi-Fi 7, Bluetooth 5.3', 'Dual SIM + eSIM', 'IP68', 'Stereo speakers', 'Ultrasonic fingerprint', NULL),
+(5, 15000000.00, 19990000.00, '2340 x 1080', 6.2, 'Dynamic AMOLED 2X', 120, 'Snapdragon 8 Gen 3', 'Adreno 750', 50.0, '50MP + 12MP + 10MP', 12.0, 4000, 25, 'USB-C PD', 168.0, '147 x 70.6 x 7.6 mm', 'Armor Aluminum', 'Android 14', NULL, NULL, NULL, NULL, NULL, '5G, Wi-Fi 7, Bluetooth 5.3', 'Dual SIM + eSIM', 'IP68', 'Stereo speakers', 'Ultrasonic fingerprint', NULL),
+(6, 6000000.00, 8990000.00, '2340 x 1080', 6.6, 'Super AMOLED', 120, 'Exynos 1480', 'Mali', 50.0, '50MP + 12MP + 5MP', 32.0, 5000, 25, 'USB-C PD', 213.0, '161.1 x 77.4 x 8.2 mm', 'Plastic', 'Android 14', NULL, NULL, NULL, NULL, NULL, '5G, Wi-Fi 6, Bluetooth 5.3', 'Dual SIM', 'IP67', 'Stereo speakers', 'Side fingerprint', NULL),
+(7, 12000000.00, 17990000.00, '2670 x 1200', 6.36, 'AMOLED', 120, 'Snapdragon 8 Gen 3', 'Adreno 750', 50.0, '50MP triple', 32.0, 4610, 90, 'USB-C PD', 188.0, '152.8 x 71.5 x 8.2 mm', 'Aluminum', 'Android 14', NULL, NULL, NULL, NULL, NULL, '5G, Wi-Fi 7, Bluetooth 5.4', 'Dual SIM', 'IP68', 'Stereo speakers', 'In-display fingerprint', NULL),
+(8, 4000000.00, 5990000.00, '2400 x 1080', 6.67, 'AMOLED', 120, 'Snapdragon 685', 'Adreno 610', 108.0, '108MP + 8MP + 2MP', 16.0, 5000, 33, 'USB-C PD', 188.0, '162.3 x 75.6 x 7.97 mm', 'Plastic', 'Android 13', NULL, NULL, NULL, NULL, NULL, '4G, Wi-Fi 5, Bluetooth 5.1', 'Dual SIM', 'IP54', 'Stereo speakers', 'Side fingerprint', NULL),
+(9, 8000000.00, 10990000.00, '2412 x 1080', 6.7, 'AMOLED', 120, 'Dimensity 7050', 'Mali', 50.0, '50MP + 32MP + 8MP', 32.0, 5000, 67, 'USB-C PD', 182.0, '162.4 x 74.3 x 7.6 mm', 'Plastic', 'Android 14', NULL, NULL, NULL, NULL, NULL, '5G, Wi-Fi 6, Bluetooth 5.3', 'Dual SIM', 'IP54', 'Stereo speakers', 'In-display fingerprint', NULL),
+(10, 15000000.00, 19990000.00, '2780 x 1264', 6.78, 'AMOLED', 120, 'Snapdragon 8 Gen 3', 'Adreno 750', 50.0, '50MP + 50MP + 64MP', 32.0, 5000, 80, 'USB-C PD', 218.0, '162.7 x 75.1 x 8.9 mm', 'Glass / Aluminum', 'Android 14', NULL, NULL, NULL, NULL, NULL, '5G, Wi-Fi 7, Bluetooth 5.4', 'Dual SIM', 'IP64', 'Stereo speakers', 'In-display fingerprint', NULL),
+(11, 32000000.00, 42990000.00, '3024 x 1964', 14.2, 'Liquid Retina XDR', 120, 'Apple M3', 'Apple GPU', NULL, NULL, NULL, 70, 67, 'MagSafe', 1550.0, '312.6 x 221.2 x 15.5 mm', 'Aluminum', 'macOS Sonoma', 'Magic Keyboard', '3x Thunderbolt 4, HDMI, SD', NULL, NULL, NULL, 'Wi-Fi 6E, Bluetooth 5.3', NULL, NULL, 'Stereo speakers', 'Touch ID', 'SD/HDMI/Thunderbolt 4'),
+(12, 25000000.00, 32990000.00, '2880 x 1864', 15.3, 'Liquid Retina', 60, 'Apple M3', 'Apple GPU', NULL, NULL, NULL, 66, 35, 'MagSafe', 1510.0, '340.4 x 237.6 x 11.5 mm', 'Aluminum', 'macOS Sonoma', 'Magic Keyboard', '2x Thunderbolt 4', NULL, NULL, NULL, 'Wi-Fi 6E, Bluetooth 5.3', NULL, NULL, 'Stereo speakers', 'Touch ID', 'Two Thunderbolt 4'),
+(13, 27000000.00, 35990000.00, '3456 x 2160', 13.4, 'OLED', 60, 'Intel i7-1360P', 'Intel Iris Xe', NULL, NULL, NULL, 55, 65, 'USB-C PD', 1240.0, '295.3 x 199.1 x 15.3 mm', 'Aluminum', 'Windows 11', 'Backlit Keyboard', '2x Thunderbolt 4, USB-C', NULL, NULL, NULL, 'Wi-Fi 6E, Bluetooth 5.3', NULL, NULL, 'Stereo speakers', 'Fingerprint', '2x Thunderbolt 4'),
+(14, 10000000.00, 14990000.00, '1920 x 1080', 15.6, 'IPS', 60, 'Intel i5-1235U', 'Intel Iris Xe', NULL, NULL, NULL, 41, 45, 'USB-C PD', 1780.0, '358.5 x 235.8 x 18.9 mm', 'Plastic', 'Windows 11', 'Backlit Keyboard', 'HDMI, USB-A, USB-C', NULL, NULL, NULL, 'Wi-Fi 6, Bluetooth 5.2', NULL, NULL, 'Stereo speakers', 'Fingerprint', 'HDMI/USB-A/USB-C'),
+(15, 18000000.00, 24990000.00, '2388 x 1668', 11.0, 'Liquid Retina', 120, 'Apple M2', 'Apple GPU', 12.0, '12MP dual', 12.0, 28, 30, 'USB-C PD', 466.0, '247.6 x 178.5 x 5.9 mm', 'Aluminum', 'iPadOS 17', NULL, NULL, '45mm case equiv', 'ECG, SPO2', NULL, 'Wi-Fi 6E, Bluetooth 5.3', 'eSIM', 'IPXX', 'Stereo speakers', 'Face ID', NULL),
+(16, 14000000.00, 18990000.00, '2360 x 1640', 11.0, 'Liquid Retina', 60, 'Apple M2', 'Apple GPU', 12.0, '12MP', 12.0, 28, 30, 'USB-C PD', 462.0, '247.6 x 178.5 x 6.1 mm', 'Aluminum', 'iPadOS 17', NULL, NULL, '45mm case equiv', 'Health tracking', NULL, 'Wi-Fi 6E, Bluetooth 5.3', 'eSIM', 'IPXX', 'Stereo speakers', 'Touch ID', NULL);
 
 -- Table: product_images
 CREATE TABLE IF NOT EXISTS product_images (

@@ -16,12 +16,18 @@ export function CustomerWishlist() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {MOCK_PRODUCTS.slice(0, 4).map((product) => (
-          <div key={product.id} className="bg-card rounded-xl border border-border overflow-hidden group">
+          <div
+            key={product.id}
+            className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
             <div className="relative">
-              <div className="h-32 md:h-40 bg-secondary flex items-center justify-center text-4xl">
+              <div className="flex h-32 items-center justify-center bg-secondary text-4xl md:h-40">
                 {product.image}
               </div>
-              <button className="absolute top-2 right-2 p-2 bg-card rounded-full shadow-md">
+              <button
+                className="absolute top-2 right-2 rounded-full bg-card p-2 shadow-md transition-all hover:bg-secondary"
+                aria-label="Bỏ khỏi yêu thích"
+              >
                 <Heart className="w-4 h-4 text-red-500 fill-red-500" />
               </button>
             </div>

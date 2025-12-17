@@ -11,12 +11,15 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section className="bg-secondary py-4">
+    <section className="bg-secondary py-5">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {features.map((feature, index) => (
-            <div key={index} className="flex items-center gap-3 p-3">
-              <feature.icon className="w-8 h-8 text-primary flex-shrink-0" />
+            <div
+              key={index}
+              className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <feature.icon className="w-7 h-7 text-primary flex-shrink-0" />
               <div>
                 <p className="font-medium text-foreground text-sm">
                   {feature.text}

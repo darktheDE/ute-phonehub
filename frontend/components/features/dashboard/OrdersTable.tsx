@@ -59,7 +59,10 @@ export function OrdersTable({ orders, isAdmin = false }: OrdersTableProps) {
                     {order.date || new Date(order.createdAt).toLocaleDateString('vi-VN')}
                   </td>
                   <td className="py-3 px-4">
-                    <button className="p-2 hover:bg-secondary rounded-lg text-blue-600">
+                    <button
+                      className="rounded-lg p-2 text-blue-600 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={`Xem chi tiết đơn hàng ${order.id}`}
+                    >
                       <Eye className="w-4 h-4" />
                     </button>
                   </td>
