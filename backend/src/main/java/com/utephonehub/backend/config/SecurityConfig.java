@@ -11,16 +11,21 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+import com.utephonehub.backend.security.CustomOidcUserService;
+import com.utephonehub.backend.security.OAuth2AuthenticationSuccessHandler;
+
 import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true, securedEnabled = true, jsr250Enabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final CustomOidcUserService customOidcUserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -34,6 +39,12 @@ public class SecurityConfig {
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html"
+                ).permitAll()
+                // Cho phép các endpoint OAuth2 (Google) - phải đặt trước các rule khác
+                .requestMatchers(
+                    "/oauth2/authorization/**",
+                    "/login/oauth2/code/**",
+                    "/.well-known/**"
                 ).permitAll()
                 // Cho phép truy cập tự do vào các API xác thực
                 .requestMatchers(
@@ -68,17 +79,26 @@ public class SecurityConfig {
                     "/api/v1/products",
                     "/api/v1/products/**"
                 ).permitAll()
-                // Yêu cầu ADMIN cho các API quản lý danh mục, thương hiệu
+                // Yêu cầu ADMIN cho các API quản lý danh mục, thương hiệu, sản phẩm, người dùng
                 .requestMatchers(
                     "/api/v1/admin/categories/**",
                     "/api/v1/admin/brands/**",
-                    "/api/v1/admin/products/**"
-                ).hasAuthority("ADMIN")
+                    "/api/v1/admin/products/**",
+                    "/api/v1/admin/users/**"
+                ).hasRole("ADMIN")
                 // Cho phép truy cập tự do các API Promotion (tùy theo chính sách hiện tại)
                 .requestMatchers("/api/v1/admin/promotions/**").permitAll()
                 .requestMatchers("/api/v1/promotions/**").permitAll()
                 // Các request khác yêu cầu phải xác thực
                 .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(userInfo -> userInfo
+                    .oidcUserService(customOidcUserService)
+                )
+                .successHandler(oAuth2AuthenticationSuccessHandler)
+                .authorizationEndpoint(authorization -> authorization.baseUri("/oauth2/authorization"))
+                .redirectionEndpoint(redirection -> redirection.baseUri("/login/oauth2/code/*"))
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

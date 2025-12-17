@@ -32,7 +32,8 @@ import java.util.List;
 @Slf4j
 @Tag(name = "Admin - Dashboard", description = "API thống kê và báo cáo cho Admin Dashboard")
 @SecurityRequirement(name = "bearerAuth")
-@PreAuthorize("hasAuthority('ADMIN')")
+// Use hasRole to match authorities built as ROLE_ADMIN in JwtAuthenticationFilter
+@PreAuthorize("hasRole('ADMIN')")
 public class DashboardController {
 
     private final IDashboardService dashboardService;

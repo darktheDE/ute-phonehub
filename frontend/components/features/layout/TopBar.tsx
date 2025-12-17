@@ -8,7 +8,7 @@ import { Phone, MapPin, Clock } from 'lucide-react';
 
 export function TopBar() {
   return (
-    <div className="bg-[#1a1a1a] text-white text-sm py-2">
+    <div className="bg-sidebar text-sidebar-foreground text-sm py-2">
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <span className="flex items-center gap-1">
