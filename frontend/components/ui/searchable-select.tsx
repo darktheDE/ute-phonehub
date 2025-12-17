@@ -168,9 +168,7 @@ export function SearchableSelect({
       )}
 
       {/* Error Message */}
-      {error && (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
   );
 }

@@ -6,7 +6,10 @@
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SearchableSelect, SelectOption } from "@/components/ui/searchable-select";
+import {
+  SearchableSelect,
+  SelectOption,
+} from "@/components/ui/searchable-select";
 import { templateAPI, productAPI, categoryAPI } from "@/lib/api";
 import type {
   PromotionResponse,
@@ -78,24 +81,31 @@ export function PromotionFormModal({
     setLoadingOptions(true);
     try {
       // Load products
-      const productsResponse = await productAPI.getAllProducts({ page: 0, size: 1000 });
+      const productsResponse = await productAPI.getAllProducts({
+        page: 0,
+        size: 1000,
+      });
       if (productsResponse.success && productsResponse.data?.content) {
-        const options: SelectOption[] = productsResponse.data.content.map((product: any) => ({
-          value: String(product.id),
-          label: product.productName,
-          description: `ID: ${product.id} | ${product.brand}`,
-        }));
+        const options: SelectOption[] = productsResponse.data.content.map(
+          (product: any) => ({
+            value: String(product.id),
+            label: product.productName,
+            description: `ID: ${product.id} | ${product.brand}`,
+          })
+        );
         setProductOptions(options);
       }
 
       // Load categories
       const categoriesResponse = await categoryAPI.getRootCategories();
       if (categoriesResponse.success && categoriesResponse.data) {
-        const options: SelectOption[] = categoriesResponse.data.map((category: any) => ({
-          value: String(category.id),
-          label: category.name,
-          description: `ID: ${category.id}`,
-        }));
+        const options: SelectOption[] = categoriesResponse.data.map(
+          (category: any) => ({
+            value: String(category.id),
+            label: category.name,
+            description: `ID: ${category.id}`,
+          })
+        );
         setCategoryOptions(options);
       }
     } catch (err) {
@@ -436,7 +446,8 @@ export function PromotionFormModal({
 
               {formData.targets.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                  Chưa có đối tượng áp dụng. Nhấn &quot;Thêm đối tượng&quot; để thêm.
+                  Chưa có đối tượng áp dụng. Nhấn &quot;Thêm đối tượng&quot; để
+                  thêm.
                 </p>
               ) : (
                 <div className="space-y-3">
