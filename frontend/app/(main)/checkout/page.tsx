@@ -64,7 +64,9 @@ export default function CheckoutPage() {
     }
     // TODO: Process order with selected promotion
     alert(
-      `Đặt hàng thành công!\nTổng tiền: ${formatCurrency(total)}\nMã giảm giá: ${selectedPromotionId || "Không có"}`
+      `Đặt hàng thành công!\nTổng tiền: ${formatCurrency(
+        total
+      )}\nMã giảm giá: ${selectedPromotionId || "Không có"}`
     );
   };
 
@@ -197,7 +199,9 @@ export default function CheckoutPage() {
                 )}
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
                   <span>Phí vận chuyển</span>
-                  <span>{shipping === 0 ? "Miễn phí" : formatCurrency(shipping)}</span>
+                  <span>
+                    {shipping === 0 ? "Miễn phí" : formatCurrency(shipping)}
+                  </span>
                 </div>
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex justify-between text-lg font-bold text-gray-900 dark:text-white">
                   <span>Tổng cộng</span>

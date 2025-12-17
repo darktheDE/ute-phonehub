@@ -85,7 +85,11 @@ export function PromotionFormModal({
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === "percentDiscount" || name === "minValueToBeApplied"
+        name === "percentDiscount"
+          ? value === ""
+            ? 0
+            : Number(value)
+          : name === "minValueToBeApplied"
           ? value === ""
             ? null
             : Number(value)
@@ -96,10 +100,7 @@ export function PromotionFormModal({
   const addTarget = () => {
     setFormData((prev) => ({
       ...prev,
-      targets: [
-        ...prev.targets,
-        { type: "CATEGORY", applicableObjectId: "" },
-      ],
+      targets: [...prev.targets, { type: "CATEGORY", applicableObjectId: "" }],
     }));
   };
 
@@ -145,8 +146,37 @@ export function PromotionFormModal({
       return;
     }
 
+    // Validate expiration date is in the future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expirationDate = new Date(formData.expirationDate);
+    if (expirationDate < today) {
+      setError("Ngày hết hạn phải là ngày trong tương lai");
+      return;
+    }
+
+    // Validate effective date is before expiration date
+    const effectiveDate = new Date(formData.effectiveDate);
+    if (effectiveDate >= expirationDate) {
+      setError("Ngày hiệu lực phải trước ngày hết hạn");
+      return;
+    }
+
+    // Convert dates to LocalDateTime format (ISO 8601)
+    // Convert applicableObjectId to number (backend expects Long)
+    const payload = {
+      ...formData,
+      effectiveDate: `${formData.effectiveDate}T00:00:00`,
+      expirationDate: `${formData.expirationDate}T23:59:59`,
+      minValueToBeApplied: formData.minValueToBeApplied || null,
+      targets: formData.targets.map((target) => ({
+        type: target.type,
+        applicableObjectId: Number(target.applicableObjectId),
+      })),
+    };
+
     setLoading(true);
-    const success = await onSubmit(formData);
+    const success = await onSubmit(payload);
     setLoading(false);
 
     if (success) {

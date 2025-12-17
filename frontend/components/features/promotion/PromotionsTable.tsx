@@ -148,10 +148,7 @@ export function PromotionsTable() {
             Tạo và quản lý các chương trình khuyến mãi
           </p>
         </div>
-        <Button
-          onClick={handleCreate}
-          className="flex items-center gap-2"
-        >
+        <Button onClick={handleCreate} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Tạo mới
         </Button>

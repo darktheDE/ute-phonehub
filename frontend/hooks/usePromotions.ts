@@ -83,7 +83,9 @@ export function usePromotions() {
     data: CreatePromotionRequest
   ): Promise<boolean> => {
     try {
+      console.log("Creating promotion with data:", data);
       const response = await promotionAPI.createPromotion(data);
+      console.log("Create promotion response:", response);
       if (
         response.success &&
         (response.status === 200 || response.status === 201)
@@ -91,7 +93,9 @@ export function usePromotions() {
         await fetchPromotions(); // Refresh list
         return true;
       }
-      setError(response.message || "Failed to create promotion");
+      const errorMsg = response.message || "Failed to create promotion";
+      setError(errorMsg);
+      console.error("Create promotion failed:", errorMsg, response);
       return false;
     } catch (err) {
       setError("Failed to create promotion");
