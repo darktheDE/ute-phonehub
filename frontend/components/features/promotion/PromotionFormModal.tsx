@@ -6,10 +6,12 @@
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { templateAPI } from "@/lib/api";
 import type {
   PromotionResponse,
   CreatePromotionRequest,
   PromotionTarget,
+  PromotionTemplateResponse,
 } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +31,8 @@ export function PromotionFormModal({
   const isEditMode = !!promotion;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<PromotionTemplateResponse[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<CreatePromotionRequest>({
@@ -42,6 +46,27 @@ export function PromotionFormModal({
     templateId: "",
     targets: [],
   });
+
+  // Load templates from API
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      setLoadingTemplates(true);
+      try {
+        const response = await templateAPI.getAllTemplates();
+        if (response.success && response.data) {
+          setTemplates(response.data);
+        }
+      } catch (err) {
+        console.error("Failed to load templates:", err);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchTemplates();
+    }
+  }, [isOpen]);
 
   // Initialize form with promotion data in edit mode
   useEffect(() => {
@@ -320,15 +345,18 @@ export function PromotionFormModal({
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 required
+                disabled={loadingTemplates}
               >
-                <option value="">-- Chọn loại khuyến mãi --</option>
-                <option value="TPL_DISCOUNT">
-                  DISCOUNT - Giảm giá sản phẩm
+                <option value="">
+                  {loadingTemplates
+                    ? "Đang tải..."
+                    : "-- Chọn loại khuyến mãi --"}
                 </option>
-                <option value="TPL_VOUCHER">VOUCHER - Giảm giá đơn hàng</option>
-                <option value="TPL_FREESHIP">
-                  FREESHIP - Miễn phí vận chuyển
-                </option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.code} - {template.type}
+                  </option>
+                ))}
               </select>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 DISCOUNT áp dụng cho sản phẩm/danh mục, VOUCHER áp dụng cho đơn
