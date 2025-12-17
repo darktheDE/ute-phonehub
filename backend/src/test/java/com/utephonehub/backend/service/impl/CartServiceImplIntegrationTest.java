@@ -7,6 +7,7 @@ import com.utephonehub.backend.dto.response.cart.CartResponse;
 import com.utephonehub.backend.dto.response.cart.MergeCartResponse;
 import com.utephonehub.backend.entity.Cart;
 import com.utephonehub.backend.entity.Product;
+import com.utephonehub.backend.entity.ProductTemplate;
 import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.exception.MaxQuantityExceededException;
 import com.utephonehub.backend.exception.OutOfStockException;
@@ -14,6 +15,7 @@ import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.repository.CartItemRepository;
 import com.utephonehub.backend.repository.CartRepository;
 import com.utephonehub.backend.repository.ProductRepository;
+import com.utephonehub.backend.repository.ProductTemplateRepository;
 import com.utephonehub.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,14 +52,19 @@ class CartServiceImplIntegrationTest {
     @Autowired
     private CartItemRepository cartItemRepository;
 
+    @Autowired
+    private ProductTemplateRepository productTemplateRepository;
+
     private User testUser;
     private Product testProduct;
+    private ProductTemplate testTemplate;
 
     @BeforeEach
     void setUp() {
         // Clean up
         cartItemRepository.deleteAll();
         cartRepository.deleteAll();
+        productTemplateRepository.deleteAll();
         productRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -72,10 +79,21 @@ class CartServiceImplIntegrationTest {
         // Create test product
         testProduct = Product.builder()
                 .name("iPhone 15 Pro")
-                .price(BigDecimal.valueOf(29990000))
-                .stockQuantity(100)
+                .status(true)
                 .build();
         testProduct = productRepository.save(testProduct);
+
+        // Create product template with stock
+        testTemplate = ProductTemplate.builder()
+                .product(testProduct)
+                .sku("IP15PRO-256-BLK")
+                .color("Black")
+                .storage("256GB")
+                .price(BigDecimal.valueOf(29990000))
+                .stockQuantity(100)
+                .status(true)
+                .build();
+        testTemplate = productTemplateRepository.save(testTemplate);
     }
 
     @Test
@@ -133,9 +151,9 @@ class CartServiceImplIntegrationTest {
 
     @Test
     void testAddToCart_OutOfStock_ShouldThrowException() {
-        // Given - Product with limited stock
-        testProduct.setStockQuantity(5);
-        productRepository.save(testProduct);
+        // Given - Product template with limited stock
+        testTemplate.setStockQuantity(5);
+        productTemplateRepository.save(testTemplate);
 
         AddToCartRequest request = AddToCartRequest.builder()
                 .productId(testProduct.getId())
@@ -219,10 +237,20 @@ class CartServiceImplIntegrationTest {
 
         Product product2 = Product.builder()
                 .name("Samsung Galaxy S24")
-                .price(BigDecimal.valueOf(25990000))
-                .stockQuantity(50)
+                .status(true)
                 .build();
         product2 = productRepository.save(product2);
+
+        ProductTemplate template2 = ProductTemplate.builder()
+                .product(product2)
+                .sku("S24-256-BLK")
+                .color("Black")
+                .storage("256GB")
+                .price(BigDecimal.valueOf(25990000))
+                .stockQuantity(50)
+                .status(true)
+                .build();
+        productTemplateRepository.save(template2);
 
         AddToCartRequest request2 = AddToCartRequest.builder()
                 .productId(product2.getId())
@@ -250,10 +278,20 @@ class CartServiceImplIntegrationTest {
         // Create guest cart items
         Product guestProduct = Product.builder()
                 .name("iPad Pro")
-                .price(BigDecimal.valueOf(29990000))
-                .stockQuantity(30)
+                .status(true)
                 .build();
         guestProduct = productRepository.save(guestProduct);
+
+        ProductTemplate guestTemplate = ProductTemplate.builder()
+                .product(guestProduct)
+                .sku("IPAD-256-SLV")
+                .color("Silver")
+                .storage("256GB")
+                .price(BigDecimal.valueOf(29990000))
+                .stockQuantity(30)
+                .status(true)
+                .build();
+        productTemplateRepository.save(guestTemplate);
 
         MergeGuestCartRequest mergeRequest = MergeGuestCartRequest.builder()
                 .guestCartItems(Arrays.asList(
