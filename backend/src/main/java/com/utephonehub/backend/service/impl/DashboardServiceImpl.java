@@ -9,6 +9,7 @@ import com.utephonehub.backend.dto.response.dashboard.TopProductResponse;
 import com.utephonehub.backend.dto.response.dashboard.UserRegistrationChartResponse;
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.entity.Product;
+import com.utephonehub.backend.entity.ProductTemplate;
 import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.enums.DashboardPeriod;
 import com.utephonehub.backend.enums.OrderStatus;
@@ -340,15 +341,21 @@ public class DashboardServiceImpl implements IDashboardService {
 
         // Convert to DTO list
         List<LowStockProductResponse> response = lowStockProducts.stream()
-                .map(product -> LowStockProductResponse.builder()
-                        .productId(product.getId())
-                        .productName(product.getName())
-                        .imageUrl(product.getThumbnailUrl())
-                        .stockQuantity(product.getStockQuantity())
-                        .categoryName(product.getCategory() != null ? product.getCategory().getName() : "N/A")
-                        .brandName(product.getBrand() != null ? product.getBrand().getName() : "N/A")
-                        .status(product.getStatus())
-                        .build())
+                .map(product -> {
+                    int totalStock = product.getTemplates().stream()
+                            .filter(ProductTemplate::getStatus)
+                            .mapToInt(ProductTemplate::getStockQuantity)
+                            .sum();
+                    return LowStockProductResponse.builder()
+                            .productId(product.getId())
+                            .productName(product.getName())
+                            .imageUrl(product.getThumbnailUrl())
+                            .stockQuantity(totalStock)
+                            .categoryName(product.getCategory() != null ? product.getCategory().getName() : "N/A")
+                            .brandName(product.getBrand() != null ? product.getBrand().getName() : "N/A")
+                            .status(product.getStatus())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         log.info("Found {} low stock products (threshold: {})", response.size(), threshold);

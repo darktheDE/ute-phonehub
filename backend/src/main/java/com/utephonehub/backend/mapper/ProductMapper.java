@@ -18,10 +18,12 @@ import com.utephonehub.backend.entity.Product;
 
 /**
  * MapStruct mapper for Product entity and DTOs
+ * Updated to handle ProductTemplate and ProductMetadata relationships
  */
 @Mapper(componentModel = "spring", 
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
-        uses = {CategoryMapper.class, BrandMapper.class, ProductImageMapper.class})
+        uses = {CategoryMapper.class, BrandMapper.class, ProductImageMapper.class, 
+                ProductTemplateMapper.class, ProductMetadataMapper.class})
 public interface ProductMapper {
     
     /**
@@ -35,16 +37,22 @@ public interface ProductMapper {
     
     /**
      * Convert Product entity to ProductListResponse DTO (simplified)
+     * Price and stockQuantity will be calculated in Service layer
      */
     @Mapping(target = "categoryName", source = "category.name")
     @Mapping(target = "brandName", source = "brand.name")
+    @Mapping(target = "price", ignore = true) // Calculated from cheapest template
+    @Mapping(target = "stockQuantity", ignore = true) // Sum of all templates
     ProductListResponse toListResponse(Product product);
     
     /**
      * Convert Product entity to ProductDetailResponse DTO (full details)
+     * Includes templates and metadata
      */
     @Mapping(target = "category", source = "category")
     @Mapping(target = "brand", source = "brand")
+    @Mapping(target = "templates", source = "templates")
+    @Mapping(target = "metadata", source = "metadata")
     @Mapping(target = "images", source = "images")
     @Mapping(target = "createdByUsername", source = "createdBy.username")
     @Mapping(target = "updatedByUsername", source = "updatedBy.username")
@@ -56,11 +64,14 @@ public interface ProductMapper {
     List<ProductListResponse> toListResponses(List<Product> products);
     
     /**
-     * Convert CreateProductRequest to Product entity
+     * Convert CreateProductRequest to Product entity (base info only)
+     * Templates and metadata are handled separately in Service layer
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "brand", ignore = true)
+    @Mapping(target = "templates", ignore = true)
+    @Mapping(target = "metadata", ignore = true)
     @Mapping(target = "isDeleted", ignore = true)
     @Mapping(target = "deletedAt", ignore = true)
     @Mapping(target = "deletedBy", ignore = true)
@@ -73,12 +84,14 @@ public interface ProductMapper {
     
     /**
      * Update existing Product entity with UpdateProductRequest data
-     * Only updates non-null fields from request
+     * Only updates base product info, not templates/metadata
      */
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "brand", ignore = true)
+    @Mapping(target = "templates", ignore = true)
+    @Mapping(target = "metadata", ignore = true)
     @Mapping(target = "isDeleted", ignore = true)
     @Mapping(target = "deletedAt", ignore = true)
     @Mapping(target = "deletedBy", ignore = true)
