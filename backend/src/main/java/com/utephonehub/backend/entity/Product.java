@@ -2,6 +2,7 @@ package com.utephonehub.backend.entity;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -138,6 +139,30 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
     private User updatedBy;
+
+    /**
+     * Custom getter for templates that returns unmodifiable list
+     * to prevent external modification of internal collection
+     */
+    public List<ProductTemplate> getTemplates() {
+        return Collections.unmodifiableList(templates);
+    }
+
+    /**
+     * Internal method to get mutable templates list
+     * Used by JPA and service layer for managed operations
+     */
+    List<ProductTemplate> getTemplatesInternal() {
+        return templates;
+    }
+
+    /**
+     * Helper method to clear all templates
+     * Properly handles orphan removal
+     */
+    public void clearTemplates() {
+        templates.clear();
+    }
 
     /**
      * Helper method to add template to product

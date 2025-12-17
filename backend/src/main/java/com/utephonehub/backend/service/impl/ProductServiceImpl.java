@@ -106,10 +106,9 @@ public class ProductServiceImpl implements IProductService {
         // Create product templates (variants)
         for (ProductTemplateRequest templateReq : request.getTemplates()) {
             ProductTemplate template = productTemplateMapper.toEntity(templateReq);
-            template.setProduct(product);
             template.setCreatedBy(user);
             template.setUpdatedBy(user);
-            product.getTemplates().add(template);
+            product.addTemplate(template);
         }
         
         // Create product metadata (technical specs) if provided
@@ -185,17 +184,16 @@ public class ProductServiceImpl implements IProductService {
             }
             
             // Clear existing templates (orphan removal will delete them)
-            product.getTemplates().clear();
+            product.clearTemplates();
             // Flush to avoid SKU constraint violations during re-add
             entityManager.flush();
             
             // Add new templates
             for (ProductTemplateRequest templateReq : request.getTemplates()) {
                 ProductTemplate template = productTemplateMapper.toEntity(templateReq);
-                template.setProduct(product);
                 template.setCreatedBy(user);
                 template.setUpdatedBy(user);
-                product.getTemplates().add(template);
+                product.addTemplate(template);
             }
         }
         
@@ -294,7 +292,7 @@ public class ProductServiceImpl implements IProductService {
         }
         
         // Calculate total stock across all templates
-        Integer totalStock = product.getTemplates().stream()
+        int totalStock = product.getTemplates().stream()
                 .mapToInt(ProductTemplate::getStockQuantity)
                 .sum();
         
@@ -511,8 +509,8 @@ public class ProductServiceImpl implements IProductService {
                 .toList();
         
         if (activeTemplates.isEmpty()) {
-            response.setPrice(BigDecimal.ZERO);
-            response.setStockQuantity(0);
+            response.setPrice(null);
+            response.setStockQuantity(null);
             return;
         }
         
@@ -523,7 +521,7 @@ public class ProductServiceImpl implements IProductService {
                 .orElse(BigDecimal.ZERO);
         
         // Calculate total stock
-        Integer totalStock = activeTemplates.stream()
+        int totalStock = activeTemplates.stream()
                 .mapToInt(ProductTemplate::getStockQuantity)
                 .sum();
         
