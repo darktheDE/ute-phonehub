@@ -73,7 +73,7 @@ export function SocialLogin({ mode, loading = false }: SocialLoginProps) {
       <button
         type="button"
         onClick={handleGoogleAuth}
-        className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-border rounded-lg hover:bg-secondary transition-colors"
+        className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-border rounded-lg hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         disabled={loading}
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
