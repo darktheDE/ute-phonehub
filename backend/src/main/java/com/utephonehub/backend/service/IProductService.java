@@ -52,11 +52,33 @@ public interface IProductService {
     void decreaseStock(Long id, Integer amount);
     
     /**
-     * Get all products including deleted (Admin only)
+     * Get products with optional filtering, searching, and sorting
+     * All parameters are optional. If no parameters provided, returns all active products.
+     * 
+     * @param keyword Search keyword (searches in name, SKU, description)
+     * @param categoryId Filter by category ID
+     * @param brandId Filter by brand ID
+     * @param minPrice Minimum price filter
+     * @param maxPrice Maximum price filter
+     * @param status Filter by status (true=active, false=inactive)
+     * @param includeDeleted Include soft-deleted products (Admin only)
+     * @param sortBy Sort field (name, price, stock, createdAt)
+     * @param sortDirection Sort direction (asc, desc)
      * @param pageable Pagination parameters
      * @return Page of product list responses
      */
-    Page<ProductListResponse> getAllProductsIncludingDeleted(Pageable pageable);
+    Page<ProductListResponse> getProducts(
+        String keyword,
+        Long categoryId,
+        Long brandId,
+        Double minPrice,
+        Double maxPrice,
+        Boolean status,
+        Boolean includeDeleted,
+        String sortBy,
+        String sortDirection,
+        Pageable pageable
+    );
     
     /**
      * Restore a soft-deleted product
