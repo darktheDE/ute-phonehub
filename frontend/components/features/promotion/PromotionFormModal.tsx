@@ -6,14 +6,13 @@
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { templateAPI } from "@/lib/api";
+import { SearchableSelect, SelectOption } from "@/components/ui/searchable-select";
+import { templateAPI, productAPI, categoryAPI } from "@/lib/api";
 import type {
   PromotionResponse,
   CreatePromotionRequest,
-  PromotionTarget,
   PromotionTemplateResponse,
 } from "@/types";
-import { cn } from "@/lib/utils";
 
 interface PromotionFormModalProps {
   isOpen: boolean;
@@ -33,6 +32,11 @@ export function PromotionFormModal({
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<PromotionTemplateResponse[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  // Options for target selection
+  const [productOptions, setProductOptions] = useState<SelectOption[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<CreatePromotionRequest>({
@@ -65,8 +69,41 @@ export function PromotionFormModal({
 
     if (isOpen) {
       fetchTemplates();
+      loadProductsAndCategories();
     }
   }, [isOpen]);
+
+  // Load products and categories for selection
+  const loadProductsAndCategories = async () => {
+    setLoadingOptions(true);
+    try {
+      // Load products
+      const productsResponse = await productAPI.getAllProducts({ page: 0, size: 1000 });
+      if (productsResponse.success && productsResponse.data?.content) {
+        const options: SelectOption[] = productsResponse.data.content.map((product: any) => ({
+          value: String(product.id),
+          label: product.productName,
+          description: `ID: ${product.id} | ${product.brand}`,
+        }));
+        setProductOptions(options);
+      }
+
+      // Load categories
+      const categoriesResponse = await categoryAPI.getRootCategories();
+      if (categoriesResponse.success && categoriesResponse.data) {
+        const options: SelectOption[] = categoriesResponse.data.map((category: any) => ({
+          value: String(category.id),
+          label: category.name,
+          description: `ID: ${category.id}`,
+        }));
+        setCategoryOptions(options);
+      }
+    } catch (err) {
+      console.error("Failed to load options:", err);
+    } finally {
+      setLoadingOptions(false);
+    }
+  };
 
   // Initialize form with promotion data in edit mode
   useEffect(() => {
@@ -188,7 +225,6 @@ export function PromotionFormModal({
     }
 
     // Convert dates to LocalDateTime format (ISO 8601)
-    // Convert applicableObjectId to number (backend expects Long)
     const payload = {
       ...formData,
       effectiveDate: `${formData.effectiveDate}T00:00:00`,
@@ -196,7 +232,7 @@ export function PromotionFormModal({
       minValueToBeApplied: formData.minValueToBeApplied || null,
       targets: formData.targets.map((target) => ({
         type: target.type,
-        applicableObjectId: Number(target.applicableObjectId),
+        applicableObjectId: target.applicableObjectId, // Keep as string, backend will convert
       })),
     };
 
@@ -400,48 +436,72 @@ export function PromotionFormModal({
 
               {formData.targets.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                  Chưa có đối tượng áp dụng. Nhấn "Thêm đối tượng" để thêm.
+                  Chưa có đối tượng áp dụng. Nhấn &quot;Thêm đối tượng&quot; để thêm.
                 </p>
               ) : (
-                <div className="space-y-2">
-                  {formData.targets.map((target, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg"
-                    >
-                      <select
-                        value={target.type}
-                        onChange={(e) =>
-                          updateTarget(index, "type", e.target.value)
-                        }
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                <div className="space-y-3">
+                  {formData.targets.map((target, index) => {
+                    // Determine which options to show based on target type
+                    const getOptionsForType = () => {
+                      switch (target.type) {
+                        case "PRODUCT":
+                          return productOptions;
+                        case "CATEGORY":
+                        case "BRAND":
+                          return categoryOptions;
+                        default:
+                          return [];
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex flex-col gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50"
                       >
-                        <option value="CATEGORY">CATEGORY - Danh mục</option>
-                        <option value="BRAND">BRAND - Thương hiệu</option>
-                        <option value="PRODUCT">PRODUCT - Sản phẩm</option>
-                      </select>
-                      <input
-                        type="text"
-                        value={target.applicableObjectId}
-                        onChange={(e) =>
-                          updateTarget(
-                            index,
-                            "applicableObjectId",
-                            e.target.value
-                          )
-                        }
-                        placeholder="ID của đối tượng"
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeTarget(index)}
-                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        {/* Type Selection */}
+                        <select
+                          value={target.type}
+                          onChange={(e) =>
+                            updateTarget(index, "type", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="CATEGORY">CATEGORY - Danh mục</option>
+                          <option value="BRAND">BRAND - Thương hiệu</option>
+                          <option value="PRODUCT">PRODUCT - Sản phẩm</option>
+                        </select>
+
+                        {/* Searchable Select for ID */}
+                        <div className="flex items-start gap-2">
+                          <SearchableSelect
+                            options={getOptionsForType()}
+                            value={target.applicableObjectId}
+                            onChange={(value) =>
+                              updateTarget(index, "applicableObjectId", value)
+                            }
+                            placeholder={`Chọn ${
+                              target.type === "PRODUCT"
+                                ? "sản phẩm"
+                                : target.type === "CATEGORY"
+                                ? "danh mục"
+                                : "thương hiệu"
+                            }...`}
+                            loading={loadingOptions}
+                            className="flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeTarget(index)}
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex-shrink-0"
+                            title="Xóa"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -117,7 +117,8 @@ export function TemplateFormModal({
               <option value="FREESHIP">FREESHIP - Miễn phí vận chuyển</option>
             </select>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              DISCOUNT áp dụng cho sản phẩm/danh mục, VOUCHER áp dụng cho đơn hàng
+              DISCOUNT áp dụng cho sản phẩm/danh mục, VOUCHER áp dụng cho đơn
+              hàng
             </p>
           </div>
 
@@ -132,11 +133,7 @@ export function TemplateFormModal({
               Hủy
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading
-                ? "Đang xử lý..."
-                : template
-                ? "Cập nhật"
-                : "Tạo mới"}
+              {isLoading ? "Đang xử lý..." : template ? "Cập nhật" : "Tạo mới"}
             </Button>
           </div>
         </form>

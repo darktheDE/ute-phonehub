@@ -228,6 +228,24 @@ export const healthCheck = async (): Promise<ApiResponse<any>> => {
 // Note: Public product endpoints don't exist yet, so using mock data in components
 // Only keeping admin endpoints that exist
 export const productAPI = {
+  // Get all products including deleted (Admin only)
+  // GET /api/v1/products/admin/all?page={page}&size={size}
+  getAllProducts: async (params?: {
+    page?: number;
+    size?: number;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page !== undefined) queryParams.append("page", String(params.page));
+    if (params?.size !== undefined) queryParams.append("size", String(params.size));
+    
+    return fetchAPI<any>(
+      `/products/admin/all${queryParams.toString() ? `?${queryParams.toString()}` : ""}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
   // Get low stock products (for admin dashboard)
   // This endpoint exists: GET /api/v1/admin/dashboard/low-stock-products
   getLowStockProducts: async (
@@ -239,6 +257,25 @@ export const productAPI = {
         method: "GET",
       }
     );
+  },
+};
+
+// Category API endpoints
+export const categoryAPI = {
+  // Get all categories (or by parentId)
+  // GET /api/v1/categories?parentId={parentId}
+  getCategories: async (parentId?: string): Promise<ApiResponse<any[]>> => {
+    const queryParams = parentId ? `?parentId=${parentId}` : "";
+    return fetchAPI<any[]>(`/categories${queryParams}`, {
+      method: "GET",
+    });
+  },
+
+  // Get all root categories (parentId = null)
+  getRootCategories: async (): Promise<ApiResponse<any[]>> => {
+    return fetchAPI<any[]>("/categories", {
+      method: "GET",
+    });
   },
 };
 
