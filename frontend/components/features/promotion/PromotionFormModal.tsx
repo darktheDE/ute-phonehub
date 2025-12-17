@@ -309,20 +309,31 @@ export function PromotionFormModal({
               </div>
             </div>
 
-            {/* Template ID */}
+            {/* Template Type Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Template ID <span className="text-red-500">*</span>
+                Loại khuyến mãi <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 name="templateId"
                 value={formData.templateId}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Ví dụ: TPL001"
                 required
-              />
+              >
+                <option value="">-- Chọn loại khuyến mãi --</option>
+                <option value="TPL_DISCOUNT">
+                  DISCOUNT - Giảm giá sản phẩm
+                </option>
+                <option value="TPL_VOUCHER">VOUCHER - Giảm giá đơn hàng</option>
+                <option value="TPL_FREESHIP">
+                  FREESHIP - Miễn phí vận chuyển
+                </option>
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                DISCOUNT áp dụng cho sản phẩm/danh mục, VOUCHER áp dụng cho đơn
+                hàng
+              </p>
             </div>
 
             {/* Status */}

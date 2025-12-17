@@ -53,3 +53,7 @@ export type {
   AvailablePromotionParams,
   CalculateDiscountParams,
 } from "./promotion";
+export type {
+  PromotionTemplateResponse,
+  CreateTemplateRequest,
+} from "./template";
