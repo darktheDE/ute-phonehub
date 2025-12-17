@@ -338,7 +338,7 @@ export const promotionAPI = {
     orderTotal: number
   ): Promise<ApiResponse<number>> => {
     return fetchAPI<number>(
-      `/promotions/${promotionId}/calculate?orderTotal=${orderTotal}`,
+      `/promotions/calculate?promotionId=${promotionId}&orderTotal=${orderTotal}`,
       {
         method: "GET",
       }
@@ -385,7 +385,7 @@ export const promotionAPI = {
   // Admin: Disable promotion
   disablePromotion: async (id: string): Promise<ApiResponse<void>> => {
     return fetchAPI<void>(`/admin/promotions/${id}/disable`, {
-      method: "POST",
+      method: "PATCH",
     });
   },
 };

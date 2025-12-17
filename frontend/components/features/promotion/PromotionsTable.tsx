@@ -12,17 +12,30 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePromotions } from "@/hooks";
 import type { PromotionResponse } from "@/types";
 import { cn } from "@/lib/utils";
+import { PromotionFormModal } from "./PromotionFormModal";
+import { PromotionDetailModal } from "./PromotionDetailModal";
 
 export function PromotionsTable() {
-  const { promotions, loading, error, disablePromotion } = usePromotions();
+  const {
+    promotions,
+    loading,
+    error,
+    createPromotion,
+    updatePromotion,
+    disablePromotion,
+  } = usePromotions();
   const [selectedPromotion, setSelectedPromotion] =
     useState<PromotionResponse | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [editingPromotion, setEditingPromotion] =
+    useState<PromotionResponse | null>(null);
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -72,6 +85,39 @@ export function PromotionsTable() {
     }
   };
 
+  const handleEdit = (promotion: PromotionResponse) => {
+    setEditingPromotion(promotion);
+    setShowFormModal(true);
+  };
+
+  const handleCreate = () => {
+    setEditingPromotion(null);
+    setShowFormModal(true);
+  };
+
+  const handleViewDetail = (promotion: PromotionResponse) => {
+    setSelectedPromotion(promotion);
+    setShowDetailModal(true);
+  };
+
+  const handleFormSubmit = async (data: any) => {
+    if (editingPromotion) {
+      return await updatePromotion(editingPromotion.id, data);
+    } else {
+      return await createPromotion(data);
+    }
+  };
+
+  const handleCloseForm = () => {
+    setShowFormModal(false);
+    setEditingPromotion(null);
+  };
+
+  const handleCloseDetail = () => {
+    setShowDetailModal(false);
+    setSelectedPromotion(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -103,7 +149,7 @@ export function PromotionsTable() {
           </p>
         </div>
         <Button
-          onClick={() => setShowCreateModal(true)}
+          onClick={handleCreate}
           className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -192,7 +238,16 @@ export function PromotionsTable() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedPromotion(promotion)}
+                          onClick={() => handleViewDetail(promotion)}
+                          className="flex items-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" />
+                          Xem
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(promotion)}
                           className="flex items-center gap-1"
                         >
                           <Edit className="w-3 h-3" />
@@ -218,6 +273,19 @@ export function PromotionsTable() {
           </table>
         </div>
       </div>
+
+      {/* Modals */}
+      <PromotionFormModal
+        isOpen={showFormModal}
+        onClose={handleCloseForm}
+        onSubmit={handleFormSubmit}
+        promotion={editingPromotion}
+      />
+      <PromotionDetailModal
+        isOpen={showDetailModal}
+        onClose={handleCloseDetail}
+        promotion={selectedPromotion}
+      />
     </div>
   );
 }
