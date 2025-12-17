@@ -235,11 +235,15 @@ export const productAPI = {
     size?: number;
   }): Promise<ApiResponse<any>> => {
     const queryParams = new URLSearchParams();
-    if (params?.page !== undefined) queryParams.append("page", String(params.page));
-    if (params?.size !== undefined) queryParams.append("size", String(params.size));
-    
+    if (params?.page !== undefined)
+      queryParams.append("page", String(params.page));
+    if (params?.size !== undefined)
+      queryParams.append("size", String(params.size));
+
     return fetchAPI<any>(
-      `/products/admin/all${queryParams.toString() ? `?${queryParams.toString()}` : ""}`,
+      `/products/admin/all${
+        queryParams.toString() ? `?${queryParams.toString()}` : ""
+      }`,
       {
         method: "GET",
       }
