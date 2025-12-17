@@ -27,11 +27,14 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="bg-primary sticky top-0 z-50 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 border-b border-border bg-primary shadow-md">
+      <div className="mx-auto flex max-w-7xl items-center px-4 py-3">
+        <div className="flex w-full items-center justify-between gap-4">
           {/* Logo */}
-          <Link href={ROUTES.HOME} className="flex items-center gap-2 flex-shrink-0">
+          <Link
+            href={ROUTES.HOME}
+            className="flex flex-shrink-0 items-center gap-2 transition-opacity hover:opacity-90"
+          >
             <Smartphone className="w-8 h-8 text-primary-foreground" />
             <span className="text-xl font-bold text-primary-foreground hidden sm:block">
               UTE Phone Hub
@@ -39,12 +42,12 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
           </Link>
 
           {/* Search Bar */}
-          <div className="flex-1 max-w-2xl hidden md:block">
+          <div className="hidden max-w-2xl flex-1 md:block">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Bạn cần tìm gì?"
-                className="w-full px-4 py-2.5 pl-10 rounded-lg bg-white text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-lg border-none bg-white px-4 py-2.5 pl-10 text-sm text-foreground placeholder:text-muted-foreground shadow-sm outline-none ring-0 focus:ring-2 focus:ring-ring"
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             </div>
@@ -52,13 +55,16 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
 
           {/* Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
-            <button className="md:hidden p-2 text-primary-foreground">
+            <button
+              className="p-2 text-primary-foreground md:hidden"
+              aria-label="Tìm kiếm"
+            >
               <Search className="w-6 h-6" />
             </button>
 
             <Link
               href="#"
-              className="hidden sm:flex items-center gap-1 text-primary-foreground hover:opacity-80 transition-opacity"
+              className="hidden items-center gap-1 text-primary-foreground transition-colors hover:text-primary-foreground/80 sm:flex"
             >
               <Heart className="w-5 h-5" />
               <span className="hidden lg:inline text-sm">Yêu thích</span>
@@ -66,11 +72,11 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
 
             <Link
               href="#"
-              className="flex items-center gap-1 text-primary-foreground hover:opacity-80 transition-opacity relative"
+              className="relative flex items-center gap-1 text-primary-foreground transition-colors hover:text-primary-foreground/80"
             >
               <ShoppingCart className="w-5 h-5" />
               <span className="hidden lg:inline text-sm">Giỏ hàng</span>
-              <span className="absolute -top-1 -right-1 lg:-top-1 lg:right-8 bg-destructive text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-white lg:-top-1 lg:right-8">
                 0
               </span>
             </Link>
@@ -79,7 +85,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
               <div className="flex items-center gap-2">
                 <Link
                   href={ROUTES.MANAGE}
-                  className="flex items-center gap-1 text-primary-foreground hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-1 text-primary-foreground transition-colors hover:text-primary-foreground/80"
                 >
                   <User className="w-5 h-5" />
                   <span className="hidden lg:inline text-sm truncate max-w-[100px]">
@@ -115,8 +121,9 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             )}
 
             <button
-              className="md:hidden p-2 text-primary-foreground"
+              className="p-2 text-primary-foreground md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Mở menu"
             >
               <Menu className="w-6 h-6" />
             </button>

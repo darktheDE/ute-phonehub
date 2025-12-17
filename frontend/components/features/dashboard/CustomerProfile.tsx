@@ -14,11 +14,11 @@ interface CustomerProfileProps {
 export function CustomerProfile({ user }: CustomerProfileProps) {
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="bg-card rounded-xl border border-border p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Thông tin cá nhân</h3>
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <h3 className="mb-4 text-lg font-semibold text-foreground">Thông tin cá nhân</h3>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-3xl font-bold">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground shadow-sm">
               {user.fullName?.charAt(0) || 'U'}
             </div>
             <div>
