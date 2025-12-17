@@ -31,7 +31,7 @@ import {
   ProductsTable,
   UsersTable,
 } from "@/components/features/dashboard";
-import { PromotionsTable } from "@/components/features/promotion";
+import { PromotionsTable, TemplatesTable } from "@/components/features/promotion";
 import { Sidebar } from "@/components/features/layout/Sidebar";
 import { useOrders, useUsers } from "@/hooks";
 import { adminAPI } from "@/lib/api";
@@ -43,6 +43,7 @@ type TabType =
   | "products"
   | "users"
   | "promotions"
+  | "templates"
   | "profile"
   | "addresses"
   | "wishlist";
@@ -75,6 +76,7 @@ export default function ManagePage() {
     { id: "products" as TabType, label: "Sản phẩm", icon: Package },
     { id: "users" as TabType, label: "Người dùng", icon: Users },
     { id: "promotions" as TabType, label: "Khuyến mãi", icon: Tag },
+    { id: "templates" as TabType, label: "Templates", icon: Package },
   ];
 
   // Customer menu items
@@ -270,6 +272,9 @@ export default function ManagePage() {
 
           {/* Promotions Management (Admin Only) */}
           {activeTab === "promotions" && isAdmin && <PromotionsTable />}
+
+          {/* Templates Management (Admin Only) */}
+          {activeTab === "templates" && isAdmin && <TemplatesTable />}
 
           {/* Customer Profile */}
           {activeTab === "profile" && !isAdmin && (

@@ -399,12 +399,9 @@ export const templateAPI = {
   getAllTemplates: async (): Promise<
     ApiResponse<PromotionTemplateResponse[]>
   > => {
-    return fetchAPI<PromotionTemplateResponse[]>(
-      "/admin/promotion-templates",
-      {
-        method: "GET",
-      }
-    );
+    return fetchAPI<PromotionTemplateResponse[]>("/admin/promotion-templates", {
+      method: "GET",
+    });
   },
 
   // Get template by ID
