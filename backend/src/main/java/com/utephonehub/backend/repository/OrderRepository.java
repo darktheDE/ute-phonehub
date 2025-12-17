@@ -1,7 +1,10 @@
 package com.utephonehub.backend.repository;
 
 import com.utephonehub.backend.entity.Order;
+import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.enums.OrderStatus;
+
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -69,4 +72,35 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Query fetch cả items (tránh N+1 query)
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
     Optional<Order> findByIdWithItems(@Param("id") Long id);
+
+   
+   // Tìm tất cả đơn hàng của 1 user với User object
+   List<Order> findByUserOrderByCreatedAtDesc(User user);
+   
+   // Tìm tất cả đơn hàng của 1 user với phân trang
+   Page<Order> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+   
+   // Tìm tất cả đơn hàng của 1 user với User object và phân trang
+   Page<Order> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+   
+   // Tìm theo status với User object
+   List<Order> findByUserAndStatusOrderByCreatedAtDesc(User user, OrderStatus status);
+   
+   // Tìm theo status với userId
+   List<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, OrderStatus status);
+   
+   // Tìm theo orderCode và email
+   Optional<Order> findByOrderCodeAndEmail(String orderCode, String email);
+   
+   // Admin methods
+   Page<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status, Pageable pageable);
+   
+   // Đếm số đơn hàng của 1 user với userId
+   long countByUserId(Long userId);
+   
+   // Đếm số đơn hàng của 1 user với User object
+   @Query("SELECT COUNT(o) FROM Order o WHERE o.user = :user")
+   long countByUser(@Param("user") User user);
+
+	
 }

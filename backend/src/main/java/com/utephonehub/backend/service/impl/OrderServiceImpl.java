@@ -1,6 +1,7 @@
 package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.request.order.CreateOrderRequest;
+
 import com.utephonehub.backend.dto.request.order.OrderItemRequest;
 import com.utephonehub.backend.dto.response.order.CreateOrderResponse;
 import com.utephonehub.backend.dto.response.order.OrderResponse;
@@ -29,6 +30,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java. util.stream.Collectors;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -241,4 +250,92 @@ public class OrderServiceImpl implements IOrderService {
         
         return uniqueCode;
     }
+    
+    
+    
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getMyOrders(Long userId) {
+        log. info("Getting orders for user: {}", userId);
+        
+        User user = userRepository. findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        
+       
+        List<Order> orders = orderRepository.findByUserOrderByCreatedAtDesc(user);
+        
+        log.info("Found {} orders for user {}", orders.size(), userId);
+        
+        return orders.stream()
+                .map(orderMapper::toOrderResponse)
+                .collect(Collectors. toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getMyOrdersWithPagination(Long userId, Pageable pageable) {
+        log.info("Getting orders with pagination for user: {}, page: {}, size: {}", 
+                userId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        
+      
+        Page<Order> orderPage = orderRepository. findByUserOrderByCreatedAtDesc(user, pageable);
+        
+        log.info("Found {} orders for user {} in page {}", 
+                orderPage.getContent().size(), userId, pageable.getPageNumber());
+        
+        return orderPage. map(orderMapper:: toOrderResponse);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getMyOrdersByStatus(Long userId, OrderStatus status) {
+        log.info("Getting orders by status {} for user: {}", status, userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        
+        
+        List<Order> orders = orderRepository.findByUserAndStatusOrderByCreatedAtDesc(user, status);
+        
+        log.info("Found {} orders with status {} for user {}", orders.size(), status, userId);
+        
+        return orders.stream()
+                .map(orderMapper::toOrderResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public long getMyOrdersCount(Long userId) {
+        log.info("Counting orders for user:  {}", userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        
+        
+        long count = orderRepository. countByUser(user);
+        
+        log.info("User {} has {} orders", userId, count);
+        
+        return count;
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public OrderResponse getMyOrderDetail(Long orderId, Long userId) {
+        log.info("Getting order detail {} for user {}", orderId, userId);
+        
+        // Tái sử dụng method getOrderById đã có
+        return getOrderById(orderId, userId);
+    }
+    
+    
+    
+    
+    
+   
 }
