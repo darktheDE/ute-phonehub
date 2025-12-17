@@ -117,7 +117,20 @@ public class VNPayService implements IPaymentService {
             log.info("Secure Hash: {}", vnpSecureHash);
             log.info("========================");
             
-            // 8. Final payment URL
+            // 8. Create Payment record with PENDING status BEFORE returning URL
+            Payment payment = Payment.builder()
+                    .order(order)
+                    .provider(EWalletProvider.VNPAY)
+                    .transactionId(null)  // Will be updated in callback
+                    .amount(order.getTotalAmount())
+                    .status(PaymentStatus.PENDING)
+                    .note("Waiting for VNPay payment confirmation")
+                    .reconciled(false)
+                    .build();
+            paymentRepository.save(payment);
+            log.info("Created Payment record with PENDING status for order: {}", order.getOrderCode());
+            
+            // 9. Final payment URL
             String paymentUrl = vnPayConfig.getVnpayUrl() + "?" + queryUrl + "&vnp_SecureHash=" + vnpSecureHash;
             
             log.info("VNPay payment URL created successfully for order: {}", order.getOrderCode());
@@ -195,6 +208,16 @@ public class VNPayService implements IPaymentService {
             payment.setStatus(PaymentStatus.SUCCESS);
             order.setStatus(OrderStatus.CONFIRMED);
             log.info("Payment successful for order: {}", order.getOrderCode());
+            
+            // 8.1. GIẢM TỒN KHO SAU KHI THANH TOÁN THÀNH CÔNG (Critical for VNPay orders)
+            for (var orderItem : order.getItems()) {
+                var product = orderItem.getProduct();
+                int newStock = product.getStockQuantity() - orderItem.getQuantity();
+                product.setStockQuantity(newStock);
+                log.info("Reduced stock for product {}: {} -> {}", 
+                    product.getId(), product.getStockQuantity() + orderItem.getQuantity(), newStock);
+            }
+            log.info("Stock reduced for all items in order: {}", order.getOrderCode());
         } else {
             // Payment failed
             payment.setStatus(PaymentStatus.FAILED);
