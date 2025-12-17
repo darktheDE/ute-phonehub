@@ -31,7 +31,10 @@ import {
   ProductsTable,
   UsersTable,
 } from "@/components/features/dashboard";
-import { PromotionsTable, TemplatesTable } from "@/components/features/promotion";
+import {
+  PromotionsTable,
+  TemplatesTable,
+} from "@/components/features/promotion";
 import { Sidebar } from "@/components/features/layout/Sidebar";
 import { useOrders, useUsers } from "@/hooks";
 import { adminAPI } from "@/lib/api";

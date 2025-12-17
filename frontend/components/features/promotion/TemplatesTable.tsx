@@ -135,13 +135,18 @@ export function TemplatesTable() {
 
   const getTypeBadge = (type: string) => {
     const styles: Record<string, string> = {
-      DISCOUNT: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
-      VOUCHER: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400",
-      FREESHIP: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
+      DISCOUNT:
+        "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
+      VOUCHER:
+        "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400",
+      FREESHIP:
+        "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
     };
     return (
       <span
-        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${styles[type] || ""}`}
+        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+          styles[type] || ""
+        }`}
       >
         {type}
       </span>
