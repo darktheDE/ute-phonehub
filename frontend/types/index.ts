@@ -56,4 +56,5 @@ export type {
 export type {
   PromotionTemplateResponse,
   CreateTemplateRequest,
+  UpdateTemplateRequest,
 } from "./template";

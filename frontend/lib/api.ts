@@ -19,6 +19,9 @@ import type {
   UpdatePromotionRequest,
   AvailablePromotionParams,
   CalculateDiscountParams,
+  PromotionTemplateResponse,
+  CreateTemplateRequest,
+  UpdateTemplateRequest,
 } from "@/types";
 
 const API_BASE_URL =
@@ -386,6 +389,64 @@ export const promotionAPI = {
   disablePromotion: async (id: string): Promise<ApiResponse<void>> => {
     return fetchAPI<void>(`/admin/promotions/${id}/disable`, {
       method: "PATCH",
+    });
+  },
+};
+
+// Promotion Template API (Admin only)
+export const templateAPI = {
+  // Get all templates
+  getAllTemplates: async (): Promise<
+    ApiResponse<PromotionTemplateResponse[]>
+  > => {
+    return fetchAPI<PromotionTemplateResponse[]>(
+      "/admin/promotion-templates",
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  // Get template by ID
+  getTemplateById: async (
+    id: string
+  ): Promise<ApiResponse<PromotionTemplateResponse>> => {
+    return fetchAPI<PromotionTemplateResponse>(
+      `/admin/promotion-templates/${id}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  // Create template
+  createTemplate: async (
+    data: CreateTemplateRequest
+  ): Promise<ApiResponse<PromotionTemplateResponse>> => {
+    return fetchAPI<PromotionTemplateResponse>("/admin/promotion-templates", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update template
+  updateTemplate: async (
+    id: string,
+    data: UpdateTemplateRequest
+  ): Promise<ApiResponse<PromotionTemplateResponse>> => {
+    return fetchAPI<PromotionTemplateResponse>(
+      `/admin/promotion-templates/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    );
+  },
+
+  // Delete template
+  deleteTemplate: async (id: string): Promise<ApiResponse<void>> => {
+    return fetchAPI<void>(`/admin/promotion-templates/${id}`, {
+      method: "DELETE",
     });
   },
 };
