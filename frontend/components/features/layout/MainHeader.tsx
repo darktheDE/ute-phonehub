@@ -2,11 +2,11 @@
  * MainHeader component - Main navigation header with logo, search, and user actions
  */
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   Smartphone,
   ShoppingCart,
@@ -14,9 +14,9 @@ import {
   User,
   Heart,
   Menu,
-} from 'lucide-react';
-import { MobileMenu } from './MobileMenu';
-import { ROUTES } from '@/lib/constants';
+} from "lucide-react";
+import { MobileMenu } from "./MobileMenu";
+import { ROUTES } from "@/lib/constants";
 
 interface MainHeaderProps {
   user: any | null;
@@ -31,7 +31,10 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
-          <Link href={ROUTES.HOME} className="flex items-center gap-2 flex-shrink-0">
+          <Link
+            href={ROUTES.HOME}
+            className="flex items-center gap-2 flex-shrink-0"
+          >
             <Smartphone className="w-8 h-8 text-primary-foreground" />
             <span className="text-xl font-bold text-primary-foreground hidden sm:block">
               UTE Phone Hub
@@ -124,11 +127,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
         </div>
 
         {/* Mobile Menu */}
-        <MobileMenu
-          isOpen={mobileMenuOpen}
-          user={user}
-          onLogout={onLogout}
-        />
+        <MobileMenu isOpen={mobileMenuOpen} user={user} onLogout={onLogout} />
       </div>
     </header>
   );

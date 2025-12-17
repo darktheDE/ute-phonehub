@@ -182,10 +182,12 @@ export function PromotionDetailModal({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    ID: <span className="font-mono">{promotion.templateId}</span>
+                    ID:{" "}
+                    <span className="font-mono">{promotion.templateId}</span>
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Code: <span className="font-mono">{promotion.templateCode}</span>
+                    Code:{" "}
+                    <span className="font-mono">{promotion.templateCode}</span>
                   </p>
                 </div>
                 {getTemplateTypeBadge(promotion.templateType)}
