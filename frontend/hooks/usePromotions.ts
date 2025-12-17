@@ -30,7 +30,7 @@ export function useAvailablePromotions(orderTotal: number | null) {
       setError(null);
       try {
         const response = await promotionAPI.getAvailablePromotions(orderTotal);
-        if (response.code === 200) {
+        if (response.success && response.data) {
           setPromotions(response.data);
         } else {
           setError(response.message || "Failed to load promotions");
@@ -62,7 +62,7 @@ export function usePromotions() {
     setError(null);
     try {
       const response = await promotionAPI.getAllPromotions();
-      if (response.code === 200) {
+      if (response.success && response.data) {
         setPromotions(response.data);
       } else {
         setError(response.message || "Failed to load promotions");
@@ -84,7 +84,10 @@ export function usePromotions() {
   ): Promise<boolean> => {
     try {
       const response = await promotionAPI.createPromotion(data);
-      if (response.code === 200 || response.code === 201) {
+      if (
+        response.success &&
+        (response.status === 200 || response.status === 201)
+      ) {
         await fetchPromotions(); // Refresh list
         return true;
       }
@@ -103,7 +106,7 @@ export function usePromotions() {
   ): Promise<boolean> => {
     try {
       const response = await promotionAPI.updatePromotion(id, data);
-      if (response.code === 200) {
+      if (response.success) {
         await fetchPromotions(); // Refresh list
         return true;
       }
@@ -119,7 +122,7 @@ export function usePromotions() {
   const disablePromotion = async (id: string): Promise<boolean> => {
     try {
       const response = await promotionAPI.disablePromotion(id);
-      if (response.code === 200) {
+      if (response.success) {
         await fetchPromotions(); // Refresh list
         return true;
       }
@@ -141,7 +144,7 @@ export function usePromotions() {
         promotionId,
         orderTotal
       );
-      if (response.code === 200) {
+      if (response.success && response.data !== null) {
         return response.data;
       }
       return null;
