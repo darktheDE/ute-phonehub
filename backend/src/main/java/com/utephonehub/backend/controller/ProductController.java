@@ -45,7 +45,7 @@ public class ProductController {
      * ADMIN ENDPOINTS - Require ADMIN role
      */
 
-    @PostMapping("/create-product")
+    @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Tạo sản phẩm mới (Admin)",
@@ -82,7 +82,7 @@ public class ProductController {
                 .body(ApiResponse.created("Tạo sản phẩm thành công", product));
     }
 
-    @PutMapping("/update-product/{id}")
+    @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Cập nhật sản phẩm (Admin)",
@@ -111,7 +111,7 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật sản phẩm thành công", product));
     }
 
-    @DeleteMapping("/delete-product/{id}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Xóa sản phẩm (Admin - Soft Delete)",
@@ -129,7 +129,7 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success("Xóa sản phẩm thành công", null));
     }
 
-    @GetMapping("/products")
+    @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Xem danh sách sản phẩm (Admin)",
@@ -248,7 +248,7 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm thành công", products));
     }
 
-    @PostMapping("/restore-product/{id}")
+    @PostMapping("/{id}/restore")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Khôi phục sản phẩm đã xóa (Admin)",
@@ -266,7 +266,7 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success("Khôi phục sản phẩm thành công", null));
     }
 
-    @PostMapping("/manage-images/{id}")
+    @PostMapping("/{id}/images")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Quản lý hình ảnh sản phẩm (Admin)",

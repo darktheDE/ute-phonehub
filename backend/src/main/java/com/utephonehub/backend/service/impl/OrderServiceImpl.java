@@ -208,16 +208,27 @@ public class OrderServiceImpl implements IOrderService {
             // 10.1. Giảm tồn kho ngay (thanh toán trực tiếp)
             for (OrderItemRequest itemReq : validatedItems) {
                 Product product = productMap.get(itemReq.getProductId());
+                int remainingQuantity = itemReq.getQuantity();
                 
-                // Decrease stock from first available template (simplified approach)
-                // TODO: Implement proper SKU-based stock management
-                ProductTemplate firstTemplate = product.getTemplates().stream()
-                        .filter(ProductTemplate::getStatus)
-                        .findFirst()
-                        .orElseThrow(() -> new BadRequestException("Sản phẩm không có template hợp lệ"));
+                // Deduct stock from available templates sequentially
+                for (ProductTemplate template : product.getTemplates()) {
+                    if (!template.getStatus() || template.getStockQuantity() <= 0 || remainingQuantity <= 0) {
+                        continue;
+                    }
+                    
+                    int deductAmount = Math.min(template.getStockQuantity(), remainingQuantity);
+                    template.setStockQuantity(template.getStockQuantity() - deductAmount);
+                    remainingQuantity -= deductAmount;
+                }
                 
-                firstTemplate.setStockQuantity(firstTemplate.getStockQuantity() - itemReq.getQuantity());
-                productRepository.save(product);  // Cascade saves template
+                // Validate all quantity was deducted
+                if (remainingQuantity > 0) {
+                    throw new BadRequestException(
+                        "Không đủ tồn kho để hoàn tất đơn hàng cho sản phẩm: " + product.getName()
+                    );
+                }
+                
+                productRepository.save(product);  // Cascade saves templates
             }
             
             // 10.2. Tạo Payment record với status SUCCESS (đã thanh toán)

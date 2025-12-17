@@ -47,7 +47,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Product> searchProducts(@Param("keyword") String keyword);
     
-    // Advanced filtering with price range - filters by cheapest template price
+    // Advanced filtering with price range - only returns products with templates when price filter active
     @Query("SELECT DISTINCT p FROM Product p " +
            "LEFT JOIN p.templates t " +
            "WHERE p.isDeleted = false " +
@@ -57,7 +57,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "AND (" +
            "  (:minPrice IS NULL AND :maxPrice IS NULL) " + 
            "  OR (" +
-           "    t.status = true " +
+           "    t.id IS NOT NULL " + // Ensures product has templates when price filter is used
+           "    AND t.status = true " +
            "    AND (:minPrice IS NULL OR t.price >= :minPrice) " +
            "    AND (:maxPrice IS NULL OR t.price <= :maxPrice)" +
            "  )" +

@@ -70,7 +70,7 @@ public interface ProductTemplateRepository extends JpaRepository<ProductTemplate
 
     /**
      * Get cheapest template for a product
+     * Using Spring Data naming convention instead of LIMIT for portability
      */
-    @Query("SELECT pt FROM ProductTemplate pt WHERE pt.product.id = :productId AND pt.status = true ORDER BY pt.price ASC LIMIT 1")
-    Optional<ProductTemplate> findCheapestTemplateByProductId(@Param("productId") Long productId);
+    Optional<ProductTemplate> findFirstByProductIdAndStatusTrueOrderByPriceAsc(Long productId);
 }

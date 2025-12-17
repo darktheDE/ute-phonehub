@@ -7,13 +7,25 @@ import com.utephonehub.backend.dto.request.product.ProductTemplateRequest;
 import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
 import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
 import com.utephonehub.backend.dto.response.product.ProductListResponse;
-import com.utephonehub.backend.entity.*;
+import com.utephonehub.backend.entity.Brand;
+import com.utephonehub.backend.entity.Category;
+import com.utephonehub.backend.entity.Product;
+import com.utephonehub.backend.entity.ProductImage;
+import com.utephonehub.backend.entity.ProductMetadata;
+import com.utephonehub.backend.entity.ProductTemplate;
+import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.mapper.ProductMapper;
 import com.utephonehub.backend.mapper.ProductMetadataMapper;
 import com.utephonehub.backend.mapper.ProductTemplateMapper;
-import com.utephonehub.backend.repository.*;
+import com.utephonehub.backend.repository.BrandRepository;
+import com.utephonehub.backend.repository.CategoryRepository;
+import com.utephonehub.backend.repository.ProductImageRepository;
+import com.utephonehub.backend.repository.ProductMetadataRepository;
+import com.utephonehub.backend.repository.ProductRepository;
+import com.utephonehub.backend.repository.ProductTemplateRepository;
+import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.service.IProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +61,9 @@ public class ProductServiceImpl implements IProductService {
     private final ProductMetadataRepository productMetadataRepository;
     private final ProductTemplateMapper productTemplateMapper;
     private final ProductMetadataMapper productMetadataMapper;
+    
+    // EntityManager for flushing in template updates
+    private final jakarta.persistence.EntityManager entityManager;
 
     @Override
     public ProductDetailResponse createProduct(CreateProductRequest request, Long userId) {
@@ -171,6 +186,8 @@ public class ProductServiceImpl implements IProductService {
             
             // Clear existing templates (orphan removal will delete them)
             product.getTemplates().clear();
+            // Flush to avoid SKU constraint violations during re-add
+            entityManager.flush();
             
             // Add new templates
             for (ProductTemplateRequest templateReq : request.getTemplates()) {
@@ -355,30 +372,12 @@ public class ProductServiceImpl implements IProductService {
                 })
                 .toList();
         
-        // Apply sorting if specified (for price/stock which need in-memory sorting)
-        if (sortBy != null && !sortBy.isEmpty()) {
-            boolean ascending = !"desc".equalsIgnoreCase(sortDirection);
-            
-            switch (sortBy.toLowerCase()) {
-                case "price":
-                    responseList = responseList.stream()
-                            .sorted(ascending 
-                                ? Comparator.comparing(ProductListResponse::getPrice)
-                                : Comparator.comparing(ProductListResponse::getPrice).reversed())
-                            .toList();
-                    break;
-                case "stock":
-                    responseList = responseList.stream()
-                            .sorted(ascending 
-                                ? Comparator.comparing(ProductListResponse::getStockQuantity)
-                                : Comparator.comparing(ProductListResponse::getStockQuantity).reversed())
-                            .toList();
-                    break;
-                // For name and createdAt, database sorting (via pageable) is already applied
-            }
-        }
+        // NOTE: Price/stock sorting is NOT applied here to preserve pagination semantics
+        // Sorting after pagination breaks correctness (only sorts within current page)
+        // TODO: Implement database-level sorting for price/stock using native queries with JOINs
+        // Current behavior: only name/createdAt sorting works correctly (via Pageable)
         
-        // Reconstruct Page with sorted list
+        // Reconstruct Page with enriched responses (maintaining original order)
         return new org.springframework.data.domain.PageImpl<>(
                 responseList,
                 products.getPageable(),
