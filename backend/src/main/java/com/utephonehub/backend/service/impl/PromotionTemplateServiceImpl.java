@@ -3,7 +3,9 @@ package com.utephonehub.backend.service.impl;
 import com.utephonehub.backend.dto.request.PromotionTemplateRequest;
 import com.utephonehub.backend.dto.response.PromotionTemplateResponse;
 import com.utephonehub.backend.entity.PromotionTemplate;
+import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
+import com.utephonehub.backend.mapper.PromotionTemplateMapper;
 import com.utephonehub.backend.repository.PromotionTemplateRepository;
 import com.utephonehub.backend.service.IPromotionTemplateService;
 import lombok.RequiredArgsConstructor;
@@ -21,22 +23,25 @@ import java.util.stream.Collectors;
 public class PromotionTemplateServiceImpl implements IPromotionTemplateService {
 
     private final PromotionTemplateRepository templateRepository;
+    private final PromotionTemplateMapper templateMapper;
 
     @Override
     @Transactional
     public PromotionTemplateResponse createTemplate(PromotionTemplateRequest request) {
         log.info("Creating promotion template with code: {}", request.getCode());
 
-        PromotionTemplate template = PromotionTemplate.builder()
-                .code(request.getCode())
-                .type(request.getType())
-                .createdAt(LocalDateTime.now())
-                .build();
+        // Validate duplicate code
+        if (templateRepository.existsByCode(request.getCode())) {
+            throw new BadRequestException("Template code already exists: " + request.getCode());
+        }
+
+        PromotionTemplate template = templateMapper.toEntity(request);
+        template.setCreatedAt(LocalDateTime.now());
 
         PromotionTemplate saved = templateRepository.save(template);
         log.info("Created template with ID: {}", saved.getId());
 
-        return mapToResponse(saved);
+        return templateMapper.toResponse(saved);
     }
 
     @Override
@@ -45,13 +50,18 @@ public class PromotionTemplateServiceImpl implements IPromotionTemplateService {
         log.info("Updating template ID: {}", id);
 
         PromotionTemplate template = findTemplateOrThrow(id);
-        template.setCode(request.getCode());
-        template.setType(request.getType());
+        
+        // Validate duplicate code (excluding current template)
+        if (templateRepository.existsByCodeAndIdNot(request.getCode(), id)) {
+            throw new BadRequestException("Template code already exists: " + request.getCode());
+        }
+
+        templateMapper.updateEntity(request, template);
 
         PromotionTemplate updated = templateRepository.save(template);
         log.info("Updated template ID: {}", id);
 
-        return mapToResponse(updated);
+        return templateMapper.toResponse(updated);
     }
 
     @Override
@@ -61,11 +71,9 @@ public class PromotionTemplateServiceImpl implements IPromotionTemplateService {
 
         PromotionTemplate template = findTemplateOrThrow(id);
         
-        // Check if template is being used by any promotion
-        if (!template.getPromotions().isEmpty()) {
-            throw new IllegalStateException(
-                "Cannot delete template that is being used by " + template.getPromotions().size() + " promotion(s)"
-            );
+        // Check if template is being used by any promotion (efficient query)
+        if (templateRepository.isTemplateInUse(id)) {
+            throw new BadRequestException("Cannot delete template that is being used by promotions");
         }
 
         templateRepository.delete(template);
@@ -77,7 +85,7 @@ public class PromotionTemplateServiceImpl implements IPromotionTemplateService {
     public PromotionTemplateResponse getTemplateById(String id) {
         log.info("Getting template by ID: {}", id);
         PromotionTemplate template = findTemplateOrThrow(id);
-        return mapToResponse(template);
+        return templateMapper.toResponse(template);
     }
 
     @Override
@@ -85,21 +93,12 @@ public class PromotionTemplateServiceImpl implements IPromotionTemplateService {
     public List<PromotionTemplateResponse> getAllTemplates() {
         log.info("Getting all templates");
         return templateRepository.findAll().stream()
-                .map(this::mapToResponse)
+                .map(templateMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     private PromotionTemplate findTemplateOrThrow(String id) {
         return templateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Template not found with ID: " + id));
-    }
-
-    private PromotionTemplateResponse mapToResponse(PromotionTemplate template) {
-        return PromotionTemplateResponse.builder()
-                .id(template.getId())
-                .code(template.getCode())
-                .type(template.getType())
-                .createdAt(template.getCreatedAt())
-                .build();
     }
 }
