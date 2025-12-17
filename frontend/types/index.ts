@@ -4,10 +4,10 @@
  */
 
 // API types
-export type { ApiResponse, ApiError } from './api';
+export type { ApiResponse, ApiError } from "./api";
 
 // User types
-export type { User, UpdateProfileRequest, ChangePasswordRequest } from './user';
+export type { User, UpdateProfileRequest, ChangePasswordRequest } from "./user";
 
 // Auth types
 export type {
@@ -17,70 +17,39 @@ export type {
   ForgotPasswordRequest,
   VerifyOtpRequest,
   RefreshTokenRequest,
-} from './auth';
+} from "./auth";
 
 // Cart types
-export type { CartItem, CartState } from './cart';
+export type { CartItem, CartState } from "./cart";
 
 // Wishlist types
-export type { WishlistItem, WishlistState } from './wishlist';
+export type { WishlistItem, WishlistState } from "./wishlist";
 
 // Product types
-export type { 
-  Product, 
-  ProductResponse, 
-  CreateProductRequest,
-  UpdateProductRequest,
-  ProductTemplate,
-  ProductMetadata,
-  ProductImage
-} from './product';
-
-// Category types
-export type { Category, CreateCategoryRequest, UpdateCategoryRequest, CategoryResponse } from './category';
-
-// Brand types
-export type { Brand, BrandResponse, CreateBrandRequest, UpdateBrandRequest } from './brand';
+export type { Product, ProductResponse, TopProductResponse } from "./product";
 
 // Order types
-export type { 
-  Order, 
-  OrderResponse, 
-  OrderStatus, 
-  OrderItem, 
-  RecentOrderResponse,
-  OrderItemRequest,
-  CreateOrderRequest,
-  CreateOrderResponse,
-} from './order';
-
-// Payment types
 export type {
-  PaymentMethod,
-  PaymentStatus,
-  PaymentResponse,
-  VNPayPaymentResponse,
-  CreatePaymentRequest,
-  PaymentHistoryResponse,
-  VNPayCallbackParams,
-  PaymentMethodOption,
-} from './payment';
+  Order,
+  OrderResponse,
+  OrderStatus,
+  OrderItem,
+  RecentOrderResponse,
+} from "./order";
 
 // Dashboard types
-export type { 
+export type {
   DashboardOverview,
   DashboardOverviewResponse,
   DashboardStats,
-  RevenueChartData,
-  OrderStatusChartData,
-  UserRegistrationChartData,
-  TopProduct,
-  TopProductResponse,
-  RecentOrder,
-  LowStockProduct,
-  DashboardPeriod,
-  RegistrationPeriod
-} from './dashboard';
+} from "./dashboard";
 
-// Dashboard Enums
-export { OrderStatus as DashboardOrderStatus } from './dashboard';
+// Promotion types
+export type {
+  PromotionResponse,
+  PromotionTarget,
+  CreatePromotionRequest,
+  UpdatePromotionRequest,
+  AvailablePromotionParams,
+  CalculateDiscountParams,
+} from "./promotion";
