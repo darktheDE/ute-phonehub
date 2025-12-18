@@ -42,5 +42,9 @@ public interface IOrderService {
 	Page<OrderResponse> getMyOrdersWithPagination(Long userId, Pageable pageable);
 
 	OrderResponse getMyOrderDetail(Long orderId, Long userId);
+
+	boolean canCancelOrder(Long orderId, Long userId);
+
+	void cancelMyOrder(Long orderId, Long userId);
 	
 }
