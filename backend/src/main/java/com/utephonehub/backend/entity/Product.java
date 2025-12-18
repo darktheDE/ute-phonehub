@@ -1,7 +1,8 @@
 package com.utephonehub.backend.entity;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -18,6 +19,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,6 +27,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Product Entity - Core product information
+ * Aligned with Class Diagram: Product has many ProductTemplates and one ProductMetadata
+ * 
+ * Represents the base product without variants:
+ * - Product: iPhone 15 Pro Max
+ *   - Templates: 256GB Black, 512GB White, etc. (price/stock per variant)
+ *   - Metadata: Technical specs (screen, camera, battery)
+ */
 @Entity
 @Table(name = "products")
 @Where(clause = "is_deleted = false")
@@ -39,30 +50,34 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * Product name (e.g., "iPhone 15 Pro Max", "MacBook Air M3")
+     */
     @Column(nullable = false, length = 255)
     private String name;
 
+    /**
+     * Detailed product description
+     */
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal price;
-
-    @Builder.Default
-    @Column(nullable = false)
-    private Integer stockQuantity = 0;
-
+    /**
+     * Main product thumbnail image URL
+     */
     @Column(length = 255)
     private String thumbnailUrl;
 
-    @Column(columnDefinition = "jsonb", name = "specifications")
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
-    private String specifications;
-
+    /**
+     * Product active status (shown to customers if true)
+     */
     @Builder.Default
     @Column(nullable = false)
     private Boolean status = true;
 
+    /**
+     * Relationships
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
@@ -70,6 +85,31 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")
     private Brand brand;
+
+    /**
+     * Product Variants (Templates)
+     * One product has many templates (color/storage/RAM variants)
+     * Cascade: Save templates when saving product
+     * Orphan removal: Delete templates if removed from list
+     */
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProductTemplate> templates = new ArrayList<>();
+
+    /**
+     * Technical Specifications (Metadata)
+     * One product has one metadata record
+     */
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductMetadata metadata;
+
+    /**
+     * Product Images
+     * Multiple images per product for gallery
+     */
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProductImage> images = new ArrayList<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -100,7 +140,56 @@ public class Product {
     @JoinColumn(name = "updated_by")
     private User updatedBy;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductImage> images;
+    /**
+     * Custom getter for templates that returns unmodifiable list
+     * to prevent external modification of internal collection
+     */
+    public List<ProductTemplate> getTemplates() {
+        return Collections.unmodifiableList(templates);
+    }
+
+    /**
+     * Internal method to get mutable templates list
+     * Used by JPA and service layer for managed operations
+     */
+    List<ProductTemplate> getTemplatesInternal() {
+        return templates;
+    }
+
+    /**
+     * Helper method to clear all templates
+     * Properly handles orphan removal
+     */
+    public void clearTemplates() {
+        templates.clear();
+    }
+
+    /**
+     * Helper method to add template to product
+     * Maintains bidirectional relationship
+     */
+    public void addTemplate(ProductTemplate template) {
+        templates.add(template);
+        template.setProduct(this);
+    }
+
+    /**
+     * Helper method to set metadata
+     * Maintains bidirectional relationship
+     * Clears old relationship if metadata is being replaced
+     */
+    public void setMetadata(ProductMetadata metadata) {
+        // Clear old relationship if exists
+        if (this.metadata != null && this.metadata != metadata) {
+            this.metadata.setProduct(null);
+        }
+        
+        this.metadata = metadata;
+        
+        // Set bidirectional relationship
+        if (metadata != null && metadata.getProduct() != this) {
+            metadata.setProduct(this);
+        }
+    }
 }
 

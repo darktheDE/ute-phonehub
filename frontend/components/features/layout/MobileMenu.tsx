@@ -17,7 +17,7 @@ export function MobileMenu({ isOpen, user, onLogout }: MobileMenuProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="md:hidden mt-3 pb-3 border-t border-primary-foreground/20 pt-3">
+    <div className="md:hidden mt-3 pb-3 border-t border-border pt-3">
       <div className="relative mb-3">
         <input
           type="text"
