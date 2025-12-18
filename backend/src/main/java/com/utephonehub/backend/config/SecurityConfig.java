@@ -65,6 +65,8 @@ public class SecurityConfig {
                 ).permitAll()
                 // Cho phép public POST /products/filter (public search)
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/products/filter").permitAll()
+                // Cho phép public POST /products/compare (so sánh sản phẩm - ProductViewController, public API)
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/products/compare").permitAll()
                 // Cho phép public POST /products/*/restore (sẽ override bên dưới)
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/products/*/restore").hasRole("ADMIN")
                 // Yêu cầu ADMIN cho POST /products (create - exact match)
