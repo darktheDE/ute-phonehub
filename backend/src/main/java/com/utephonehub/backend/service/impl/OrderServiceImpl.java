@@ -150,7 +150,7 @@ public class OrderServiceImpl implements IOrderService {
                 
                 // TODO: Validate promotion còn hiệu lực, đủ điều kiện áp dụng
                 // Tính discount và trừ vào totalAmount (sẽ implement sau)
-            } catch (Exception e) {
+            } catch (ResourceNotFoundException e) {
                 // Nếu promotion không hợp lệ, bỏ qua và tiếp tục
                 log.warn("Invalid promotionId: {}, error: {}", request.getPromotionId(), e.getMessage());
                 promotion = null;
