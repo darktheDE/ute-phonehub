@@ -225,9 +225,15 @@ public class VNPayService implements IPaymentService {
             payment.setStatus(PaymentStatus.SUCCESS);
             
             // 8.1. Validate stock availability before confirming
+            // Stock is at ProductTemplate level, calculate total available stock per product
             boolean allStockAvailable = true;
             for (var orderItem : order.getItems()) {
-                if (orderItem.getProduct().getStockQuantity() < orderItem.getQuantity()) {
+                var product = orderItem.getProduct();
+                int totalAvailableStock = product.getTemplates().stream()
+                        .filter(t -> t.getStatus() != null && t.getStatus())
+                        .mapToInt(t -> t.getStockQuantity() != null ? t.getStockQuantity() : 0)
+                        .sum();
+                if (totalAvailableStock < orderItem.getQuantity()) {
                     allStockAvailable = false;
                     break;
                 }
@@ -235,15 +241,28 @@ public class VNPayService implements IPaymentService {
             
             if (allStockAvailable) {
                 order.setStatus(OrderStatus.CONFIRMED);
-                // Reduce stock
+                // Reduce stock from templates sequentially (same pattern as OrderServiceImpl)
                 for (var orderItem : order.getItems()) {
                     var product = orderItem.getProduct();
-                    int oldStock = product.getStockQuantity(); // Capture old value BEFORE modification
-                    int newStock = oldStock - orderItem.getQuantity();
-                    product.setStockQuantity(newStock);
-                    productRepository.save(product); // Explicitly save product to persist stock changes
-                    log.info("Reduced stock for product {}: {} -> {}", 
-                        product.getId(), oldStock, newStock);
+                    int remainingQuantity = orderItem.getQuantity();
+                    
+                    // Deduct stock from available templates sequentially
+                    for (var template : product.getTemplates()) {
+                        if (template.getStatus() == null || !template.getStatus() 
+                                || template.getStockQuantity() == null || template.getStockQuantity() <= 0 
+                                || remainingQuantity <= 0) {
+                            continue;
+                        }
+                        
+                        int deductAmount = Math.min(template.getStockQuantity(), remainingQuantity);
+                        int oldStock = template.getStockQuantity();
+                        template.setStockQuantity(oldStock - deductAmount);
+                        remainingQuantity -= deductAmount;
+                        log.info("Reduced stock for product {} template {}: {} -> {}", 
+                            product.getId(), template.getSku(), oldStock, template.getStockQuantity());
+                    }
+                    
+                    productRepository.save(product); // Cascade saves templates
                 }
                 log.info("Payment successful and stock reduced for order: {}", order.getOrderCode());
             } else {

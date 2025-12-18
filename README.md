@@ -18,6 +18,7 @@ cd ute-phonehub
 
 ```bash
 cd backend
+docker compose down -v
 docker compose up -d --build
 ```
 

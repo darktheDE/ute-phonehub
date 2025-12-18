@@ -7,8 +7,8 @@ WORKDIR /app
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
 RUN chmod +x mvnw
-# Tải thư viện về (bước này lâu nhất, nhưng docker sẽ cache lại)
-RUN ./mvnw dependency:go-offline
+# Tải thư viện về (chỉ resolve dependencies cần thiết, tránh timeout)
+# RUN ./mvnw dependency:resolve -DskipTests
 
 # Copy source code
 COPY src ./src
