@@ -10,7 +10,7 @@
 
 ### **2. Frontend (Client-side)**
 
-- **Next.js 15.5.6 (App Router):** Framework React số 1 hiện nay. Hỗ trợ Server-Side Rendering (SSR) giúp SEO tốt và tải trang nhanh.
+- **Next.js 16.0.7 (App Router):** Framework React số 1 hiện nay. Hỗ trợ Server-Side Rendering (SSR) giúp SEO tốt và tải trang nhanh.
 - **React 19:** Thư viện JS để xây dựng giao diện người dùng (UI) dựa trên Component.
 - **TypeScript 5:** Phiên bản nâng cao của JavaScript, giúp bắt lỗi kiểu dữ liệu ngay khi code, giảm thiểu bug runtime.
 - **Tailwind CSS 4:** Framework CSS dạng utility-first, giúp style giao diện cực nhanh mà không cần viết file CSS riêng.
