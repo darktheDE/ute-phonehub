@@ -14,6 +14,7 @@ import com.utephonehub.backend.exception.*;
 import com.utephonehub.backend.repository.CartItemRepository;
 import com.utephonehub.backend.repository.CartRepository;
 import com.utephonehub.backend.repository.ProductRepository;
+import com.utephonehub.backend.repository.ProductTemplateRepository;
 import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.service.ICartService;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,7 @@ public class CartServiceImpl implements ICartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
+    private final ProductTemplateRepository productTemplateRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final com.utephonehub.backend.repository.OrderRepository orderRepository;
@@ -481,9 +483,8 @@ public class CartServiceImpl implements ICartService {
      * @return Total stock quantity across all active templates
      */
     private Integer getTotalStockQuantity(Product product) {
-        return product.getTemplates().stream()
-                .filter(template -> template.getStatus()) // Only active templates
-                .mapToInt(template -> template.getStockQuantity())
-                .sum();
+        if (product == null || product.getId() == null) return 0;
+        Integer total = productTemplateRepository.getTotalStockByProductId(product.getId());
+        return total == null ? 0 : total;
     }
 }
