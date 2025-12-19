@@ -18,6 +18,7 @@ import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.repository.OrderRepository;
 import com.utephonehub.backend.repository.PaymentRepository;
 import com.utephonehub.backend.repository.PaymentCallbackLogRepository;
+import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.service.IPaymentService;
 import com.utephonehub.backend.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,6 +46,7 @@ public class VNPayService implements IPaymentService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentCallbackLogRepository callbackLogRepository;
+    private final ProductRepository productRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Override
@@ -66,6 +68,13 @@ public class VNPayService implements IPaymentService {
         long expectedAmount = order.getTotalAmount().longValue();
         if (amountInVND != expectedAmount) {
             throw new BadRequestException("Payment amount does not match order total");
+        }
+        
+        // 3.1. Check if PENDING payment already exists for this order (prevent duplicates)
+        Payment existingPayment = paymentRepository.findByOrderId(order.getId()).orElse(null);
+        if (existingPayment != null && existingPayment.getStatus() == PaymentStatus.PENDING) {
+            log.info("PENDING payment already exists for order: {}. Skipping duplicate creation.", order.getOrderCode());
+            // Note: We still generate a new URL because the old one may have expired
         }
         
         try {
@@ -117,7 +126,28 @@ public class VNPayService implements IPaymentService {
             log.info("Secure Hash: {}", vnpSecureHash);
             log.info("========================");
             
-            // 8. Final payment URL
+            // 8. Create or reuse Payment record with PENDING status
+            Payment payment;
+            if (existingPayment != null && existingPayment.getStatus() == PaymentStatus.PENDING) {
+                // Reuse existing PENDING payment (don't create duplicate)
+                payment = existingPayment;
+                log.info("Reusing existing PENDING payment for order: {}", order.getOrderCode());
+            } else {
+                // Create new Payment record
+                payment = Payment.builder()
+                        .order(order)
+                        .provider(EWalletProvider.VNPAY)
+                        .transactionId(null)  // Will be updated in callback
+                        .amount(order.getTotalAmount())
+                        .status(PaymentStatus.PENDING)
+                        .note("Waiting for VNPay payment confirmation")
+                        .reconciled(false)
+                        .build();
+                paymentRepository.save(payment);
+                log.info("Created Payment record with PENDING status for order: {}", order.getOrderCode());
+            }
+            
+            // 9. Final payment URL
             String paymentUrl = vnPayConfig.getVnpayUrl() + "?" + queryUrl + "&vnp_SecureHash=" + vnpSecureHash;
             
             log.info("VNPay payment URL created successfully for order: {}", order.getOrderCode());
@@ -193,8 +223,54 @@ public class VNPayService implements IPaymentService {
         if ("00".equals(vnpResponseCode) && "00".equals(vnpTransactionStatus)) {
             // Payment successful
             payment.setStatus(PaymentStatus.SUCCESS);
-            order.setStatus(OrderStatus.CONFIRMED);
-            log.info("Payment successful for order: {}", order.getOrderCode());
+            
+            // 8.1. Validate stock availability before confirming
+            // Stock is at ProductTemplate level, calculate total available stock per product
+            boolean allStockAvailable = true;
+            for (var orderItem : order.getItems()) {
+                var product = orderItem.getProduct();
+                int totalAvailableStock = product.getTemplates().stream()
+                        .filter(t -> t.getStatus() != null && t.getStatus())
+                        .mapToInt(t -> t.getStockQuantity() != null ? t.getStockQuantity() : 0)
+                        .sum();
+                if (totalAvailableStock < orderItem.getQuantity()) {
+                    allStockAvailable = false;
+                    break;
+                }
+            }
+            
+            if (allStockAvailable) {
+                order.setStatus(OrderStatus.CONFIRMED);
+                // Reduce stock from templates sequentially (same pattern as OrderServiceImpl)
+                for (var orderItem : order.getItems()) {
+                    var product = orderItem.getProduct();
+                    int remainingQuantity = orderItem.getQuantity();
+                    
+                    // Deduct stock from available templates sequentially
+                    for (var template : product.getTemplates()) {
+                        if (template.getStatus() == null || !template.getStatus() 
+                                || template.getStockQuantity() == null || template.getStockQuantity() <= 0 
+                                || remainingQuantity <= 0) {
+                            continue;
+                        }
+                        
+                        int deductAmount = Math.min(template.getStockQuantity(), remainingQuantity);
+                        int oldStock = template.getStockQuantity();
+                        template.setStockQuantity(oldStock - deductAmount);
+                        remainingQuantity -= deductAmount;
+                        log.info("Reduced stock for product {} template {}: {} -> {}", 
+                            product.getId(), template.getSku(), oldStock, template.getStockQuantity());
+                    }
+                    
+                    productRepository.save(product); // Cascade saves templates
+                }
+                log.info("Payment successful and stock reduced for order: {}", order.getOrderCode());
+            } else {
+                // Handle out of stock scenario: Cancel order but keep payment success (for refund)
+                order.setStatus(OrderStatus.CANCELLED);
+                payment.setNote("Payment successful but out of stock. Refund required.");
+                log.warn("Order {} paid but out of stock. Cancelled for refund.", order.getOrderCode());
+            }
         } else {
             // Payment failed
             payment.setStatus(PaymentStatus.FAILED);

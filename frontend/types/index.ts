@@ -32,4 +32,19 @@ export type { Product, ProductResponse, TopProductResponse } from './product';
 export type { Order, OrderResponse, OrderStatus, OrderItem, RecentOrderResponse } from './order';
 
 // Dashboard types
-export type { DashboardOverview, DashboardOverviewResponse, DashboardStats } from './dashboard';
+export type { 
+  DashboardOverview,
+  DashboardOverviewResponse,
+  DashboardStats,
+  RevenueChartData,
+  OrderStatusChartData,
+  UserRegistrationChartData,
+  TopProduct,
+  RecentOrder,
+  LowStockProduct,
+  DashboardPeriod,
+  RegistrationPeriod
+} from './dashboard';
+
+// Dashboard Enums
+export { OrderStatus as DashboardOrderStatus } from './dashboard';

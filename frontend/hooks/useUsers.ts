@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { adminAPI } from '@/lib/api';
 
 export interface UserData {
@@ -23,9 +23,18 @@ export function useUsers(params?: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ FIX: Memoize params để tránh infinite loop
+  const stableParams = useMemo(() => params, [
+    params?.page,
+    params?.size,
+    params?.role,
+    params?.status,
+    params?.search,
+  ]);
+
   const fetchUsers = useCallback(async () => {
     // Skip API call if params is null (disabled)
-    if (params === null) {
+    if (stableParams === null) {
       setLoading(false);
       return;
     }
@@ -34,7 +43,7 @@ export function useUsers(params?: {
       setLoading(true);
       setError(null);
       
-      const response = await adminAPI.getAllUsers(params);
+      const response = await adminAPI.getAllUsers(stableParams);
       
       if (response.success && response.data) {
         // Transform backend user response to UserData format
@@ -61,15 +70,14 @@ export function useUsers(params?: {
     } finally {
       setLoading(false);
     }
-  }, [params]);
+  }, [stableParams]); // ✅ FIX: Dependency là stableParams thay vì params
 
   useEffect(() => {
     // Only fetch if params is not null (enabled)
-    if (params !== null) {
+    if (stableParams !== null) {
       fetchUsers();
     }
-  }, [params, fetchUsers]);
+  }, [stableParams, fetchUsers]); // ✅ FIX: Dependency là stableParams và fetchUsers
 
   return { users, loading, error, refetch: fetchUsers };
 }
-
