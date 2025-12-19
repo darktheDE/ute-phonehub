@@ -22,85 +22,106 @@ import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    
-    // Tìm theo orderCode
-    Optional<Order> findByOrderCode(String orderCode);
-    
-    /**
-     * Calculate total revenue from completed orders
-     * @return Total revenue in BigDecimal, returns 0 if no orders
-     */
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = :status")
-    BigDecimal calculateTotalRevenueByStatus(OrderStatus status);
-    
-    /**
-     * Find orders by date range and status
-     * @param startDate Start date (inclusive)
-     * @param endDate End date (inclusive)
-     * @param status Order status
-     * @return List of orders in date range with specific status
-     */
-    List<Order> findByCreatedAtBetweenAndStatus(LocalDateTime startDate, LocalDateTime endDate, OrderStatus status);
-    
-    /**
-     * Count orders by status
-     * @param status Order status
-     * @return Number of orders with specific status
-     */
-    long countByStatus(OrderStatus status);
-    
-    /**
-     * Find recent orders sorted by created date (newest first)
-     * Uses Pageable to limit results
-     * @param pageable Pageable for limiting and sorting
-     * @return List of recent orders
-     */
-    List<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
-    // Tìm tất cả đơn hàng của 1 user
-    List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
-    
-    // Tìm theo status
-    List<Order> findByStatus(OrderStatus status);
-    
-    // Tìm đơn hàng theo status và thời gian (cho Cron Job)
-    List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, LocalDateTime time);
-    
-    // Kiểm tra orderCode đã tồn tại
-    boolean existsByOrderCode(String orderCode);
-    
-    // Query fetch cả items (tránh N+1 query)
-    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
-    Optional<Order> findByIdWithItems(@Param("id") Long id);
+	// Tìm theo orderCode
+	Optional<Order> findByOrderCode(String orderCode);
 
-   
-   // Tìm tất cả đơn hàng của 1 user với User object
-   List<Order> findByUserOrderByCreatedAtDesc(User user);
-   
-   // Tìm tất cả đơn hàng của 1 user với phân trang
-   Page<Order> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
-   
-   // Tìm tất cả đơn hàng của 1 user với User object và phân trang
-   Page<Order> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
-   
-   // Tìm theo status với User object
-   List<Order> findByUserAndStatusOrderByCreatedAtDesc(User user, OrderStatus status);
-   
-   // Tìm theo status với userId
-   List<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, OrderStatus status);
-   
-   // Tìm theo orderCode và email
-   Optional<Order> findByOrderCodeAndEmail(String orderCode, String email);
-   
-   // Admin methods
-   Page<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status, Pageable pageable);
-   
-   // Đếm số đơn hàng của 1 user với userId
-   long countByUserId(Long userId);
-   
-   // Đếm số đơn hàng của 1 user với User object
-   @Query("SELECT COUNT(o) FROM Order o WHERE o.user = :user")
-   long countByUser(@Param("user") User user);
+	/**
+	 * Calculate total revenue from completed orders
+	 * 
+	 * @return Total revenue in BigDecimal, returns 0 if no orders
+	 */
+	@Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = :status")
+	BigDecimal calculateTotalRevenueByStatus(OrderStatus status);
 
-	
+	/**
+	 * Find orders by date range and status
+	 * 
+	 * @param startDate Start date (inclusive)
+	 * @param endDate   End date (inclusive)
+	 * @param status    Order status
+	 * @return List of orders in date range with specific status
+	 */
+	List<Order> findByCreatedAtBetweenAndStatus(LocalDateTime startDate, LocalDateTime endDate, OrderStatus status);
+
+	/**
+	 * Count orders by status
+	 * 
+	 * @param status Order status
+	 * @return Number of orders with specific status
+	 */
+	long countByStatus(OrderStatus status);
+
+	/**
+	 * Find recent orders sorted by created date (newest first) Uses Pageable to
+	 * limit results
+	 * 
+	 * @param pageable Pageable for limiting and sorting
+	 * @return List of recent orders
+	 */
+	List<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+	// Tìm tất cả đơn hàng của 1 user
+	List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+	// Tìm theo status
+	List<Order> findByStatus(OrderStatus status);
+
+	// Tìm đơn hàng theo status và thời gian (cho Cron Job)
+	List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, LocalDateTime time);
+
+	// Kiểm tra orderCode đã tồn tại
+	boolean existsByOrderCode(String orderCode);
+
+	// Query fetch cả items (tránh N+1 query)
+	@Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
+	Optional<Order> findByIdWithItems(@Param("id") Long id);
+
+	// Tìm tất cả đơn hàng của 1 user với User object
+	List<Order> findByUserOrderByCreatedAtDesc(User user);
+
+	// Tìm tất cả đơn hàng của 1 user với phân trang
+	Page<Order> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+	// Tìm tất cả đơn hàng của 1 user với User object và phân trang
+	Page<Order> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+
+	// Tìm theo status với User object
+	List<Order> findByUserAndStatusOrderByCreatedAtDesc(User user, OrderStatus status);
+
+	// Tìm theo status với userId
+	List<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, OrderStatus status);
+
+	// Tìm theo orderCode và email
+	Optional<Order> findByOrderCodeAndEmail(String orderCode, String email);
+
+	// Admin methods
+	Page<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status, Pageable pageable);
+
+	// Đếm số đơn hàng của 1 user với userId
+	long countByUserId(Long userId);
+
+	// Đếm số đơn hàng của 1 user với User object
+	@Query("SELECT COUNT(o) FROM Order o WHERE o.user = :user")
+	long countByUser(@Param("user") User user);
+
+	// ========================================
+	// ✅ THÊM METHODS CHO PUBLIC TRACKING
+	// ========================================
+
+
+	// Validate orderCode và email tồn tại
+	boolean existsByOrderCodeAndEmail(String orderCode, String email);
+
+	/**
+	 * Find recent orders for tracking (admin statistics)
+	 */
+	@Query("SELECT o FROM Order o WHERE o.createdAt >= :startDate ORDER BY o.createdAt DESC")
+	List<Order> findRecentOrders(@Param("startDate") LocalDateTime startDate);
+
+	// Tìm đơn hàng theo khoảng thời gian và trạng thái
+	@Query("SELECT o FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate AND o.status = :status")
+	List<Order> findByDateRangeAndStatus(@Param("startDate") LocalDateTime startDate,
+			@Param("endDate") LocalDateTime endDate, @Param("status") OrderStatus status);
+
 }

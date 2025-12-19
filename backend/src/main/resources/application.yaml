@@ -60,4 +60,4 @@ vnpay:
   order-type: other
 
 server:
-  port: 8081
+  port: 8088

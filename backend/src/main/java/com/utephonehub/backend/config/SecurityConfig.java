@@ -39,6 +39,11 @@ public class SecurityConfig {
                     "/api/v1/auth/**",
                     "/api/v1/health/**"
                 ).permitAll()
+                // ✅ THÊM:  Cho phép truy cập tự do vào PUBLIC ORDER TRACKING APIs
+                .requestMatchers(
+                    "/api/v1/public/**",           // Tất cả public APIs
+                    "/api/v1/public/orders/**"    // Cụ thể cho public order tracking
+                ).permitAll()
                 // Cho phép VNPay endpoints
                 .requestMatchers(
                     "/api/payments/**"

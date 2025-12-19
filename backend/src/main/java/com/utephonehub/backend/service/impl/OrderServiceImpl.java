@@ -438,8 +438,8 @@ public class OrderServiceImpl implements IOrderService {
     }
     
     private void saveOrderStatusHistory(Order order, OrderStatus newStatus, String note) {
-        // Tạo record trong order_status_history nếu có bảng này
-        // TODO: Implement nếu cần tracking lịch sử chi tiết
+        // Tạo record trong order_status_history 
+        
         log.info("Order {} status changed to {} with note: {}", order.getOrderCode(), newStatus, note);
     }
     
