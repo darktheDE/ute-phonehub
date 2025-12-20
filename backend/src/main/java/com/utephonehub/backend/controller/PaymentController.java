@@ -6,6 +6,7 @@ import com.utephonehub.backend.dto.response.payment.PaymentHistoryResponse;
 import com.utephonehub.backend.dto.response.payment.PaymentResponse;
 import com.utephonehub.backend.dto.response.payment.VNPayPaymentResponse;
 import com.utephonehub.backend.service.IPaymentService;
+import com.utephonehub.backend.service.IVNPayService;
 import com.utephonehub.backend.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -29,6 +30,7 @@ import java.io.IOException;
 public class PaymentController {
     
     private final IPaymentService paymentService;
+    private final IVNPayService vnPayService;
     private final SecurityUtils securityUtils;
     
     /**
@@ -41,7 +43,7 @@ public class PaymentController {
             HttpServletRequest servletRequest) {
         
         log.info("Creating VNPay payment for order: {}", request.getOrderId());
-        VNPayPaymentResponse response = paymentService.createPayment(request, servletRequest);
+        VNPayPaymentResponse response = vnPayService.createPaymentUrl(request, servletRequest);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Payment URL created successfully", response));
@@ -56,7 +58,7 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<PaymentResponse>> paymentCallback(HttpServletRequest request) {
         log.info("Received VNPay callback");
         
-        PaymentResponse response = paymentService.handlePaymentCallback(request);
+        PaymentResponse response = vnPayService.handleCallback(request);
         
         return ResponseEntity.ok(ApiResponse.success("Payment processed successfully", response));
     }
@@ -72,7 +74,7 @@ public class PaymentController {
         
         try {
             // Process payment
-            PaymentResponse paymentResponse = paymentService.handlePaymentCallback(request);
+            PaymentResponse paymentResponse = vnPayService.handleCallback(request);
             
             // Return HTML result page instead of redirecting to non-existent frontend
             response.setContentType("text/html; charset=UTF-8");

@@ -3,7 +3,6 @@ package com.utephonehub.backend.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.utephonehub.backend.config.VNPayConfig;
 import com.utephonehub.backend.dto.request.payment.CreatePaymentRequest;
-import com.utephonehub.backend.dto.response.payment.PaymentHistoryResponse;
 import com.utephonehub.backend.dto.response.payment.PaymentResponse;
 import com.utephonehub.backend.dto.response.payment.VNPayPaymentResponse;
 import com.utephonehub.backend.entity.Order;
@@ -11,22 +10,18 @@ import com.utephonehub.backend.entity.Payment;
 import com.utephonehub.backend.entity.PaymentCallbackLog;
 import com.utephonehub.backend.enums.EWalletProvider;
 import com.utephonehub.backend.enums.OrderStatus;
-import com.utephonehub.backend.enums.PaymentMethod;
 import com.utephonehub.backend.enums.PaymentStatus;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.repository.OrderRepository;
-import com.utephonehub.backend.repository.PaymentRepository;
 import com.utephonehub.backend.repository.PaymentCallbackLogRepository;
+import com.utephonehub.backend.repository.PaymentRepository;
 import com.utephonehub.backend.repository.ProductRepository;
-import com.utephonehub.backend.service.IPaymentService;
+import com.utephonehub.backend.service.IVNPayService;
 import com.utephonehub.backend.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +29,15 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TimeZone;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class VNPayService implements IPaymentService {
+public class VNPayServiceImpl implements IVNPayService {
     
     private final VNPayConfig vnPayConfig;
     private final OrderRepository orderRepository;
@@ -51,7 +48,7 @@ public class VNPayService implements IPaymentService {
     
     @Override
     @Transactional
-    public VNPayPaymentResponse createPayment(CreatePaymentRequest request, HttpServletRequest servletRequest) {
+    public VNPayPaymentResponse createPaymentUrl(CreatePaymentRequest request, HttpServletRequest servletRequest) {
         log.info("Creating VNPay payment for order: {}", request.getOrderId());
         
         // 1. Validate order exists
@@ -166,7 +163,7 @@ public class VNPayService implements IPaymentService {
     
     @Override
     @Transactional
-    public PaymentResponse handlePaymentCallback(HttpServletRequest request) {
+    public PaymentResponse handleCallback(HttpServletRequest request) {
         log.info("Handling VNPay payment callback");
         
         // 1. Get all parameters from VNPay
@@ -303,39 +300,6 @@ public class VNPayService implements IPaymentService {
         return PaymentResponse.builder()
                 .id(payment.getId())
                 .orderId(order.getId())
-                .provider(payment.getProvider() != null ? payment.getProvider().name() : null)
-                .transactionId(payment.getTransactionId())
-                .amount(payment.getAmount().longValue())
-                .status(payment.getStatus().name())
-                .createdAt(payment.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .build();
-    }
-    
-    @Override
-    public PaymentHistoryResponse getCustomerPaymentHistory(Long userId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Payment> paymentPage = paymentRepository.findByUserId(userId, pageable);
-        
-        List<PaymentResponse> payments = paymentPage.getContent().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-        
-        return PaymentHistoryResponse.builder()
-                .payments(payments)
-                .currentPage(paymentPage.getNumber())
-                .pageSize(paymentPage.getSize())
-                .totalElements(paymentPage.getTotalElements())
-                .totalPages(paymentPage.getTotalPages())
-                .hasNext(paymentPage.hasNext())
-                .hasPrevious(paymentPage.hasPrevious())
-                .build();
-    }
-    
-    private PaymentResponse mapToResponse(Payment payment) {
-        return PaymentResponse.builder()
-                .id(payment.getId())
-                .orderId(payment.getOrder().getId())
-                .paymentMethod(payment.getOrder().getPaymentMethod().name())
                 .provider(payment.getProvider() != null ? payment.getProvider().name() : null)
                 .transactionId(payment.getTransactionId())
                 .amount(payment.getAmount().longValue())
