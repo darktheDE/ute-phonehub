@@ -10,7 +10,7 @@ public interface IVNPayService {
     /**
      * Create VNPay payment URL
      */
-    VNPayPaymentResponse createPaymentUrl(CreatePaymentRequest request, HttpServletRequest servletRequest);
+    VNPayPaymentResponse createPaymentUrl(CreatePaymentRequest request, String ipAddress);
     
     /**
      * Handle VNPay payment callback/return

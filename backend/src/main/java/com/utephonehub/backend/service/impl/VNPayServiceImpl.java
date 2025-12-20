@@ -50,7 +50,7 @@ public class VNPayServiceImpl implements IVNPayService {
     
     @Override
     @Transactional
-    public VNPayPaymentResponse createPaymentUrl(CreatePaymentRequest request, HttpServletRequest servletRequest) {
+    public VNPayPaymentResponse createPaymentUrl(CreatePaymentRequest request, String ipAddress) {
         log.info("Creating VNPay payment for order: {}", request.getOrderId());
         
         // 1. Validate order exists

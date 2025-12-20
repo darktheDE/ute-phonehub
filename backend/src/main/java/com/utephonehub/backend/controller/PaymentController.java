@@ -43,7 +43,8 @@ public class PaymentController {
             HttpServletRequest servletRequest) {
         
         log.info("Creating VNPay payment for order: {}", request.getOrderId());
-        VNPayPaymentResponse response = vnPayService.createPaymentUrl(request, servletRequest);
+        String ipAddress = securityUtils.getClientIp(servletRequest);
+        VNPayPaymentResponse response = vnPayService.createPaymentUrl(request, ipAddress);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Payment URL created successfully", response));

@@ -48,16 +48,13 @@ public class SecurityUtils {
     }
 
     /**
-     * Validates the token and returns the user ID if valid.
-     *
-     * @param request the HTTP request containing the Authorization header
-     * @return the user ID if token is valid, null otherwise
+     * Get client IP address from request
      */
-    public Long getUserIdIfAuthenticated(HttpServletRequest request) {
-        String token = extractToken(request);
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            return jwtTokenProvider.getUserIdFromToken(token);
+    public String getClientIp(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-FORWARDED-FOR");
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            ipAddress = request.getRemoteAddr();
         }
-        return null;
+        return ipAddress;
     }
 }
