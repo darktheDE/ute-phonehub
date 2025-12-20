@@ -13,6 +13,7 @@ import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.enums.PaymentStatus;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
+import com.utephonehub.backend.mapper.PaymentMapper;
 import com.utephonehub.backend.repository.OrderRepository;
 import com.utephonehub.backend.repository.PaymentCallbackLogRepository;
 import com.utephonehub.backend.repository.PaymentRepository;
@@ -44,6 +45,7 @@ public class VNPayServiceImpl implements IVNPayService {
     private final PaymentRepository paymentRepository;
     private final PaymentCallbackLogRepository callbackLogRepository;
     private final ProductRepository productRepository;
+    private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Override
@@ -297,15 +299,7 @@ public class VNPayServiceImpl implements IVNPayService {
         }
         
         // 9. Return payment response
-        return PaymentResponse.builder()
-                .id(payment.getId())
-                .orderId(order.getId())
-                .provider(payment.getProvider() != null ? payment.getProvider().name() : null)
-                .transactionId(payment.getTransactionId())
-                .amount(payment.getAmount().longValue())
-                .status(payment.getStatus().name())
-                .createdAt(payment.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .build();
+        return paymentMapper.toPaymentResponse(payment);
     }
     
     private String getIpAddress(HttpServletRequest request) {

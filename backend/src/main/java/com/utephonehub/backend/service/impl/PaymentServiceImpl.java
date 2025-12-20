@@ -3,6 +3,7 @@ package com.utephonehub.backend.service.impl;
 import com.utephonehub.backend.dto.response.payment.PaymentHistoryResponse;
 import com.utephonehub.backend.dto.response.payment.PaymentResponse;
 import com.utephonehub.backend.entity.Payment;
+import com.utephonehub.backend.mapper.PaymentMapper;
 import com.utephonehub.backend.repository.PaymentRepository;
 import com.utephonehub.backend.service.IPaymentService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 public class PaymentServiceImpl implements IPaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final PaymentMapper paymentMapper;
 
     @Override
     public PaymentHistoryResponse getCustomerPaymentHistory(Long userId, int page, int size) {
@@ -29,7 +30,7 @@ public class PaymentServiceImpl implements IPaymentService {
         Page<Payment> paymentPage = paymentRepository.findByUserId(userId, pageable);
         
         List<PaymentResponse> payments = paymentPage.getContent().stream()
-                .map(this::mapToResponse)
+                .map(paymentMapper::toPaymentResponse)
                 .collect(Collectors.toList());
         
         return PaymentHistoryResponse.builder()
@@ -40,19 +41,6 @@ public class PaymentServiceImpl implements IPaymentService {
                 .totalPages(paymentPage.getTotalPages())
                 .hasNext(paymentPage.hasNext())
                 .hasPrevious(paymentPage.hasPrevious())
-                .build();
-    }
-    
-    private PaymentResponse mapToResponse(Payment payment) {
-        return PaymentResponse.builder()
-                .id(payment.getId())
-                .orderId(payment.getOrder().getId())
-                .paymentMethod(payment.getOrder().getPaymentMethod().name())
-                .provider(payment.getProvider() != null ? payment.getProvider().name() : null)
-                .transactionId(payment.getTransactionId())
-                .amount(payment.getAmount().longValue())
-                .status(payment.getStatus().name())
-                .createdAt(payment.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .build();
     }
 }
