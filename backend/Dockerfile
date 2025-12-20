@@ -6,7 +6,6 @@ WORKDIR /app
 # Copy file cấu hình maven trước để tận dụng cache layer
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
-RUN chmod +x mvnw
 # Tải thư viện về (chỉ resolve dependencies cần thiết, tránh timeout)
 # RUN ./mvnw dependency:resolve -DskipTests
 
