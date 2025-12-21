@@ -302,7 +302,7 @@ export const adminAPI = {
   // Categories (admin management)
   // Note: GET endpoint is public (/api/v1/categories) - dùng chung cho client và admin
   getAllCategories: async (parentId?: number | null): Promise<ApiResponse<CategoryResponse[]>> => {
-    const query = parentId !== undefined && parentId !== null ? `?parentId=${parentId}` : '';
+    const query = Number.isInteger(parentId) && parentId > 0 ? `?parentId=${parentId}` : '';
     return fetchAPI<CategoryResponse[]>(`/categories${query}`, {
       method: 'GET',
     });
