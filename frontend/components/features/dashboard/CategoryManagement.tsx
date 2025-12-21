@@ -116,10 +116,6 @@ export function CategoryManagement() {
     setParentCategory(null);
   };
 
-  const getAvailableCategories = (): CategoryResponse[] => {
-    return categories;
-  };
-
   return (
     <div className="space-y-6">
       {/* Toast Notification */}
@@ -223,7 +219,6 @@ export function CategoryManagement() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onAddChild={handleAddChild}
-          onRefresh={refetch}
         />
       )}
 
@@ -232,7 +227,7 @@ export function CategoryManagement() {
         <CategoryForm
           category={selectedCategory}
           parentCategory={parentCategory}
-          allCategories={getAllCategoriesFlat()}
+          allCategories={categories}
           onSuccess={handleFormSuccess}
           onCancel={handleFormCancel}
         />

@@ -21,10 +21,9 @@ interface CategoriesTableProps {
   onEdit: (category: CategoryResponse) => void;
   onDelete: (category: CategoryResponse) => void;
   onAddChild: (parentCategory: CategoryResponse) => void;
-  onRefresh: () => void;
 }
 
-export function CategoriesTable({ categories, onEdit, onDelete, onAddChild, onRefresh }: CategoriesTableProps) {
+export function CategoriesTable({ categories, onEdit, onDelete, onAddChild }: CategoriesTableProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [childrenCache, setChildrenCache] = useState<Map<number, CategoryResponse[]>>(new Map());
   const [loadingChildren, setLoadingChildren] = useState<Set<number>>(new Set());
@@ -171,7 +170,11 @@ export function CategoriesTable({ categories, onEdit, onDelete, onAddChild, onRe
 
         {/* Children rows (recursive) */}
         {isExpanded && children.length > 0 &&
-          children.map(child => renderCategoryRow(child, level + 1))
+          children.map(child => (
+            <React.Fragment key={child.id}>
+              {renderCategoryRow(child, level + 1)}
+            </React.Fragment>
+          ))
         }
       </>
     );
