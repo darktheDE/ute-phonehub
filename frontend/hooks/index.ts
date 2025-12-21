@@ -8,4 +8,5 @@ export { useProducts, useFeaturedProducts } from "./useProducts";
 export { useOrders } from "./useOrders";
 export { useUsers } from "./useUsers";
 export { useDashboard } from "./useDashboard";
-export { usePromotions, useAvailablePromotions } from "./usePromotions";
+export { usePromotions } from "./usePromotions";
+export { useAvailablePromotions } from "./useAvailablePromotions";
