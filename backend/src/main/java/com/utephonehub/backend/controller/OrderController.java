@@ -68,7 +68,7 @@ public class OrderController {
         Long userId = securityUtils.getCurrentUserId(httpRequest);
         
         // Gọi service tạo đơn hàng
-        CreateOrderResponse response = orderService.createOrder(request, userId);
+        CreateOrderResponse response = orderService.createOrder(request, userId, httpRequest);
         
         // Trả về response với status 201 Created
         return ResponseEntity.status(HttpStatus.CREATED)
