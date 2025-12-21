@@ -14,6 +14,10 @@ import type {
   RecentOrderResponse,
   DashboardOverviewResponse,
   TopProductResponse,
+  // Category imports
+  CategoryResponse,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
   // New Dashboard imports
   DashboardOverview,
   RevenueChartData,
@@ -292,6 +296,35 @@ export const adminAPI = {
     // This will return products but only low stock ones
     return fetchAPI<any>('/admin/dashboard/low-stock-products?threshold=1000', {
       method: 'GET',
+    });
+  },
+
+  // Categories (admin management)
+  // Note: GET endpoint is public (/api/v1/categories) - dùng chung cho client và admin
+  getAllCategories: async (parentId?: number | null): Promise<ApiResponse<CategoryResponse[]>> => {
+    const query = Number.isInteger(parentId) && parentId > 0 ? `?parentId=${parentId}` : '';
+    return fetchAPI<CategoryResponse[]>(`/categories${query}`, {
+      method: 'GET',
+    });
+  },
+
+  createCategory: async (data: CreateCategoryRequest): Promise<ApiResponse<CategoryResponse>> => {
+    return fetchAPI<CategoryResponse>('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateCategory: async (id: number, data: UpdateCategoryRequest): Promise<ApiResponse<CategoryResponse>> => {
+    return fetchAPI<CategoryResponse>(`/admin/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCategory: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/categories/${id}`, {
+      method: 'DELETE',
     });
   },
 };
