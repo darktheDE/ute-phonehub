@@ -170,11 +170,9 @@ export function CategoriesTable({ categories, onEdit, onDelete, onAddChild, onRe
         </tr>
 
         {/* Children rows (recursive) */}
-        {isExpanded && children.length > 0 && (
-          <>
-            {children.map(child => renderCategoryRow(child, level + 1))}
-          </>
-        )}
+        {isExpanded && children.length > 0 &&
+          children.map(child => renderCategoryRow(child, level + 1))
+        }
       </>
     );
   };
