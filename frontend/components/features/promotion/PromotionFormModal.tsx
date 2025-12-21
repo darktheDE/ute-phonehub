@@ -292,7 +292,7 @@ export function PromotionFormModal({
               <input
                 type="text"
                 name="title"
-                value={formData.title}
+                value={formData.title || ""}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="Ví dụ: Giảm giá 20% cho tất cả sản phẩm"
@@ -307,7 +307,7 @@ export function PromotionFormModal({
               </label>
               <textarea
                 name="description"
-                value={formData.description}
+                value={formData.description || ""}
                 onChange={handleInputChange}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -325,7 +325,7 @@ export function PromotionFormModal({
                 <input
                   type="date"
                   name="effectiveDate"
-                  value={formData.effectiveDate}
+                  value={formData.effectiveDate || ""}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   required
@@ -339,7 +339,7 @@ export function PromotionFormModal({
                 <input
                   type="date"
                   name="expirationDate"
-                  value={formData.expirationDate}
+                  value={formData.expirationDate || ""}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   required
@@ -356,7 +356,7 @@ export function PromotionFormModal({
                 <input
                   type="number"
                   name="percentDiscount"
-                  value={formData.percentDiscount}
+                  value={formData.percentDiscount || ""}
                   onChange={handleInputChange}
                   min="1"
                   max="100"

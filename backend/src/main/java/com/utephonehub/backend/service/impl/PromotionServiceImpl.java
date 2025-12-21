@@ -169,6 +169,7 @@ public class PromotionServiceImpl implements IPromotionService {
         promotion.setExpirationDate(request.getExpirationDate());
         promotion.setPercentDiscount(request.getPercentDiscount());
         promotion.setMinValueToBeApplied(request.getMinValueToBeApplied());
+        promotion.setStatus(request.getStatus()); // Update status from request
     }
 
     /**
