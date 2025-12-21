@@ -57,4 +57,21 @@ public class SecurityUtils {
         }
         return ipAddress;
     }
+
+    /**
+     * Returns the user id if the request contains a valid JWT token, otherwise null.
+     * This method does not throw an exception for unauthenticated requests.
+     */
+    public Long getUserIdIfAuthenticated(HttpServletRequest request) {
+        try {
+            String token = extractToken(request);
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                return jwtTokenProvider.getUserIdFromToken(token);
+            }
+        } catch (Exception ex) {
+            // swallow and return null for unauthenticated
+            return null;
+        }
+        return null;
+    }
 }

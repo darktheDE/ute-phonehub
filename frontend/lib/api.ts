@@ -30,6 +30,9 @@ import type {
   RegistrationPeriod,
 } from '@/types';
 
+// Cart & Promotion API response types
+import type { CartResponseData, CartItemResponse, Promotion } from '@/types/api-cart';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
 
 // Helper function to get auth token from localStorage
@@ -97,44 +100,88 @@ async function fetchAPI<T>(
       headers,
     });
 
-    // Try to parse JSON, but handle cases where response might not be JSON
-    let data: any;
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType?.includes('application/json');
-    
-    if (isJson) {
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        // If JSON parsing fails, use empty object
-        data = {};
+    // Parse response: prefer JSON, but capture raw text and headers for debugging
+    let data: any = {};
+    let bodyText: string | null = null;
+    const headersObj = Object.fromEntries(Array.from(response.headers.entries()));
+
+    try {
+      // Clone response so we can safely attempt both JSON and text reads for diagnostics
+      const cloned = response.clone();
+      const contentType = response.headers.get('content-type') ?? '';
+      const isJson = contentType.includes('application/json');
+
+      if (isJson) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          // JSON parse failed; fall back to text
+          try {
+            bodyText = await cloned.text();
+            data = bodyText ? { message: bodyText } : {};
+          } catch {
+            data = {};
+          }
+        }
+      } else {
+        try {
+          bodyText = await response.text();
+          data = bodyText ? { message: bodyText } : {};
+        } catch {
+          data = {};
+        }
       }
-    } else {
-      // If not JSON, try to get text
-      try {
-        const text = await response.text();
-        data = text ? { message: text } : {};
-      } catch {
-        data = {};
-      }
+    } catch (err) {
+      data = {};
     }
 
     if (!response.ok || !data.success) {
-      // Log more details for debugging
-      console.error('API Error Details:', {
+      // Build a detailed debug object to help troubleshoot API responses
+      const debugInfo: Record<string, unknown> = {
         url,
-        status: response.status,
-        statusText: response.statusText,
-        data,
-      });
-      
-      const errorMessage = data?.message || data?.error || `HTTP error! status: ${response.status}`;
-      throw new Error(errorMessage);
+        request: {
+          method: (options && (options.method as string)) || 'GET',
+          body: (options && (options as any).body) || null,
+          headers: Object.fromEntries(headers.entries()),
+        },
+        response: {
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          headers: headersObj,
+          contentType: response.headers.get('content-type') ?? null,
+        },
+        parsedData: data,
+        rawBody: bodyText,
+      };
+
+      // If parsedData is empty and we haven't captured raw text yet, attempt to read it once more
+      if ((!data || Object.keys(data).length === 0) && !bodyText) {
+        try {
+          const extraClone = await response.clone().text();
+          if (extraClone) debugInfo.rawBody = extraClone;
+        } catch {
+          // ignore
+        }
+      }
+
+      // Log structured debug info. Use console.error so it's easily visible in dev tools.
+      try {
+        console.warn('API Error Details:', debugInfo);
+      } catch (logErr) {
+        // Fallback if structured logging fails
+        console.warn('API Error Details (fallback):', url, response.status, response.statusText);
+      }
+
+      const errorMessage = (data && (data.message || data.error)) || (debugInfo.rawBody as string) || `HTTP error! status: ${response.status}`;
+      throw new Error(String(errorMessage));
     }
 
     return data;
   } catch (error) {
-    console.error('API Error:', error);
+    // Already logged structured details above; downgrade to warning to avoid noisy error logs
+    console.warn('API Error:', error);
     throw error;
   }
 }
@@ -302,7 +349,7 @@ export const adminAPI = {
   // Categories (admin management)
   // Note: GET endpoint is public (/api/v1/categories) - dùng chung cho client và admin
   getAllCategories: async (parentId?: number | null): Promise<ApiResponse<CategoryResponse[]>> => {
-    const query = Number.isInteger(parentId) && parentId > 0 ? `?parentId=${parentId}` : '';
+    const query = (typeof parentId === 'number' && Number.isInteger(parentId) && parentId > 0) ? `?parentId=${parentId}` : '';
     return fetchAPI<CategoryResponse[]>(`/categories${query}`, {
       method: 'GET',
     });
@@ -405,6 +452,100 @@ export const dashboardAPI = {
    */
   getLowStockProducts: async (threshold: number = 10): Promise<ApiResponse<LowStockProduct[]>> => {
     return fetchAPI<LowStockProduct[]>(`/admin/dashboard/low-stock-products?threshold=${threshold}`, {
+      method: 'GET',
+    });
+  },
+};
+
+// Cart API
+export const cartAPI = {
+  /**
+   * GET /api/v1/cart/me
+   */
+  getCurrentCart: async (): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>('/cart/me', { method: 'GET' });
+  },
+
+  /**
+   * POST /api/v1/cart/items
+   */
+  addToCart: async (data: { productId: number; quantity: number; color?: string; storage?: string }): Promise<ApiResponse<CartItemResponse>> => {
+    return fetchAPI<CartItemResponse>('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * PUT /api/v1/cart/items/{itemId}
+   */
+  updateCartItem: async (itemId: number, data: number | { quantity?: number }): Promise<ApiResponse<CartItemResponse>> => {
+    const payload = typeof data === 'number' ? { quantity: data } : data;
+    return fetchAPI<CartItemResponse>(`/cart/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/cart/items/{itemId}
+   */
+  removeCartItem: async (itemId: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/cart/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Remove multiple cart items by ids.
+   * Backend does not expose a bulk delete, so perform parallel deletes and aggregate.
+   */
+  removeCartItems: async (itemIds: number[]): Promise<ApiResponse<null[]>> => {
+    try {
+      const results = await Promise.all(
+        itemIds.map((id) => fetchAPI<null>(`/cart/items/${id}`, { method: 'DELETE' }))
+      );
+      return { success: true, data: results.map((r) => r.data ?? null) } as ApiResponse<null[]>;
+    } catch (error) {
+      console.error('Failed to remove multiple cart items:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * DELETE /api/v1/cart/clear
+   */
+  clearCart: async (): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>('/cart/clear', { method: 'DELETE' });
+  },
+
+  /**
+   * POST /api/v1/cart/merge
+   */
+  mergeGuestCart: async (data: { guestCartItems: { productId: number; quantity: number }[] }): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>('/cart/merge', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Promotion API (frontend helpers)
+export const promotionAPI = {
+  /**
+   * GET /api/v1/promotions/available?orderTotal={orderTotal}
+   */
+  getAvailablePromotions: async (orderTotal: number): Promise<ApiResponse<Promotion[]>> => {
+    return fetchAPI<Promotion[]>(`/promotions/available?orderTotal=${orderTotal}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/v1/promotions/calculate?promotionId={id}&orderTotal={orderTotal}
+   */
+  calculateDiscount: async (promotionId: string, orderTotal: number): Promise<ApiResponse<number>> => {
+    return fetchAPI<number>(`/promotions/calculate?promotionId=${encodeURIComponent(promotionId)}&orderTotal=${orderTotal}`, {
       method: 'GET',
     });
   },

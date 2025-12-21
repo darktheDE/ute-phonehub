@@ -34,13 +34,15 @@ export const useCartStore = create<CartState>()(
         } else {
           // New item, add to cart
           const newId = currentItems.length > 0 ? Math.max(...currentItems.map(i => i.id)) + 1 : 1;
+          // Preserve any discount/appliedPrice fields when adding
           newItems = [...currentItems, { ...item, id: newId }];
         }
 
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, item) => sum + item.quantity, 0),
-          totalPrice: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          // Use appliedPrice when available, otherwise fallback to price
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
         });
       },
 
@@ -51,8 +53,8 @@ export const useCartStore = create<CartState>()(
         const newItems = get().items.filter((item) => item.id !== id);
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, item) => sum + item.quantity, 0),
-          totalPrice: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
         });
       },
 
@@ -71,8 +73,8 @@ export const useCartStore = create<CartState>()(
 
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, item) => sum + item.quantity, 0),
-          totalPrice: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
         });
       },
 
@@ -84,6 +86,29 @@ export const useCartStore = create<CartState>()(
           items: [],
           totalItems: 0,
           totalPrice: 0,
+        });
+      },
+
+      /**
+       * Replace the entire items array (used to sync with backend)
+       */
+      setItems: (items) => {
+        set({
+          items,
+          totalItems: items.reduce((sum, it) => sum + it.quantity, 0),
+          totalPrice: items.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
+        });
+      },
+
+      /**
+       * Remove multiple items by id
+       */
+      removeItems: (ids) => {
+        const newItems = get().items.filter((item) => !ids.includes(item.id));
+        set({
+          items: newItems,
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
         });
       },
 

@@ -1,7 +1,11 @@
 'use client';
 
-import { Heart, Star } from 'lucide-react';
+import { Heart, Star, ShoppingCart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { useAuth } from '@/hooks';
+import { useCartStore } from '@/store';
+import { cartAPI } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   id: number;
@@ -16,6 +20,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({
+  id,
   name,
   image,
   originalPrice,
@@ -25,6 +30,45 @@ export function ProductCard({
   discount,
   isNew = false,
 }: ProductCardProps) {
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
+  const { addItem } = useCartStore();
+
+  const isValidImage = (src: unknown) => {
+    if (!src || typeof src !== 'string') return false;
+    return /^(https?:\/\/|\/|data:|blob:)/i.test(src);
+  };
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      // Add to local cart store for guest
+      // compute applied price when discount present
+      const appliedPrice = discount && discount > 0 ? Math.round(salePrice * (100 - discount) / 100) : salePrice;
+      addItem({
+        productId: id,
+        productName: name,
+        productImage: isValidImage(image) ? image : '',
+        price: salePrice,
+        discountPercent: discount > 0 ? discount : undefined,
+        appliedPrice: appliedPrice,
+        quantity: 1,
+      } as any);
+      toast.success('Đã thêm vào giỏ (khách) — đăng nhập để đồng bộ');
+      return;
+    }
+
+    try {
+      const resp = await cartAPI.addToCart({ productId: id, quantity: 1 });
+      if (resp && resp.success) {
+        toast.success('Đã thêm vào giỏ hàng');
+      } else {
+        throw new Error(resp?.message || 'Không thể thêm vào giỏ');
+      }
+    } catch (e: any) {
+      console.error('Add to cart failed:', e);
+      toast.error(e?.message || 'Lỗi khi thêm vào giỏ');
+    }
+  };
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all group">
       <div className="relative">
@@ -74,6 +118,15 @@ export function ProductCard({
           <span className="text-xs md:text-sm text-muted-foreground line-through">
             {formatPrice(originalPrice)}
           </span>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            onClick={handleAddToCart}
+            className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm text-white hover:opacity-95"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Thêm vào giỏ
+          </button>
         </div>
       </div>
     </div>

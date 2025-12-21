@@ -98,7 +98,7 @@ public class VNPayServiceImpl implements IVNPayService {
             vnpParams.put("vnp_Locale", locale);
             
             vnpParams.put("vnp_ReturnUrl", vnPayConfig.getReturnUrl());
-            vnpParams.put("vnp_IpAddr", getIpAddress(servletRequest));
+            vnpParams.put("vnp_IpAddr", ipAddress != null ? ipAddress : "");
             
             // 5. Set create date and expire date (Vietnam time GMT+7)
             Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
