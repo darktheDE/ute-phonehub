@@ -116,7 +116,7 @@ export function CategoryManagement() {
     setParentCategory(null);
   };
 
-  const getAllCategoriesFlat = (): CategoryResponse[] => {
+  const getAvailableCategories = (): CategoryResponse[] => {
     return categories;
   };
 
