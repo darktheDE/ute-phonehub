@@ -31,6 +31,18 @@ export type { Product, ProductResponse, TopProductResponse } from './product';
 // Order types
 export type { Order, OrderResponse, OrderStatus, OrderItem, RecentOrderResponse } from './order';
 
+// Payment types
+export type {
+  PaymentMethod,
+  PaymentStatus,
+  PaymentResponse,
+  VNPayPaymentResponse,
+  CreatePaymentRequest,
+  PaymentHistoryResponse,
+  VNPayCallbackParams,
+  PaymentMethodOption,
+} from './payment';
+
 // Dashboard types
 export type { 
   DashboardOverview,
