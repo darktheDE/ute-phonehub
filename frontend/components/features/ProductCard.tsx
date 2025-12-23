@@ -36,14 +36,14 @@ export function ProductCard({
     addItem({
       productId: id,
       productName: name,
-      productImage: image, // Note: image prop in ProductCard is an emoji string in mock data, might need handling if real image URL
+      productImage: image,
       price: salePrice,
       quantity: 1,
-      color: 'Mặc định',
-      storage: '128GB',
+      // color and storage will be undefined - should be set from product details page
     });
-    // Visual feedback could be added here (e.g., toast)
-    alert('Đã thêm vào giỏ hàng!');
+    toast.success('Đã thêm vào giỏ hàng!', {
+      description: `${name} - ${formatPrice(salePrice)}`,
+    });
   };
 
   const handleBuyNow = (e: React.MouseEvent) => {

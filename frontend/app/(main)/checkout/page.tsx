@@ -14,6 +14,21 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Package, MapPin, ShoppingCart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 
+/**
+ * Get configured shipping fee from environment or return default
+ */
+const getConfiguredShippingFee = (): number => {
+  const envValue = process.env.NEXT_PUBLIC_DEFAULT_SHIPPING_FEE;
+  const parsedValue = envValue ? Number(envValue) : NaN;
+  
+  if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+    // Fallback to the original flat-rate shipping fee (30,000 VND)
+    return 30000;
+  }
+  
+  return parsedValue;
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, totalPrice, clearCart } = useCartStore();
@@ -29,7 +44,7 @@ export default function CheckoutPage() {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string>('');
 
-  const shippingFee = 30000; // 30k shipping
+  const shippingFee = getConfiguredShippingFee(); // Configurable shipping fee
 
   // Load user profile
   useEffect(() => {

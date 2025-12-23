@@ -6,8 +6,27 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
+import { toast } from 'sonner';
 
-export function HeroBanner() {
+interface HeroBannerProps {
+  productId?: number;
+  productName?: string;
+  productImage?: string;
+  description?: string;
+  salePrice?: number;
+  originalPrice?: number;
+  badge?: string;
+}
+
+export function HeroBanner({
+  productId = 1,
+  productName = 'iPhone 15 Pro Max',
+  productImage = '/images/products/iphone-15-pro-max.png',
+  description = 'Titan. Siêu nhẹ. Siêu bền. Giảm đến 2 triệu khi thu cũ đổi mới.',
+  salePrice = 32990000,
+  originalPrice = 34990000,
+  badge = '🔥 HOT DEAL',
+}: HeroBannerProps = {}) {
   const router = useRouter();
   const { addItem } = useCartStore();
 
@@ -17,20 +36,20 @@ export function HeroBanner() {
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div>
             <span className="inline-block px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium mb-4 shadow-sm">
-              🔥 HOT DEAL
+              {badge}
             </span>
             <h1 className="text-3xl md:text-5xl font-bold mb-4">
-              iPhone 15 Pro Max
+              {productName}
             </h1>
             <p className="text-lg md:text-xl text-gray-300 mb-6">
-              Titan. Siêu nhẹ. Siêu bền. Giảm đến 2 triệu khi thu cũ đổi mới.
+              {description}
             </p>
             <div className="flex items-center gap-4 mb-6">
               <span className="text-3xl font-bold text-primary">
-                {formatPrice(32990000)}
+                {formatPrice(salePrice)}
               </span>
               <span className="text-lg text-gray-400 line-through">
-                {formatPrice(34990000)}
+                {formatPrice(originalPrice)}
               </span>
             </div>
             <div className="flex gap-3">
@@ -39,13 +58,14 @@ export function HeroBanner() {
                 className="gap-2 shadow-md hover:bg-primary-hover"
                 onClick={() => {
                   addItem({
-                    productId: 1, // Using mock ID for iPhone 15 Pro Max
-                    productName: 'iPhone 15 Pro Max',
-                    productImage: '📱',
-                    price: 32990000,
+                    productId,
+                    productName,
+                    productImage,
+                    price: salePrice,
                     quantity: 1,
-                    color: 'Titan',
-                    storage: '256GB'
+                  });
+                  toast.success('Đã thêm vào giỏ hàng!', {
+                    description: `${productName} - ${formatPrice(salePrice)}`,
                   });
                   router.push('/checkout');
                 }}
@@ -57,14 +77,26 @@ export function HeroBanner() {
                 size="lg"
                 variant="outline"
                 className="border-white/60 text-white hover:bg-white hover:text-[#0f172a]"
+                asChild
               >
-                Xem chi tiết
+                <Link href={`/products/${productId}`}>
+                  Xem chi tiết
+                </Link>
               </Button>
             </div>
           </div>
           <div className="flex justify-center">
-            <div className="w-64 h-64 md:w-80 md:h-80 bg-gradient-to-br from-primary/25 to-primary/10 rounded-full flex items-center justify-center shadow-inner">
-              <span className="text-[120px] md:text-[150px]">📱</span>
+            <div className="relative w-64 h-64 md:w-80 md:h-80 bg-gradient-to-br from-primary/25 to-primary/10 rounded-full flex items-center justify-center shadow-inner overflow-hidden">
+              {productImage.startsWith('/') || productImage.startsWith('http') ? (
+                <img 
+                  src={productImage} 
+                  alt={productName}
+                  className="w-full h-full object-contain p-8"
+                />
+              ) : (
+                // Fallback for emoji or invalid images
+                <span className="text-[120px] md:text-[150px]">{productImage}</span>
+              )}
             </div>
           </div>
         </div>

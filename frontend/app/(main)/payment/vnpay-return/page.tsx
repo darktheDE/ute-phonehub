@@ -12,6 +12,7 @@ import { paymentAPI } from '@/lib/api';
 import type { PaymentResponse } from '@/types';
 import { formatPrice, formatDateTime } from '@/lib/utils';
 import { getPaymentStatus } from '@/lib/constants';
+import { getVNPayErrorMessage } from '@/lib/constants/vnpay';
 
 function VNPayReturnContent() {
   const router = useRouter();
@@ -115,7 +116,7 @@ function VNPayReturnContent() {
                     Giao dịch không thành công
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {getErrorMessage(vnpResponseCode)}
+                    {getVNPayErrorMessage(vnpResponseCode)}
                   </p>
                 </>
               )}
@@ -212,28 +213,6 @@ function VNPayReturnContent() {
       </div>
     </div>
   );
-}
-
-/**
- * Helper function to get error message based on VNPay response code
- */
-function getErrorMessage(code: string | null): string {
-  const errorMessages: Record<string, string> = {
-    '07': 'Giao dịch bị nghi ngờ gian lận',
-    '09': 'Thẻ chưa đăng ký Internet Banking',
-    '10': 'Xác thực thông tin thẻ không chính xác',
-    '11': 'Thẻ hết hạn hoặc chưa đến hạn sử dụng',
-    '12': 'Thẻ bị khóa',
-    '13': 'Sai mật khẩu xác thực giao dịch',
-    '24': 'Giao dịch bị hủy',
-    '51': 'Tài khoản không đủ số dư',
-    '65': 'Tài khoản đã vượt quá hạn mức giao dịch',
-    '75': 'Ngân hàng thanh toán đang bảo trì',
-    '79': 'Giao dịch vượt quá số lần nhập sai mật khẩu',
-    '99': 'Lỗi không xác định',
-  };
-
-  return errorMessages[code || ''] || 'Đã có lỗi xảy ra trong quá trình thanh toán';
 }
 
 export default function VNPayReturnPage() {
