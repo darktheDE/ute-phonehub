@@ -12,6 +12,8 @@ import type {
   Order,
   OrderResponse,
   RecentOrderResponse,
+  CreateOrderRequest,
+  CreateOrderResponse,
   DashboardOverviewResponse,
   TopProductResponse,
   // Category imports
@@ -28,6 +30,11 @@ import type {
   LowStockProduct,
   DashboardPeriod,
   RegistrationPeriod,
+  // Payment imports
+  PaymentResponse,
+  VNPayPaymentResponse,
+  CreatePaymentRequest,
+  PaymentHistoryResponse,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
@@ -232,6 +239,17 @@ export const productAPI = {
 
 // Order API endpoints
 export const orderAPI = {
+  /**
+   * POST /api/v1/orders
+   * Tạo đơn hàng mới
+   */
+  createOrder: async (data: CreateOrderRequest): Promise<ApiResponse<CreateOrderResponse>> => {
+    return fetchAPI<CreateOrderResponse>('/orders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Get order by ID
   getById: async (orderId: number): Promise<ApiResponse<OrderResponse>> => {
     return fetchAPI<OrderResponse>(`/orders/${orderId}`, {
@@ -405,6 +423,76 @@ export const dashboardAPI = {
    */
   getLowStockProducts: async (threshold: number = 10): Promise<ApiResponse<LowStockProduct[]>> => {
     return fetchAPI<LowStockProduct[]>(`/admin/dashboard/low-stock-products?threshold=${threshold}`, {
+      method: 'GET',
+    });
+  },
+};
+
+/**
+ * Payment API
+ * Endpoints cho module thanh toán (M06)
+ * Base URL: /api/payments
+ */
+export const paymentAPI = {
+  /**
+   * POST /api/payments/vnpay/create
+   * Tạo URL thanh toán VNPay
+   * @param request - Thông tin tạo thanh toán
+   * @returns VNPayPaymentResponse chứa paymentUrl
+   */
+  createVNPayUrl: async (request: CreatePaymentRequest): Promise<ApiResponse<VNPayPaymentResponse>> => {
+    return fetchAPI<VNPayPaymentResponse>('/payments/vnpay/create', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  /**
+   * GET /api/payments/history?page=0&size=10
+   * Lấy lịch sử thanh toán của user hiện tại
+   * @param page - Số trang (bắt đầu từ 0)
+   * @param size - Số lượng items mỗi trang
+   * @returns PaymentHistoryResponse
+   */
+  getPaymentHistory: async (page: number = 0, size: number = 10): Promise<ApiResponse<PaymentHistoryResponse>> => {
+    return fetchAPI<PaymentHistoryResponse>(`/payments/history?page=${page}&size=${size}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/payments/{id}
+   * Lấy chi tiết một payment
+   * @param id - Payment ID
+   * @returns PaymentResponse
+   */
+  getPaymentDetail: async (id: number): Promise<ApiResponse<PaymentResponse>> => {
+    return fetchAPI<PaymentResponse>(`/payments/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/payments/vnpay/callback
+   * Xử lý callback từ VNPay sau khi thanh toán
+   * @param queryParams - Query parameters từ VNPay
+   * @returns PaymentResponse với status đã cập nhật
+   */
+  handleVNPayCallback: async (queryParams: Record<string, string>): Promise<ApiResponse<PaymentResponse>> => {
+    const params = new URLSearchParams(queryParams).toString();
+    return fetchAPI<PaymentResponse>(`/payments/vnpay/callback?${params}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/payments/order/{orderId}
+   * Kiểm tra trạng thái payment của một đơn hàng
+   * @param orderId - Order ID
+   * @returns PaymentResponse
+   */
+  checkPaymentStatus: async (orderId: number): Promise<ApiResponse<PaymentResponse>> => {
+    return fetchAPI<PaymentResponse>(`/payments/order/${orderId}`, {
       method: 'GET',
     });
   },
