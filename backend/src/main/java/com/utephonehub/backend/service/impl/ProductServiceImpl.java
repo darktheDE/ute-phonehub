@@ -368,12 +368,56 @@ public class ProductServiceImpl implements IProductService {
                 })
                 .toList();
         
-        // NOTE: Price/stock sorting is NOT applied here to preserve pagination semantics
-        // Sorting after pagination breaks correctness (only sorts within current page)
-        // TODO: Implement database-level sorting for price/stock using native queries with JOINs
-        // Current behavior: only name/createdAt sorting works correctly (via Pageable)
+        // Apply in-memory sorting for price and stockQuantity (since not supported at DB level)
+        if ("price".equals(sortBy) || "stockQuantity".equals(sortBy)) {
+            responseList = responseList.stream()
+                    .sorted((a, b) -> {
+                        int comparison = 0;
+                        if ("price".equals(sortBy)) {
+                            java.math.BigDecimal priceA = a.getPrice() != null ? a.getPrice() : java.math.BigDecimal.ZERO;
+                            java.math.BigDecimal priceB = b.getPrice() != null ? b.getPrice() : java.math.BigDecimal.ZERO;
+                            comparison = priceA.compareTo(priceB);
+                        } else if ("stockQuantity".equals(sortBy)) {
+                            Integer stockA = a.getStockQuantity() != null ? a.getStockQuantity() : 0;
+                            Integer stockB = b.getStockQuantity() != null ? b.getStockQuantity() : 0;
+                            comparison = stockA.compareTo(stockB);
+                        }
+                        return "asc".equalsIgnoreCase(sortDirection) ? comparison : -comparison;
+                    })
+                    .toList();
+        }
         
-        // Reconstruct Page with enriched responses (maintaining original order)
+        // Reconstruct Page with enriched and sorted responses
+        return new org.springframework.data.domain.PageImpl<>(
+                responseList,
+                products.getPageable(),
+                products.getTotalElements()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductListResponse> getDeletedProducts(
+            String keyword,
+            Long categoryId,
+            Long brandId,
+            Pageable pageable) {
+        
+        log.info("Getting deleted products - keyword: {}, categoryId: {}, brandId: {}", 
+                keyword, categoryId, brandId);
+        
+        // Query for deleted products only
+        Page<Product> products = productRepository.findDeletedProducts(keyword, categoryId, brandId, pageable);
+        
+        // Map to response DTOs and enrich with template data
+        List<ProductListResponse> responseList = products.stream()
+                .map(product -> {
+                    ProductListResponse response = productMapper.toListResponse(product);
+                    enrichListResponseWithTemplateData(response, product);
+                    return response;
+                })
+                .toList();
+        
         return new org.springframework.data.domain.PageImpl<>(
                 responseList,
                 products.getPageable(),

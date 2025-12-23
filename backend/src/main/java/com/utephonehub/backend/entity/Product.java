@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.Where;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -38,7 +37,6 @@ import lombok.Setter;
  */
 @Entity
 @Table(name = "products")
-@Where(clause = "is_deleted = false")
 @Getter
 @Setter
 @NoArgsConstructor

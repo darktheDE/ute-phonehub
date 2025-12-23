@@ -81,6 +81,21 @@ public interface IProductService {
     );
     
     /**
+     * Get deleted products (soft-deleted products with isDeleted=true)
+     * @param keyword Search keyword
+     * @param categoryId Filter by category ID
+     * @param brandId Filter by brand ID
+     * @param pageable Pagination parameters
+     * @return Page of deleted product list responses
+     */
+    Page<ProductListResponse> getDeletedProducts(
+        String keyword,
+        Long categoryId,
+        Long brandId,
+        Pageable pageable
+    );
+    
+    /**
      * Restore a soft-deleted product
      * @param id Product ID
      * @param userId ID of user restoring the product

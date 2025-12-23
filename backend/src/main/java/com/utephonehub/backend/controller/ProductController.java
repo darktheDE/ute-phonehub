@@ -163,12 +163,6 @@ public class ProductController {
             @Parameter(description = "Giá tối đa") 
             @RequestParam(required = false) Double maxPrice,
             
-            @Parameter(description = "Trạng thái (true=active, false=inactive)") 
-            @RequestParam(required = false) Boolean status,
-            
-            @Parameter(description = "Bao gồm sản phẩm đã xóa (true=bao gồm, false=không)") 
-            @RequestParam(required = false, defaultValue = "false") Boolean includeDeleted,
-            
             @Parameter(description = "Sắp xếp theo (name, price, stock, createdAt)") 
             @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
             
@@ -181,13 +175,14 @@ public class ProductController {
             @Parameter(description = "Số items/trang") 
             @RequestParam(defaultValue = "20") int size
     ) {
-        log.info("GET /api/v1/admin/products/products - keyword: {}, categoryId: {}, brandId: {}, priceRange: [{}-{}], includeDeleted: {}, sort: {}({})",
-                keyword, categoryId, brandId, minPrice, maxPrice, includeDeleted, sortBy, sortDirection);
+        log.info("GET /api/v1/admin/products - keyword: {}, categoryId: {}, brandId: {}, priceRange: [{}-{}], sort: {}({})",
+                keyword, categoryId, brandId, minPrice, maxPrice, sortBy, sortDirection);
         
         // Validate all filter parameters
         productFilterValidator.validateAll(keyword, minPrice, maxPrice, sortBy, sortDirection);
         
-        // Create Sort object for database-level sorting (name, createdAt only)
+        // Create Sort object - only for DB-level sorting (name, createdAt)
+        // price and stockQuantity will be sorted in-memory at service layer
         Sort sort = null;
         if ("name".equals(sortBy) || "createdAt".equals(sortBy)) {
             Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
@@ -199,13 +194,71 @@ public class ProductController {
                 ? PageRequest.of(page, size, sort)
                 : PageRequest.of(page, size);
         
-        // Get products with filters/search/sort
+        // Get active products only (isDeleted=false)
         Page<ProductListResponse> products = productService.getProducts(
-                keyword, categoryId, brandId, minPrice, maxPrice, status,
-                includeDeleted, sortBy, sortDirection, pageable
+                keyword, categoryId, brandId, minPrice, maxPrice, null,
+                false, sortBy, sortDirection, pageable
         );
         
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm thành công", products));
+    }
+
+    @GetMapping("/deleted")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Lấy danh sách sản phẩm đã xóa mềm (Admin)",
+            description = "Lấy tất cả sản phẩm đã bị xóa mềm (isDeleted=true)"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Lấy danh sách thành công"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Chưa xác thực"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Không có quyền truy cập"
+            )
+    })
+    public ResponseEntity<ApiResponse<Page<ProductListResponse>>> getDeletedProducts(
+            @Parameter(description = "Từ khóa tìm kiếm (tên, SKU, mô tả)") 
+            @RequestParam(required = false) String keyword,
+            
+            @Parameter(description = "Lọc theo category ID") 
+            @RequestParam(required = false) Long categoryId,
+            
+            @Parameter(description = "Lọc theo brand ID") 
+            @RequestParam(required = false) Long brandId,
+            
+            @Parameter(description = "Sắp xếp theo (name, price, stock, createdAt)") 
+            @RequestParam(required = false, defaultValue = "deletedAt") String sortBy,
+            
+            @Parameter(description = "Hướng sắp xếp (asc, desc)") 
+            @RequestParam(required = false, defaultValue = "desc") String sortDirection,
+            
+            @Parameter(description = "Số trang") 
+            @RequestParam(defaultValue = "0") int page,
+            
+            @Parameter(description = "Số items/trang") 
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        log.info("GET /api/v1/admin/products/deleted - keyword: {}, categoryId: {}, brandId: {}, sort: {}({})",
+                keyword, categoryId, brandId, sortBy, sortDirection);
+        
+        // Create Sort object
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort sort = Sort.by(direction, sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        // Get deleted products only
+        Page<ProductListResponse> products = productService.getDeletedProducts(
+                keyword, categoryId, brandId, pageable
+        );
+        
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm đã xóa thành công", products));
     }
 
     @PostMapping("/{id}/restore")
