@@ -12,6 +12,8 @@ import type {
   Order,
   OrderResponse,
   RecentOrderResponse,
+  CreateOrderRequest,
+  CreateOrderResponse,
   DashboardOverviewResponse,
   TopProductResponse,
   // Category imports
@@ -237,6 +239,17 @@ export const productAPI = {
 
 // Order API endpoints
 export const orderAPI = {
+  /**
+   * POST /api/v1/orders
+   * Tạo đơn hàng mới
+   */
+  createOrder: async (data: CreateOrderRequest): Promise<ApiResponse<CreateOrderResponse>> => {
+    return fetchAPI<CreateOrderResponse>('/orders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Get order by ID
   getById: async (orderId: number): Promise<ApiResponse<OrderResponse>> => {
     return fetchAPI<OrderResponse>(`/orders/${orderId}`, {
