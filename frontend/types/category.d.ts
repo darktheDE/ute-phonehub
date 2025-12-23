@@ -29,11 +29,12 @@ export interface UpdateCategoryRequest {
 export interface CategoryResponse {
   id: number;
   name: string;
+  description?: string | null;
   parentId: number | null;
-  parentName?: string;
+  parentName?: string | null;
   hasChildren?: boolean;
-  childrenCount: number;  // Số lượng danh mục con
-  productCount: number;   // Số lượng sản phẩm
+  childrenCount: number;
+  productCount: number;
   createdAt: string;
   updatedAt: string;
 }
