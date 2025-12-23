@@ -1,11 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { useCartStore } from '@/store/cartStore';
 
 export function HeroBanner() {
+  const router = useRouter();
+  const { addItem } = useCartStore();
+
   return (
     <section className="bg-gradient-to-r from-[#0f172a] via-[#111827] to-[#0f172a] text-white">
       <div className="max-w-7xl mx-auto px-4 py-10 md:py-16">
@@ -29,7 +34,22 @@ export function HeroBanner() {
               </span>
             </div>
             <div className="flex gap-3">
-              <Button size="lg" className="gap-2 shadow-md hover:bg-primary-hover">
+              <Button
+                size="lg"
+                className="gap-2 shadow-md hover:bg-primary-hover"
+                onClick={() => {
+                  addItem({
+                    productId: 1, // Using mock ID for iPhone 15 Pro Max
+                    productName: 'iPhone 15 Pro Max',
+                    productImage: '📱',
+                    price: 32990000,
+                    quantity: 1,
+                    color: 'Titan',
+                    storage: '256GB'
+                  });
+                  router.push('/checkout');
+                }}
+              >
                 Mua ngay
                 <ChevronRight className="w-4 h-4" />
               </Button>

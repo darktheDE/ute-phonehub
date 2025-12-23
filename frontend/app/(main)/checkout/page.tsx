@@ -35,7 +35,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        const response = await userAPI.getCurrentUser();
+        const response = await userAPI.getMe();
         const user = response.data;
         setEmail(user.email || '');
         setRecipientName(user.fullName || '');
