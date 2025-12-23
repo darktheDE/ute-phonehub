@@ -16,3 +16,6 @@ export { AdminDashboard } from './AdminDashboard';
 export { CustomerProfile } from './CustomerProfile';
 export { CustomerAddresses } from './CustomerAddresses';
 export { CustomerWishlist } from './CustomerWishlist';
+export { CategoryManagement } from './CategoryManagement';
+export { CategoriesTable } from './CategoriesTable';
+export { CategoryForm } from './CategoryForm';

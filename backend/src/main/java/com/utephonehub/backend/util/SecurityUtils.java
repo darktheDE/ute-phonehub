@@ -34,6 +34,23 @@ public class SecurityUtils {
     }
 
     /**
+     * Tries to get the current user ID from the Authorization header.
+     * <p>
+     * Khác với {@link #getCurrentUserId(HttpServletRequest)} là method này
+     * KHÔNG ném ra exception nếu token không hợp lệ hoặc thiếu, mà sẽ trả về null.
+     *
+     * @param request the HTTP request containing the Authorization header
+     * @return the user ID if authenticated, or null if not authenticated/invalid token
+     */
+    public Long getUserIdIfAuthenticated(HttpServletRequest request) {
+        try {
+            return getCurrentUserId(request);
+        } catch (UnauthorizedException ex) {
+            return null;
+        }
+    }
+
+    /**
      * Extracts the JWT token from the Authorization header.
      *
      * @param request the HTTP request containing the Authorization header
@@ -48,16 +65,13 @@ public class SecurityUtils {
     }
 
     /**
-     * Validates the token and returns the user ID if valid.
-     *
-     * @param request the HTTP request containing the Authorization header
-     * @return the user ID if token is valid, null otherwise
+     * Get client IP address from request
      */
-    public Long getUserIdIfAuthenticated(HttpServletRequest request) {
-        String token = extractToken(request);
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            return jwtTokenProvider.getUserIdFromToken(token);
+    public String getClientIp(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-FORWARDED-FOR");
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            ipAddress = request.getRemoteAddr();
         }
-        return null;
+        return ipAddress;
     }
 }

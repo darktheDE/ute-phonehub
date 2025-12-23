@@ -28,6 +28,9 @@ export type { WishlistItem, WishlistState } from './wishlist';
 // Product types
 export type { Product, ProductResponse, TopProductResponse } from './product';
 
+// Category types
+export type { Category, CreateCategoryRequest, UpdateCategoryRequest, CategoryResponse } from './category';
+
 // Order types
 export type { Order, OrderResponse, OrderStatus, OrderItem, RecentOrderResponse } from './order';
 
