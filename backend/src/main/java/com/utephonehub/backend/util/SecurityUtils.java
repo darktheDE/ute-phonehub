@@ -57,4 +57,19 @@ public class SecurityUtils {
         }
         return ipAddress;
     }
+
+    /**
+     * Extracts the user ID from the Authorization header if authenticated.
+     * Returns null instead of throwing exception if not authenticated.
+     *
+     * @param request the HTTP request containing the Authorization header
+     * @return the user ID extracted from the JWT token, or null if not authenticated
+     */
+    public Long getUserIdIfAuthenticated(HttpServletRequest request) {
+        try {
+            return getCurrentUserId(request);
+        } catch (UnauthorizedException e) {
+            return null;
+        }
+    }
 }
