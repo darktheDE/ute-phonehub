@@ -18,6 +18,10 @@ import type {
   CategoryResponse,
   CreateCategoryRequest,
   UpdateCategoryRequest,
+  // Brand imports
+  BrandResponse,
+  CreateBrandRequest,
+  UpdateBrandRequest,
   // New Dashboard imports
   DashboardOverview,
   RevenueChartData,
@@ -302,7 +306,9 @@ export const adminAPI = {
   // Categories (admin management)
   // Note: GET endpoint is public (/api/v1/categories) - dùng chung cho client và admin
   getAllCategories: async (parentId?: number | null): Promise<ApiResponse<CategoryResponse[]>> => {
-    const query = Number.isInteger(parentId) && parentId > 0 ? `?parentId=${parentId}` : '';
+    const query = (parentId !== null && parentId !== undefined && Number.isInteger(parentId) && parentId > 0)
+      ? `?parentId=${parentId}`
+      : '';
     return fetchAPI<CategoryResponse[]>(`/categories${query}`, {
       method: 'GET',
     });
@@ -324,6 +330,34 @@ export const adminAPI = {
 
   deleteCategory: async (id: number): Promise<ApiResponse<null>> => {
     return fetchAPI<null>(`/admin/categories/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Brands (admin management)
+  // Note: GET endpoint is public (/api/v1/brands) - dùng chung cho client và admin
+  getAllBrands: async (): Promise<ApiResponse<BrandResponse[]>> => {
+    return fetchAPI<BrandResponse[]>('/brands', {
+      method: 'GET',
+    });
+  },
+
+  createBrand: async (data: CreateBrandRequest): Promise<ApiResponse<BrandResponse>> => {
+    return fetchAPI<BrandResponse>('/admin/brands', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateBrand: async (id: number, data: UpdateBrandRequest): Promise<ApiResponse<BrandResponse>> => {
+    return fetchAPI<BrandResponse>(`/admin/brands/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteBrand: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/brands/${id}`, {
       method: 'DELETE',
     });
   },
