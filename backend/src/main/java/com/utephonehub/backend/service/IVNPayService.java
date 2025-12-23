@@ -16,4 +16,9 @@ public interface IVNPayService {
      * Handle VNPay payment callback/return
      */
     PaymentResponse handleCallback(HttpServletRequest request);
+    
+    /**
+     * Get payment status without processing (for return URL)
+     */
+    PaymentResponse getPaymentStatus(String orderCode);
 }
