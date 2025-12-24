@@ -243,13 +243,35 @@ export function CategoryManagement() {
             <p className="text-muted-foreground mb-4">
               Bạn có chắc chắn muốn xóa danh mục <strong>{deleteConfirm.name}</strong>?
             </p>
-            {deleteConfirm.hasChildren && (
+            
+            {deleteConfirm.childrenCount > 0 ? (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
+                <p className="text-sm text-red-700 font-medium flex items-center gap-2">
+                  ⚠️ Không thể xóa!
+                </p>
+                <p className="text-sm text-red-600 mt-1">
+                  Danh mục này đang có <strong>{deleteConfirm.childrenCount}</strong> danh mục con. 
+                  Vui lòng xóa các danh mục con trước.
+                </p>
+              </div>
+            ) : deleteConfirm.productCount > 0 ? (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
+                <p className="text-sm text-red-700 font-medium flex items-center gap-2">
+                  ⚠️ Không thể xóa!
+                </p>
+                <p className="text-sm text-red-600 mt-1">
+                  Danh mục này đang có <strong>{deleteConfirm.productCount}</strong> sản phẩm liên kết. 
+                  Vui lòng xóa hoặc chuyển sản phẩm sang danh mục khác trước.
+                </p>
+              </div>
+            ) : (
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-4">
                 <p className="text-sm text-amber-700">
-                  ⚠️ Danh mục này có danh mục con. Vui lòng xóa các danh mục con trước.
+                  Hành động này không thể hoàn tác.
                 </p>
               </div>
             )}
+
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -262,7 +284,7 @@ export function CategoryManagement() {
               <Button
                 variant="destructive"
                 onClick={confirmDelete}
-                disabled={deleting}
+                disabled={deleting || deleteConfirm.childrenCount > 0 || deleteConfirm.productCount > 0}
                 className="flex-1"
               >
                 {deleting ? (

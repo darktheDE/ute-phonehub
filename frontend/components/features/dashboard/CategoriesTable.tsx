@@ -115,23 +115,22 @@ export function CategoriesTable({ categories, onEdit, onDelete, onAddChild }: Ca
           </td>
 
           {/* Children Count Column */}
-          <td className="py-3 px-4 hidden md:table-cell">
+          <td className="py-3 px-4 hidden md:table-cell text-center">
             <span className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full">
               {category.childrenCount || 0}
             </span>
           </td>
 
-          {/* Products Status Column */}
-          <td className="py-3 px-4 hidden lg:table-cell">
-            {(category.productCount || 0) > 0 ? (
-              <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full">
-                Có sản phẩm
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-600 text-xs font-semibold rounded-full">
-                Trống
-              </span>
-            )}
+          {/* Product Count Column */}
+          <td className="py-3 px-4 hidden lg:table-cell text-center">
+            <span className={cn(
+              "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+              (category.productCount || 0) > 0 
+                ? "bg-blue-50 text-blue-700" 
+                : "bg-gray-100 text-gray-600"
+            )}>
+              {category.productCount || 0}
+            </span>
           </td>
 
           {/* Actions */}
@@ -191,10 +190,10 @@ export function CategoriesTable({ categories, onEdit, onDelete, onAddChild }: Ca
                 <th className="text-left py-3 px-4 font-semibold text-muted-foreground">
                   Tên danh mục
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-muted-foreground hidden md:table-cell">
+                <th className="text-center py-3 px-4 font-semibold text-muted-foreground hidden md:table-cell">
                   Danh mục con
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-muted-foreground hidden lg:table-cell">
+                <th className="text-center py-3 px-4 font-semibold text-muted-foreground hidden lg:table-cell">
                   Sản phẩm
                 </th>
                 <th className="text-left py-3 px-4 font-semibold text-muted-foreground">
