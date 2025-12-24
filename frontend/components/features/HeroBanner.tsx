@@ -21,7 +21,7 @@ interface HeroBannerProps {
 export function HeroBanner({
   productId = 1,
   productName = 'iPhone 15 Pro Max',
-  productImage = '/images/products/iphone-15-pro-max.png',
+  productImage = '📱',
   description = 'Titan. Siêu nhẹ. Siêu bền. Giảm đến 2 triệu khi thu cũ đổi mới.',
   salePrice = 32990000,
   originalPrice = 34990000,

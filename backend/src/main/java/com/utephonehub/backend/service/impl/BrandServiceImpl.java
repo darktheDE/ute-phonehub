@@ -30,8 +30,14 @@ public class BrandServiceImpl implements IBrandService {
     public List<BrandResponse> getAllBrands() {
         log.info("Getting all brands");
         List<Brand> brands = brandRepository.findAllByOrderByNameAsc();
+        
         return brands.stream()
-                .map(BrandResponse::fromEntity)
+                .map(brand -> {
+                    BrandResponse response = BrandResponse.fromEntity(brand);
+                    // Set product count for each brand
+                    response.setProductCount(productRepository.countByBrandIdAndIsDeletedFalse(brand.getId()));
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -41,7 +47,11 @@ public class BrandServiceImpl implements IBrandService {
         log.info("Getting brand by id: {}", id);
         Brand brand = brandRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Thương hiệu không tồn tại với ID: " + id));
-        return BrandResponse.fromEntity(brand);
+        
+        BrandResponse response = BrandResponse.fromEntity(brand);
+        response.setProductCount(productRepository.countByBrandIdAndIsDeletedFalse(id));
+        
+        return response;
     }
 
     @Override
@@ -63,7 +73,10 @@ public class BrandServiceImpl implements IBrandService {
 
         brand = brandRepository.save(brand);
         log.info("Created brand successfully with id: {}", brand.getId());
-        return BrandResponse.fromEntity(brand);
+        
+        BrandResponse response = BrandResponse.fromEntity(brand);
+        response.setProductCount(0L); // New brand has no products
+        return response;
     }
 
     @Override
@@ -88,7 +101,9 @@ public class BrandServiceImpl implements IBrandService {
         brand = brandRepository.save(brand);
         log.info("Updated brand successfully with id: {}", brand.getId());
 
-        return BrandResponse.fromEntity(brand);
+        BrandResponse response = BrandResponse.fromEntity(brand);
+        response.setProductCount(productRepository.countByBrandIdAndIsDeletedFalse(id));
+        return response;
     }
 
     @Override
@@ -101,10 +116,10 @@ public class BrandServiceImpl implements IBrandService {
                 .orElseThrow(() -> new ResourceNotFoundException("Thương hiệu không tồn tại với ID: " + id));
 
         // Check if brand has products linked
-        boolean hasProducts = productRepository.existsByBrandId(id);
-        if (hasProducts) {
+        long productCount = productRepository.countByBrandIdAndIsDeletedFalse(id);
+        if (productCount > 0) {
             throw new BadRequestException(
-                    "Không thể xóa thương hiệu. Thương hiệu đang chứa sản phẩm");
+                    "Không thể xóa thương hiệu. Thương hiệu đang có " + productCount + " sản phẩm liên kết");
         }
 
         // Delete brand
