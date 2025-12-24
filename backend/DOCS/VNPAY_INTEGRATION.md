@@ -34,7 +34,7 @@ vnpay:
   url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
   tmn-code: YOUR_TMN_CODE        # Thay bằng mã của bạn
   hash-secret: YOUR_HASH_SECRET  # Thay bằng secret của bạn
-  return-url: http://localhost:8081/api/payments/vnpay/return
+  return-url: http://localhost:8081/api/v1/payments/vnpay/return
 ```
 
 **HOẶC** set biến môi trường:
@@ -52,7 +52,7 @@ services:
     environment:
       - VNPAY_TMN_CODE=YOUR_TMN_CODE
       - VNPAY_HASH_SECRET=YOUR_HASH_SECRET
-      - VNPAY_RETURN_URL=http://localhost:8081/api/payments/vnpay/return
+      - VNPAY_RETURN_URL=http://localhost:8081/api/v1/payments/vnpay/return
 ```
 
 ---
@@ -61,7 +61,7 @@ services:
 
 ### 1. Tạo Payment URL (Frontend call)
 ```http
-POST /api/payments/vnpay/create
+POST /api/v1/payments/vnpay/create
 Content-Type: application/json
 Authorization: Bearer <token>
 
@@ -88,19 +88,19 @@ Authorization: Bearer <token>
 
 ### 2. VNPay Callback (VNPay server call)
 ```http
-GET /api/payments/vnpay/callback?vnp_Amount=...&vnp_ResponseCode=00&...
+GET /api/v1/payments/vnpay/callback?vnp_Amount=...&vnp_ResponseCode=00&...
 ```
 
 ### 3. VNPay Return (User redirect)
 ```http
-GET /api/payments/vnpay/return?vnp_Amount=...&vnp_ResponseCode=00&...
+GET /api/v1/payments/vnpay/return?vnp_Amount=...&vnp_ResponseCode=00&...
 ```
 → Redirect về frontend: `http://localhost:3000/payment-result?orderId=123&status=SUCCESS`
 
 ### 4. Lấy thông tin Payment
 ```http
-GET /api/payments/order/{orderId}
-GET /api/payments/{paymentId}
+GET /api/v1/payments/order/{orderId}
+GET /api/v1/payments/{paymentId}
 ```
 
 ---
@@ -115,7 +115,7 @@ GET /api/payments/{paymentId}
    → Order status = WAITING_PAYMENT
 
 2. Customer request payment URL
-   POST /api/payments/vnpay/create
+   POST /api/v1/payments/vnpay/create
    → Nhận paymentUrl
 
 3. Frontend redirect user đến VNPay
@@ -124,12 +124,12 @@ GET /api/payments/{paymentId}
 4. User thanh toán trên VNPay
 
 5. VNPay callback (IPN)
-   GET /api/payments/vnpay/callback
+   GET /api/v1/payments/vnpay/callback
    → Lưu Payment record
    → Update Order status = CONFIRMED (nếu success)
 
 6. VNPay redirect user về
-   GET /api/payments/vnpay/return
+   GET /api/v1/payments/vnpay/return
    → Redirect về frontend với kết quả
 
 7. Frontend hiển thị kết quả
@@ -163,7 +163,7 @@ POST /api/orders
 
 2. **Tạo Payment URL:**
 ```json
-POST /api/payments/vnpay/create
+POST /api/v1/payments/vnpay/create
 {
   "orderId": 1,
   "amount": 32990000,
@@ -190,7 +190,7 @@ POST /api/payments/vnpay/create
 ```typescript
 // 1. Sau khi tạo order thành công, gọi create payment
 const createPayment = async (orderId: number, amount: number) => {
-  const response = await fetch('/api/payments/vnpay/create', {
+  const response = await fetch('/api/v1/payments/vnpay/create', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
