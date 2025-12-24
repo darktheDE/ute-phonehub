@@ -42,13 +42,7 @@ public class SecurityUtils {
      * @param request the HTTP request containing the Authorization header
      * @return the user ID if authenticated, or null if not authenticated/invalid token
      */
-    public Long getUserIdIfAuthenticated(HttpServletRequest request) {
-        try {
-            return getCurrentUserId(request);
-        } catch (UnauthorizedException ex) {
-            return null;
-        }
-    }
+    // Note: implementation below uses token extraction and validation directly.
 
     /**
      * Extracts the JWT token from the Authorization header.

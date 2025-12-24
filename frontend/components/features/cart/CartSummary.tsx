@@ -8,6 +8,7 @@ import { promotionAPI } from '@/lib/api';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { Promotion } from '@/types/api-cart';
+import initPromotions from '@/lib/initPromotions';
 
 interface CartSummaryProps {
   totalItems: number;
@@ -21,6 +22,7 @@ export function CartSummary({ totalItems, totalPrice, onCheckout }: CartSummaryP
   const [applied, setApplied] = useState<null | { id: string; code: string; title?: string }>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isApplying, setIsApplying] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(false);
 
   const getErrorMessage = (err: unknown) => {
     if (err instanceof Error) return err.message;
@@ -117,6 +119,11 @@ export function CartSummary({ totalItems, totalPrice, onCheckout }: CartSummaryP
 
           {/* Discount code input */}
           <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">Có {initPromotions.filter((p: any) => p.status === 'ACTIVE').length} voucher</div>
+              <Button variant="ghost" size="sm" onClick={() => setShowPromoModal(true)}>Xem voucher</Button>
+            </div>
+            
             {applied ? (
               <div className="flex items-center justify-between gap-3 p-3 bg-yellow-50 rounded-md">
                 <div>
@@ -142,6 +149,47 @@ export function CartSummary({ totalItems, totalPrice, onCheckout }: CartSummaryP
               </div>
             )}
           </div>
+
+          {/* Promotions modal (simple) */}
+          {showPromoModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setShowPromoModal(false)} />
+              <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold">Voucher có sẵn</h3>
+                  <button className="text-sm text-gray-600" onClick={() => setShowPromoModal(false)}>Đóng</button>
+                </div>
+                <div className="space-y-2 max-h-72 overflow-auto">
+                  {initPromotions.filter((p: any) => p.status === 'ACTIVE').map((p: any) => (
+                    <div key={String(p.id)} className="p-3 rounded-md bg-gray-50 flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{p.title}</div>
+                        <div className="text-sm text-gray-600">{p.description}</div>
+                        <div className="text-xs text-gray-500">Điều kiện: từ {(p.min_value_to_be_applied ?? 0).toLocaleString('vi-VN')}₫</div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        {p.percent_discount ? (
+                          <div className="font-bold text-red-600">-{p.percent_discount}%</div>
+                        ) : p.fixed_amount ? (
+                          <div className="font-bold text-red-600">-{p.fixed_amount.toLocaleString('vi-VN')}₫</div>
+                        ) : (
+                          <div className="text-sm text-gray-600">Xem</div>
+                        )}
+                        <div className="mt-2">
+                          <Button size="sm" onClick={async () => {
+                            setCode(String(p.id ?? p.code ?? ''));
+                            setShowPromoModal(false);
+                            // small delay to ensure code state is set
+                            setTimeout(() => { void handleApply(); }, 50);
+                          }}>Áp dụng</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Phí vận chuyển</span>
@@ -176,7 +224,7 @@ export function CartSummary({ totalItems, totalPrice, onCheckout }: CartSummaryP
             onClick={onCheckout}
             disabled={totalItems === 0}
           >
-            Tiến hành thanh toán
+            Đặt hàng
           </Button>
         </CardContent>
       </Card>

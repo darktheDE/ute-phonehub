@@ -167,15 +167,19 @@ export default function CartPage() {
           try {
             await cartAPI.removeCartItem(it.id);
           } catch (e) {
-            // on failure, restore
+            // on failure, restore only this item
             const current = useCartStore.getState().items;
             useCartStore.getState().setItems([it, ...current]);
             throw e;
           }
         },
         () => {
-          const current = useCartStore.getState().items;
-          useCartStore.getState().setItems([...itemsToDelete, ...current]);
+          try {
+            const current = useCartStore.getState().items;
+            useCartStore.getState().setItems([it, ...current]);
+          } catch (e) {
+            console.error('Failed to restore deleted item after undo:', e);
+          }
         }
       );
     });
@@ -298,10 +302,26 @@ export default function CartPage() {
                 totalItems={totalItems}
                 totalPrice={totalPrice}
                 onCheckout={handleCheckout}
+                compact
               />
             </div>
           </div>
         </div>
+
+        {/* Mobile floating CTA */}
+        {totalItems > 0 && (
+          <div className="sm:hidden fixed bottom-4 left-0 right-0 px-4">
+            <div className="max-w-3xl mx-auto">
+              <button
+                onClick={handleCheckout}
+                aria-label={`Đặt hàng`}
+                className="w-full h-12 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg font-semibold shadow-lg"
+              >
+                {`Đặt hàng`}
+              </button>
+            </div>
+          </div>
+        )}
         {/* Confirm dialogs */}
         <ConfirmDialog
           open={showClearConfirm}
