@@ -269,12 +269,27 @@ export default function CheckoutPage() {
               {items.map((item) => (
                 <div key={item.id} className="flex gap-3 pb-3 border-b border-border last:border-0">
                   <div className="relative h-16 w-16 rounded-md overflow-hidden bg-secondary flex-shrink-0">
-                    {item.productImage ? (
+                    {item.productImage && (item.productImage.startsWith('http') || item.productImage.startsWith('/images')) ? (
                       <img
                         src={item.productImage}
                         alt={item.productName}
                         className="object-cover w-full h-full"
+                        onError={(e) => {
+                          // Fallback to icon if image fails to load
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLElement).parentElement;
+                          if (parent && !parent.querySelector('.fallback-icon')) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'fallback-icon flex items-center justify-center h-full';
+                            fallback.innerHTML = '<svg class="h-8 w-8 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>';
+                            parent.appendChild(fallback);
+                          }
+                        }}
                       />
+                    ) : item.productImage && item.productImage.length <= 4 ? (
+                      <div className="flex items-center justify-center h-full text-3xl">
+                        {item.productImage}
+                      </div>
                     ) : (
                       <div className="flex items-center justify-center h-full">
                         <Package className="h-8 w-8 text-muted-foreground" />
