@@ -18,6 +18,7 @@ import {
   MapPin,
   Bell,
   FolderTree,
+  Tag,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -30,12 +31,13 @@ import {
   ProductsTable,
   UsersTable,
   CategoryManagement,
+  BrandManagement,
 } from '@/components/features/dashboard';
 import { Sidebar } from '@/components/features/layout/Sidebar';
 import { useOrders, useUsers } from '@/hooks';
 import { MOCK_PRODUCTS, MOCK_ORDERS } from '@/lib/mockData';
 
-type TabType = 'dashboard' | 'orders' | 'products' | 'categories' | 'users' | 'profile' | 'addresses' | 'wishlist';
+type TabType = 'dashboard' | 'orders' | 'products' | 'categories' | 'brands' | 'users' | 'profile' | 'addresses' | 'wishlist';
 
 export default function ManagePage() {
   const router = useRouter();
@@ -64,6 +66,7 @@ export default function ManagePage() {
     { id: 'orders' as TabType, label: 'Đơn hàng', icon: ShoppingCart },
     { id: 'products' as TabType, label: 'Sản phẩm', icon: Package },
     { id: 'categories' as TabType, label: 'Danh mục', icon: FolderTree },
+    { id: 'brands' as TabType, label: 'Thương hiệu', icon: Tag },
     { id: 'users' as TabType, label: 'Người dùng', icon: Users },
   ];
 
@@ -149,7 +152,6 @@ export default function ManagePage() {
             <h2 className="text-xl font-bold text-foreground">
               {activeTab === 'dashboard' && 'Dashboard'}
               {activeTab === 'products' && 'Quản lý sản phẩm'}
-              {activeTab === 'categories' && 'Quản lý danh mục'}
               {activeTab === 'orders' && (isAdmin ? 'Quản lý đơn hàng' : 'Đơn hàng của tôi')}
               {activeTab === 'users' && 'Quản lý người dùng'}
               {activeTab === 'profile' && 'Thông tin cá nhân'}
@@ -182,6 +184,9 @@ export default function ManagePage() {
 
           {/* Categories Management (Admin Only) */}
           {activeTab === 'categories' && isAdmin && <CategoryManagement />}
+
+          {/* Brands Management (Admin Only) */}
+          {activeTab === 'brands' && isAdmin && <BrandManagement />}
 
           {/* Orders */}
           {activeTab === 'orders' && (

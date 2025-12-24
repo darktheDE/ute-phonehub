@@ -31,6 +31,9 @@ export type { Product, ProductResponse, TopProductResponse } from './product';
 // Category types
 export type { Category, CreateCategoryRequest, UpdateCategoryRequest, CategoryResponse } from './category';
 
+// Brand types
+export type { Brand, BrandResponse, CreateBrandRequest, UpdateBrandRequest } from './brand';
+
 // Order types
 export type { 
   Order, 
