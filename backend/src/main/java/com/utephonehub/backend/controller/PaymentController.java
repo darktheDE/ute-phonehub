@@ -79,6 +79,16 @@ public class PaymentController {
         log.info("Received VNPay return");
         
         try {
+            // FOR DEVELOPMENT: Simulate callback processing since VNPay can't reach localhost
+            // In production, VNPay will call the callback URL directly
+            try {
+                log.info("Simulating VNPay callback for development environment");
+                vnPayService.handleCallback(request);
+            } catch (Exception callbackError) {
+                log.error("Error simulating callback", callbackError);
+                // Continue even if callback fails, let frontend handle the display
+            }
+            
             // Get all VNPay params to forward to frontend
             String vnp_TxnRef = request.getParameter("vnp_TxnRef");
             String vnp_ResponseCode = request.getParameter("vnp_ResponseCode");
@@ -87,7 +97,7 @@ public class PaymentController {
             String vnp_BankCode = request.getParameter("vnp_BankCode");
             
             // Build frontend URL with all params using configured URL
-            String paymentReturnUrl = frontendUrl + "/payment/return";
+            String paymentReturnUrl = frontendUrl + "/payment/vnpay-return";
             StringBuilder redirectUrl = new StringBuilder(paymentReturnUrl);
             redirectUrl.append("?vnp_TxnRef=").append(vnp_TxnRef != null ? vnp_TxnRef : "");
             redirectUrl.append("&vnp_ResponseCode=").append(vnp_ResponseCode != null ? vnp_ResponseCode : "");
@@ -101,7 +111,7 @@ public class PaymentController {
         } catch (Exception e) {
             log.error("Error processing payment return", e);
             // Fallback: redirect to frontend with error using configured URL
-            response.sendRedirect(frontendUrl + "/payment/return?vnp_ResponseCode=99");
+            response.sendRedirect(frontendUrl + "/payment/vnpay-return?vnp_ResponseCode=99");
         }
     }
     
