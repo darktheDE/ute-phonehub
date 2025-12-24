@@ -218,12 +218,23 @@ public class VNPayServiceImpl implements IVNPayService {
             throw new BadRequestException("Invalid payment signature");
         }
         
-        // 8. Update payment and order status based on VNPay response
+        // 8. CHỈ XỬ LÝ NÊU ĐƠN HÀNG CHƯA ĐƯỢC CONFIRMED (Tránh trừ tồn kho 2 lần)
+        if (order.getStatus() == OrderStatus.CONFIRMED) {
+            log.info("Order {} already confirmed. Skipping payment processing to avoid duplicate stock deduction.", order.getOrderCode());
+            // Chỉ cập nhật payment record nếu chưa có transaction ID
+            if (payment.getTransactionId() == null || payment.getTransactionId().isEmpty()) {
+                payment.setTransactionId(vnpTransactionNo);
+                paymentRepository.save(payment);
+            }
+            return paymentMapper.toPaymentResponse(payment);
+        }
+        
+        // 8.1. Update payment and order status based on VNPay response
         if ("00".equals(vnpResponseCode) && "00".equals(vnpTransactionStatus)) {
             // Payment successful
             payment.setStatus(PaymentStatus.SUCCESS);
             
-            // 8.1. Validate stock availability before confirming
+            // 8.2. Validate stock availability before confirming
             // Stock is at ProductTemplate level, calculate total available stock per product
             boolean allStockAvailable = true;
             for (var orderItem : order.getItems()) {
@@ -280,7 +291,7 @@ public class VNPayServiceImpl implements IVNPayService {
         paymentRepository.save(payment);
         orderRepository.save(order);
         
-        // 8.1. LƯU CALLBACK LOG SAU KHI PAYMENT ĐÃ CÓ ID (Audit trail)
+        // 9. LƯU CALLBACK LOG SAU KHI PAYMENT ĐÃ CÓ ID (Audit trail)
         try {
             PaymentCallbackLog callbackLog = PaymentCallbackLog.builder()
                     .payment(payment)
@@ -298,7 +309,25 @@ public class VNPayServiceImpl implements IVNPayService {
             // Không throw exception để không ảnh hưởng flow chính
         }
         
-        // 9. Return payment response
+        // 10. Return payment response
+        return paymentMapper.toPaymentResponse(payment);
+    }
+    
+    /**
+     * Get payment status without processing (for return URL)
+     * This method only queries existing payment status without triggering any business logic
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse getPaymentStatus(String orderCode) {
+        log.info("Getting payment status for order: {}", orderCode);
+        
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with code: " + orderCode));
+        
+        Payment payment = paymentRepository.findByOrderId(order.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found for order: " + orderCode));
+        
         return paymentMapper.toPaymentResponse(payment);
     }
     

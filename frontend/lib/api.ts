@@ -9,9 +9,14 @@ import type {
   VerifyOtpRequest,
   Product,
   ProductResponse,
+  ProductImage,
+  CreateProductRequest,
+  UpdateProductRequest,
   Order,
   OrderResponse,
   RecentOrderResponse,
+  CreateOrderRequest,
+  CreateOrderResponse,
   DashboardOverviewResponse,
   TopProductResponse,
   // Category imports
@@ -28,6 +33,11 @@ import type {
   LowStockProduct,
   DashboardPeriod,
   RegistrationPeriod,
+  // Payment imports
+  PaymentResponse,
+  VNPayPaymentResponse,
+  CreatePaymentRequest,
+  PaymentHistoryResponse,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
@@ -121,15 +131,22 @@ async function fetchAPI<T>(
 
     if (!response.ok || !data.success) {
       // Log more details for debugging
-      console.error('API Error Details:', {
+      console.error('🚨 API Error Details:', {
         url,
         status: response.status,
         statusText: response.statusText,
         data,
       });
+      console.error('📋 Full Error Data:', JSON.stringify(data, null, 2));
       
       const errorMessage = data?.message || data?.error || `HTTP error! status: ${response.status}`;
-      throw new Error(errorMessage);
+      
+      // Create error with validation data attached
+      const error: any = new Error(errorMessage);
+      if (data?.data) {
+        error.data = data.data; // Validation errors from backend
+      }
+      throw error;
     }
 
     return data;
@@ -221,6 +238,29 @@ export const healthCheck = async (): Promise<ApiResponse<any>> => {
 // Note: Public product endpoints don't exist yet, so using mock data in components
 // Only keeping admin endpoints that exist
 export const productAPI = {
+  // Create new product
+  create: async (data: CreateProductRequest): Promise<ApiResponse<Product>> => {
+    return fetchAPI<Product>('/admin/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Get product by ID (includes images)
+  getById: async (id: number): Promise<ApiResponse<Product>> => {
+    return fetchAPI<Product>(`/products/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  // Update product
+  update: async (id: number, data: Partial<UpdateProductRequest>): Promise<ApiResponse<Product>> => {
+    return fetchAPI<Product>(`/admin/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Get low stock products (for admin dashboard)
   // This endpoint exists: GET /api/v1/admin/dashboard/low-stock-products
   getLowStockProducts: async (threshold: number = 20): Promise<ApiResponse<any[]>> => {
@@ -228,10 +268,43 @@ export const productAPI = {
       method: 'GET',
     });
   },
+
+  // Get product images
+  getImages: async (productId: number): Promise<ApiResponse<ProductImage[]>> => {
+    return fetchAPI<ProductImage[]>(`/admin/products/${productId}/images`, {
+      method: 'GET',
+    });
+  },
+
+  // Delete product image
+  deleteImage: async (productId: number, imageId: number): Promise<ApiResponse<void>> => {
+    return fetchAPI<void>(`/admin/products/${productId}/images/${imageId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Upload product image
+  uploadImage: async (productId: number, imageData: any): Promise<ApiResponse<ProductImage>> => {
+    return fetchAPI<ProductImage>(`/admin/products/${productId}/images`, {
+      method: 'POST',
+      body: JSON.stringify(imageData),
+    });
+  },
 };
 
 // Order API endpoints
 export const orderAPI = {
+  /**
+   * POST /api/v1/orders
+   * Tạo đơn hàng mới
+   */
+  createOrder: async (data: CreateOrderRequest): Promise<ApiResponse<CreateOrderResponse>> => {
+    return fetchAPI<CreateOrderResponse>('/orders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Get order by ID
   getById: async (orderId: number): Promise<ApiResponse<OrderResponse>> => {
     return fetchAPI<OrderResponse>(`/orders/${orderId}`, {
@@ -283,18 +356,30 @@ export const adminAPI = {
   },
 
   // Products (admin management)
-  // Note: Using low-stock-products endpoint as fallback since ProductController doesn't exist
-  // TODO: Backend needs to add ProductController with GET /api/v1/admin/products endpoint
   getAllProducts: async (params?: {
     page?: number;
     size?: number;
+    keyword?: string;
     categoryId?: number;
     brandId?: number;
-    search?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sortBy?: string;
+    sortDirection?: string;
   }): Promise<ApiResponse<any>> => {
-    // For now, use low-stock-products endpoint as a workaround
-    // This will return products but only low stock ones
-    return fetchAPI<any>('/admin/dashboard/low-stock-products?threshold=1000', {
+    const queryParams = new URLSearchParams();
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size !== undefined) queryParams.append('size', params.size.toString());
+    if (params?.keyword) queryParams.append('keyword', params.keyword);
+    if (params?.categoryId) queryParams.append('categoryId', params.categoryId.toString());
+    if (params?.brandId) queryParams.append('brandId', params.brandId.toString());
+    if (params?.minPrice !== undefined) queryParams.append('minPrice', params.minPrice.toString());
+    if (params?.maxPrice !== undefined) queryParams.append('maxPrice', params.maxPrice.toString());
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+    
+    const query = queryParams.toString();
+    return fetchAPI<any>(`/admin/products${query ? `?${query}` : ''}`, {
       method: 'GET',
     });
   },
@@ -324,6 +409,20 @@ export const adminAPI = {
 
   deleteCategory: async (id: number): Promise<ApiResponse<null>> => {
     return fetchAPI<null>(`/admin/categories/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Brands (admin management)
+  getAllBrands: async (): Promise<ApiResponse<any[]>> => {
+    return fetchAPI<any[]>('/brands', {
+      method: 'GET',
+    });
+  },
+
+  // Product operations
+  deleteProduct: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/products/${id}`, {
       method: 'DELETE',
     });
   },
@@ -409,3 +508,84 @@ export const dashboardAPI = {
     });
   },
 };
+
+/**
+ * Payment API
+ * Endpoints cho module thanh toán (M06)
+ * Base URL: /api/payments
+ */
+export const paymentAPI = {
+  /**
+   * POST /api/payments/vnpay/create
+   * Tạo URL thanh toán VNPay
+   * @param request - Thông tin tạo thanh toán
+   * @returns VNPayPaymentResponse chứa paymentUrl
+   */
+  createVNPayUrl: async (request: CreatePaymentRequest): Promise<ApiResponse<VNPayPaymentResponse>> => {
+    return fetchAPI<VNPayPaymentResponse>('/payments/vnpay/create', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  /**
+   * GET /api/payments/history?page=0&size=10
+   * Lấy lịch sử thanh toán của user hiện tại
+   * @param page - Số trang (bắt đầu từ 0)
+   * @param size - Số lượng items mỗi trang
+   * @returns PaymentHistoryResponse
+   */
+  getPaymentHistory: async (page: number = 0, size: number = 10): Promise<ApiResponse<PaymentHistoryResponse>> => {
+    return fetchAPI<PaymentHistoryResponse>(`/payments/history?page=${page}&size=${size}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/payments/{id}
+   * Lấy chi tiết một payment
+   * @param id - Payment ID
+   * @returns PaymentResponse
+   */
+  getPaymentDetail: async (id: number): Promise<ApiResponse<PaymentResponse>> => {
+    return fetchAPI<PaymentResponse>(`/payments/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/payments/vnpay/callback
+   * Xử lý callback từ VNPay sau khi thanh toán
+   * @param queryParams - Query parameters từ VNPay
+   * @returns PaymentResponse với status đã cập nhật
+   */
+  handleVNPayCallback: async (queryParams: Record<string, string>): Promise<ApiResponse<PaymentResponse>> => {
+    const params = new URLSearchParams(queryParams).toString();
+    return fetchAPI<PaymentResponse>(`/payments/vnpay/callback?${params}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/payments/order/{orderId}
+   * Kiểm tra trạng thái payment của một đơn hàng
+   * @param orderId - Order ID
+   * @returns PaymentResponse
+   */
+  checkPaymentStatus: async (orderId: number): Promise<ApiResponse<PaymentResponse>> => {
+    return fetchAPI<PaymentResponse>(`/payments/order/${orderId}`, {
+      method: 'GET',
+    });
+  },
+};
+
+// ==================== HELPER EXPORTS ====================
+// Top-level exports for convenience
+export const createProduct = productAPI.create;
+export const updateProduct = productAPI.update;
+export const getProductById = productAPI.getById;
+export const getProductImages = productAPI.getImages;
+export const deleteProductImage = productAPI.deleteImage;
+export const uploadProductImage = productAPI.uploadImage;
+export const getAllCategories = adminAPI.getAllCategories;
+export const getAllBrands = adminAPI.getAllBrands;
