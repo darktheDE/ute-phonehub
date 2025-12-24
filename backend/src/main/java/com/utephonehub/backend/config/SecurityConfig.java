@@ -55,7 +55,7 @@ public class SecurityConfig {
                 ).permitAll()
                 // Cho phép VNPay endpoints
                 .requestMatchers(
-                    "/api/payments/**"
+                    "/api/v1/payments/**"
                 ).permitAll()
                 // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
                 .requestMatchers(

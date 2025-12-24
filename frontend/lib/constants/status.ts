@@ -82,3 +82,52 @@ export const getOrderStatus = (status: string | OrderStatus): StatusConfig => {
 export const getUserStatus = (status: UserStatus): StatusConfig => {
   return USER_STATUS[status];
 };
+
+/**
+ * Status configurations for payments
+ */
+
+export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
+
+export const PAYMENT_STATUS: Record<PaymentStatus, StatusConfig> = {
+  PENDING: {
+    label: 'Chờ thanh toán',
+    class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+  },
+  SUCCESS: {
+    label: 'Thành công',
+    class: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  },
+  FAILED: {
+    label: 'Thất bại',
+    class: 'bg-destructive/15 text-destructive dark:bg-destructive/20',
+  },
+  CANCELLED: {
+    label: 'Đã hủy',
+    class: 'bg-secondary text-foreground/80 dark:bg-secondary text-foreground/80',
+  },
+} as const;
+
+/**
+ * Helper function to get payment status configuration
+ */
+export const getPaymentStatus = (status: string | PaymentStatus): StatusConfig => {
+  const normalizedStatus = status.toUpperCase() as PaymentStatus;
+  return PAYMENT_STATUS[normalizedStatus] || PAYMENT_STATUS.PENDING;
+};
+
+/**
+ * Payment method labels
+ */
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  COD: 'Tiền mặt',
+  VNPAY: 'VNPay',
+  BANK_TRANSFER: 'Chuyển khoản',
+} as const;
+
+/**
+ * Helper function to get payment method label
+ */
+export const getPaymentMethodLabel = (method: string): string => {
+  return PAYMENT_METHOD_LABELS[method] || method;
+};

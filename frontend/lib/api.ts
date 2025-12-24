@@ -12,12 +12,18 @@ import type {
   Order,
   OrderResponse,
   RecentOrderResponse,
+  CreateOrderRequest,
+  CreateOrderResponse,
   DashboardOverviewResponse,
   TopProductResponse,
   // Category imports
   CategoryResponse,
   CreateCategoryRequest,
   UpdateCategoryRequest,
+  // Brand imports
+  BrandResponse,
+  CreateBrandRequest,
+  UpdateBrandRequest,
   // New Dashboard imports
   DashboardOverview,
   RevenueChartData,
@@ -28,6 +34,11 @@ import type {
   LowStockProduct,
   DashboardPeriod,
   RegistrationPeriod,
+  // Payment imports
+  PaymentResponse,
+  VNPayPaymentResponse,
+  CreatePaymentRequest,
+  PaymentHistoryResponse,
 } from '@/types';
 
 // Cart & Promotion API response types
@@ -279,6 +290,17 @@ export const productAPI = {
 
 // Order API endpoints
 export const orderAPI = {
+  /**
+   * POST /api/v1/orders
+   * Tạo đơn hàng mới
+   */
+  createOrder: async (data: CreateOrderRequest): Promise<ApiResponse<CreateOrderResponse>> => {
+    return fetchAPI<CreateOrderResponse>('/orders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Get order by ID
   getById: async (orderId: number): Promise<ApiResponse<OrderResponse>> => {
     return fetchAPI<OrderResponse>(`/orders/${orderId}`, {
@@ -371,6 +393,34 @@ export const adminAPI = {
 
   deleteCategory: async (id: number): Promise<ApiResponse<null>> => {
     return fetchAPI<null>(`/admin/categories/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Brands (admin management)
+  // Note: GET endpoint is public (/api/v1/brands) - dùng chung cho client và admin
+  getAllBrands: async (): Promise<ApiResponse<BrandResponse[]>> => {
+    return fetchAPI<BrandResponse[]>('/brands', {
+      method: 'GET',
+    });
+  },
+
+  createBrand: async (data: CreateBrandRequest): Promise<ApiResponse<BrandResponse>> => {
+    return fetchAPI<BrandResponse>('/admin/brands', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateBrand: async (id: number, data: UpdateBrandRequest): Promise<ApiResponse<BrandResponse>> => {
+    return fetchAPI<BrandResponse>(`/admin/brands/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteBrand: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/brands/${id}`, {
       method: 'DELETE',
     });
   },

@@ -19,3 +19,6 @@ export { CustomerWishlist } from './CustomerWishlist';
 export { CategoryManagement } from './CategoryManagement';
 export { CategoriesTable } from './CategoriesTable';
 export { CategoryForm } from './CategoryForm';
+export { BrandManagement } from './BrandManagement';
+export { BrandsTable } from './BrandsTable';
+export { BrandForm } from './BrandForm';

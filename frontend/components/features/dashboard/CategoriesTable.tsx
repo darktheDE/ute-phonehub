@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Edit, Trash2, ChevronRight, ChevronDown, Folder, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { adminAPI } from '@/lib/api';
@@ -21,12 +21,64 @@ interface CategoriesTableProps {
   onEdit: (category: CategoryResponse) => void;
   onDelete: (category: CategoryResponse) => void;
   onAddChild: (parentCategory: CategoryResponse) => void;
+  searchQuery?: string;
+  searchMatches?: Set<number>;
 }
 
-export function CategoriesTable({ categories, onEdit, onDelete, onAddChild }: CategoriesTableProps) {
+export function CategoriesTable({ categories, onEdit, onDelete, onAddChild, searchQuery, searchMatches }: CategoriesTableProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [childrenCache, setChildrenCache] = useState<Map<number, CategoryResponse[]>>(new Map());
   const [loadingChildren, setLoadingChildren] = useState<Set<number>>(new Set());
+  const previousSearchQuery = useRef<string>('');
+
+  // Auto-expand parent categories when search has results
+  useEffect(() => {
+    // Only run when search query actually changes
+    if (previousSearchQuery.current === searchQuery) {
+      return;
+    }
+    previousSearchQuery.current = searchQuery || '';
+
+    if (searchQuery && searchMatches && searchMatches.size > 0) {
+      const parentsToExpand = new Set<number>();
+      
+      // Find parent categories that have matching children
+      categories.forEach(cat => {
+        if (cat.hasChildren) {
+          // Check if any children match (not the parent itself)
+          const hasMatchingChild = Array.from(searchMatches).some(matchId => {
+            // Find if this match is a child of current category
+            return matchId !== cat.id; // Exclude parent itself
+          });
+          
+          if (hasMatchingChild) {
+            parentsToExpand.add(cat.id);
+          }
+        }
+      });
+
+      // Auto-expand and load children for parents with matching results
+      if (parentsToExpand.size > 0) {
+        parentsToExpand.forEach(async (catId) => {
+          if (!childrenCache.has(catId)) {
+            try {
+              const response = await adminAPI.getAllCategories(catId);
+              if (response.success && response.data) {
+                setChildrenCache(prev => new Map(prev).set(catId, response.data));
+              }
+            } catch (err) {
+              console.error('Error loading children:', err);
+            }
+          }
+        });
+
+        setExpandedCategories(parentsToExpand);
+      }
+    } else if (!searchQuery) {
+      // Collapse all when search is cleared
+      setExpandedCategories(new Set());
+    }
+  }, [searchQuery, searchMatches, categories, childrenCache]);
 
   const toggleExpand = async (categoryId: number) => {
     const isExpanded = expandedCategories.has(categoryId);
@@ -108,30 +160,32 @@ export function CategoriesTable({ categories, onEdit, onDelete, onAddChild }: Ca
               )}
 
               {/* Category name */}
-              <span className="font-medium text-sm md:text-base truncate">
+              <span className={cn(
+                "font-medium text-sm md:text-base truncate",
+                searchMatches && searchMatches.has(category.id) && "bg-yellow-100 text-yellow-900 px-1 rounded"
+              )}>
                 {category.name}
               </span>
             </div>
           </td>
 
           {/* Children Count Column */}
-          <td className="py-3 px-4 hidden md:table-cell">
+          <td className="py-3 px-4 hidden md:table-cell text-center">
             <span className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full">
               {category.childrenCount || 0}
             </span>
           </td>
 
-          {/* Products Status Column */}
-          <td className="py-3 px-4 hidden lg:table-cell">
-            {(category.productCount || 0) > 0 ? (
-              <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full">
-                Có sản phẩm
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-600 text-xs font-semibold rounded-full">
-                Trống
-              </span>
-            )}
+          {/* Product Count Column */}
+          <td className="py-3 px-4 hidden lg:table-cell text-center">
+            <span className={cn(
+              "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+              (category.productCount || 0) > 0 
+                ? "bg-blue-50 text-blue-700" 
+                : "bg-gray-100 text-gray-600"
+            )}>
+              {category.productCount || 0}
+            </span>
           </td>
 
           {/* Actions */}
@@ -191,10 +245,10 @@ export function CategoriesTable({ categories, onEdit, onDelete, onAddChild }: Ca
                 <th className="text-left py-3 px-4 font-semibold text-muted-foreground">
                   Tên danh mục
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-muted-foreground hidden md:table-cell">
+                <th className="text-center py-3 px-4 font-semibold text-muted-foreground hidden md:table-cell">
                   Danh mục con
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-muted-foreground hidden lg:table-cell">
+                <th className="text-center py-3 px-4 font-semibold text-muted-foreground hidden lg:table-cell">
                   Sản phẩm
                 </th>
                 <th className="text-left py-3 px-4 font-semibold text-muted-foreground">
@@ -214,7 +268,11 @@ export function CategoriesTable({ categories, onEdit, onDelete, onAddChild }: Ca
                   </td>
                 </tr>
               ) : (
-                categories.map(category => renderCategoryRow(category, 0))
+                categories.map(category => (
+                  <React.Fragment key={category.id}>
+                    {renderCategoryRow(category, 0)}
+                  </React.Fragment>
+                ))
               )}
             </tbody>
           </table>
