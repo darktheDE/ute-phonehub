@@ -152,7 +152,6 @@ export default function ManagePage() {
             <h2 className="text-xl font-bold text-foreground">
               {activeTab === 'dashboard' && 'Dashboard'}
               {activeTab === 'products' && 'Quản lý sản phẩm'}
-              {activeTab === 'categories' && 'Quản lý danh mục'}
               {activeTab === 'orders' && (isAdmin ? 'Quản lý đơn hàng' : 'Đơn hàng của tôi')}
               {activeTab === 'users' && 'Quản lý người dùng'}
               {activeTab === 'profile' && 'Thông tin cá nhân'}

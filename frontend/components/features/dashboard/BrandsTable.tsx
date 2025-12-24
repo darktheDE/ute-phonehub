@@ -109,10 +109,13 @@ export function BrandsTable({ brands, onEdit, onDelete }: BrandsTableProps) {
                                 const target = e.currentTarget;
                                 target.style.display = 'none';
                                 const fallback = target.nextElementSibling as HTMLElement;
-                                if (fallback) fallback.classList.remove('hidden');
+                                if (fallback) fallback.style.display = 'flex';
                               }}
                             />
-                            <div className="hidden w-full h-full rounded border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
+                            <div 
+                              className="w-full h-full rounded border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center"
+                              style={{ display: 'none' }}
+                            >
                               <ImageIcon className="w-6 h-6 text-gray-400" />
                             </div>
                           </div>

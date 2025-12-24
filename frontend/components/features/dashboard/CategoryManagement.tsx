@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Plus, Search, FolderTree, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CategoriesTable } from './CategoriesTable';
@@ -36,6 +36,8 @@ export function CategoryManagement() {
   const [deleting, setDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
+  const [allCategoriesFlat, setAllCategoriesFlat] = useState<CategoryResponse[]>([]);
+  const [searchMatches, setSearchMatches] = useState<Set<number>>(new Set());
 
   // Toast notification helper
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -43,15 +45,75 @@ export function CategoryManagement() {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // Filter categories by search query
+  // Fetch all categories recursively for search
+  const fetchAllCategories = useCallback(async () => {
+    const allCats: CategoryResponse[] = [];
+    
+    const fetchRecursive = async (parentId: number | null) => {
+      try {
+        const response = await adminAPI.getAllCategories(parentId);
+        if (response.success && response.data) {
+          for (const cat of response.data) {
+            allCats.push(cat);
+            if (cat.hasChildren) {
+              await fetchRecursive(cat.id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+
+    await fetchRecursive(null);
+    setAllCategoriesFlat(allCats);
+  }, []);
+
+  // Load all categories on mount
+  useEffect(() => {
+    fetchAllCategories();
+  }, [fetchAllCategories]);
+
+  // Refresh all categories when data changes
+  useEffect(() => {
+    if (categories.length > 0) {
+      fetchAllCategories();
+    }
+  }, [categories, fetchAllCategories]);
+
+  // Filter categories by search query (includes children)
   const filteredCategories = useMemo(() => {
-    if (!searchQuery.trim()) return categories;
+    if (!searchQuery.trim()) {
+      setSearchMatches(new Set());
+      return categories;
+    }
+    
     const query = searchQuery.toLowerCase();
-    return categories.filter(cat => cat.name.toLowerCase().includes(query));
-  }, [categories, searchQuery]);
+    const matches = new Set<number>();
+    const parentIds = new Set<number>();
+
+    // Find all matching categories (including children)
+    allCategoriesFlat.forEach(cat => {
+      if (cat.name.toLowerCase().includes(query)) {
+        matches.add(cat.id);
+        // Add parent to show hierarchy
+        if (cat.parentId) {
+          parentIds.add(cat.parentId);
+        }
+      }
+    });
+
+    setSearchMatches(matches);
+
+    // Return root categories that match or have matching children
+    return categories.filter(cat => 
+      matches.has(cat.id) || parentIds.has(cat.id)
+    );
+  }, [categories, searchQuery, allCategoriesFlat]);
 
   // Calculate stats
   const totalCategories = categories.length;
+  const totalResults = searchMatches.size;
 
   const handleAddNew = useCallback(() => {
     setFormMode('create');
@@ -182,7 +244,7 @@ export function CategoryManagement() {
         {/* Search results info */}
         {searchQuery && (
           <p className="text-sm text-muted-foreground">
-            Tìm thấy <strong>{filteredCategories.length}</strong> kết quả cho &quot;{searchQuery}&quot;
+            Tìm thấy <strong>{totalResults}</strong> kết quả cho &quot;{searchQuery}&quot;
           </p>
         )}
       </div>
@@ -219,6 +281,8 @@ export function CategoryManagement() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onAddChild={handleAddChild}
+          searchQuery={searchQuery}
+          searchMatches={searchMatches}
         />
       )}
 

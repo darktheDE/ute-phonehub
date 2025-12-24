@@ -6,6 +6,8 @@
  * - Reusable hook pattern
  */
 
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { adminAPI } from '@/lib/api';
 import type { BrandResponse } from '@/types';
@@ -19,7 +21,7 @@ interface UseBrandsReturn {
 
 export function useBrands(): UseBrandsReturn {
   const [brands, setBrands] = useState<BrandResponse[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBrands = useCallback(async () => {
