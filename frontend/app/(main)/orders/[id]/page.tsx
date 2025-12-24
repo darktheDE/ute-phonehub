@@ -4,21 +4,22 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Package, Loader2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 
 interface OrderDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const { id } = use(params);
 
   useEffect(() => {
     // Simulate loading
@@ -64,7 +65,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <Package className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Mã đơn hàng</p>
-              <p className="font-semibold">#{params.id}</p>
+              <p className="font-semibold">#{id}</p>
             </div>
           </div>
 
