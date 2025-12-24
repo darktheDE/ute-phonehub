@@ -67,6 +67,7 @@ public class PaymentController {
     /**
      * VNPay payment return URL (redirect to frontend)
      * This is where user is redirected after payment
+     * NOTE: Only displays result, actual payment processing happens in callback
      */
     @GetMapping("/vnpay/return")
     @Operation(summary = "VNPay payment return", description = "Redirect user after payment")
@@ -74,8 +75,12 @@ public class PaymentController {
         log.info("Received VNPay return");
         
         try {
-            // Process payment
-            PaymentResponse paymentResponse = vnPayService.handleCallback(request);
+            // Get order code from VNPay params
+            String orderCode = request.getParameter("vnp_TxnRef");
+            
+            // Only query payment status, DO NOT process payment again
+            // Payment processing is handled by callback endpoint to avoid duplicate stock deduction
+            PaymentResponse paymentResponse = vnPayService.getPaymentStatus(orderCode);
             
             // Return HTML result page instead of redirecting to non-existent frontend
             response.setContentType("text/html; charset=UTF-8");

@@ -4,6 +4,8 @@
 
 'use client';
 
+import { toast } from 'sonner';
+
 interface SocialLoginProps {
   mode: 'login' | 'register';
   loading?: boolean;
@@ -31,7 +33,9 @@ export function SocialLogin({ mode, loading = false }: SocialLoginProps) {
         new URL(googleLoginUrl);
       } catch (urlError) {
         console.error('Invalid Google login URL:', googleLoginUrl, urlError);
-        alert('Cấu hình URL API không hợp lệ. Vui lòng kiểm tra biến môi trường NEXT_PUBLIC_API_URL.');
+        toast.error('Cấu hình URL API không hợp lệ', {
+          description: 'Vui lòng kiểm tra biến môi trường NEXT_PUBLIC_API_URL.',
+        });
         return;
       }
       
@@ -51,7 +55,9 @@ export function SocialLogin({ mode, loading = false }: SocialLoginProps) {
       }
     } catch (error) {
       console.error('Error initiating Google login:', error);
-      alert('Có lỗi xảy ra khi khởi tạo đăng nhập Google. Vui lòng thử lại.');
+      toast.error('Có lỗi xảy ra', {
+        description: 'Không thể khởi tạo đăng nhập Google. Vui lòng thử lại.',
+      });
     }
   };
 

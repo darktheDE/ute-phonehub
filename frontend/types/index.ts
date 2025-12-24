@@ -35,7 +35,28 @@ export type { Category, CreateCategoryRequest, UpdateCategoryRequest, CategoryRe
 export type { Brand, BrandResponse, CreateBrandRequest, UpdateBrandRequest } from './brand';
 
 // Order types
-export type { Order, OrderResponse, OrderStatus, OrderItem, RecentOrderResponse } from './order';
+export type { 
+  Order, 
+  OrderResponse, 
+  OrderStatus, 
+  OrderItem, 
+  RecentOrderResponse,
+  OrderItemRequest,
+  CreateOrderRequest,
+  CreateOrderResponse,
+} from './order';
+
+// Payment types
+export type {
+  PaymentMethod,
+  PaymentStatus,
+  PaymentResponse,
+  VNPayPaymentResponse,
+  CreatePaymentRequest,
+  PaymentHistoryResponse,
+  VNPayCallbackParams,
+  PaymentMethodOption,
+} from './payment';
 
 // Dashboard types
 export type { 
