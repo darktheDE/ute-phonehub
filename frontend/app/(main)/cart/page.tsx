@@ -28,6 +28,17 @@ export default function CartPage() {
     }
   }, [isAuthenticated, user]);
 
+  // Refresh cart when an order is placed in another tab/window
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'lastOrderPlacedAt') {
+        if (isAuthenticated && user) fetchCartFromBackend();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [isAuthenticated, user]);
+
   const fetchCartFromBackend = async () => {
     setIsLoading(true);
     try {
@@ -299,11 +310,17 @@ export default function CartPage() {
           <div className="xl:col-span-1">
             <div className="sticky top-8">
               <CartSummary
-                totalItems={totalItems}
-                totalPrice={totalPrice}
-                onCheckout={handleCheckout}
-                compact
-              />
+                    totalItems={totalItems}
+                    totalPrice={totalPrice}
+                    onCheckout={handleCheckout}
+                    compact
+                    selectedIds={selectedIds}
+                    onBuySelected={() => {
+                      if (selectedIds.length === 0) return;
+                      // Navigate to checkout with selected item ids in query
+                      router.push(`/checkout?selected=${selectedIds.join(',')}`);
+                    }}
+                  />
             </div>
           </div>
         </div>

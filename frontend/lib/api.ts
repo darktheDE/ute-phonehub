@@ -54,6 +54,14 @@ export const getAuthToken = (): string | null => {
   return null;
 };
 
+// Helper function to get refresh token from localStorage
+export const getRefreshToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('refreshToken');
+  }
+  return null;
+};
+
 // Helper function to set auth tokens
 export const setAuthTokens = (accessToken: string, refreshToken: string): void => {
   if (typeof window !== 'undefined') {
@@ -146,6 +154,8 @@ async function fetchAPI<T>(
       data = {};
     }
 
+    
+
     if (!response.ok || !data.success) {
       // Build a detailed debug object to help troubleshoot API responses
       const debugInfo: Record<string, unknown> = {
@@ -183,6 +193,58 @@ async function fetchAPI<T>(
       } catch (logErr) {
         // Fallback if structured logging fails
         console.warn('API Error Details (fallback):', url, response.status, response.statusText);
+      }
+
+      // If 401 Unauthorized, try refreshing the token once (avoid infinite loops)
+      if (response.status === 401 && !headers.has('x-api-retry')) {
+        try {
+          const refreshToken = getRefreshToken();
+          if (refreshToken) {
+            const refreshResp = await fetch(`${API_BASE_URL}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken }),
+            });
+
+            if (refreshResp.ok) {
+              const refreshData = await refreshResp.json();
+              // Expect refreshData.data to contain accessToken and refreshToken
+              const newAccess = refreshData?.data?.accessToken ?? refreshData?.data?.access_token ?? null;
+              const newRefresh = refreshData?.data?.refreshToken ?? refreshData?.data?.refresh_token ?? null;
+              if (newAccess) {
+                setAuthTokens(newAccess, newRefresh ?? refreshToken);
+
+                // Retry original request with new token, mark as retried to avoid loops
+                const retryHeaders = new Headers(options.headers || {});
+                retryHeaders.set('Content-Type', retryHeaders.get('Content-Type') || 'application/json');
+                retryHeaders.set('Authorization', `Bearer ${newAccess}`);
+                retryHeaders.set('x-api-retry', '1');
+
+                const retryResp = await fetch(url, { ...options, headers: retryHeaders });
+                // Attempt to parse retry response similarly
+                let retryData: any = {};
+                try {
+                  const ct = retryResp.headers.get('content-type') ?? '';
+                  if (ct.includes('application/json')) retryData = await retryResp.json();
+                  else retryData = { message: await retryResp.text() };
+                } catch {
+                  retryData = {};
+                }
+
+                if (!retryResp.ok || !retryData.success) {
+                  const errMsg = (retryData && (retryData.message || retryData.error)) || `HTTP error! status: ${retryResp.status}`;
+                  throw new Error(String(errMsg));
+                }
+
+                return retryData;
+              }
+            }
+          }
+        } catch (refreshErr) {
+          console.warn('Token refresh failed:', refreshErr);
+        }
+        // If refresh failed, clear tokens and fall through to throw original error
+        clearAuthTokens();
       }
 
       const errorMessage = (data && (data.message || data.error)) || (debugInfo.rawBody as string) || `HTTP error! status: ${response.status}`;
@@ -597,6 +659,33 @@ export const promotionAPI = {
   calculateDiscount: async (promotionId: string, orderTotal: number): Promise<ApiResponse<number>> => {
     return fetchAPI<number>(`/promotions/calculate?promotionId=${encodeURIComponent(promotionId)}&orderTotal=${orderTotal}`, {
       method: 'GET',
+    });
+  },
+};
+
+// Payment API
+export const paymentAPI = {
+  // GET /api/v1/payments/history?page={page}&size={size}
+  getPaymentHistory: async (page: number = 0, size: number = 10): Promise<ApiResponse<PaymentHistoryResponse>> => {
+    return fetchAPI<PaymentHistoryResponse>(`/payments/history?page=${page}&size=${size}`, {
+      method: 'GET',
+    });
+  },
+
+  // GET /api/v1/payments/vnpay/callback?{params}
+  // Used by the frontend return page to verify/process VNPay result
+  handleVNPayCallback: async (params: Record<string, string>): Promise<ApiResponse<PaymentResponse>> => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchAPI<PaymentResponse>(`/payments/vnpay/callback?${qs}`, {
+      method: 'GET',
+    });
+  },
+
+  // POST /api/v1/payments/vnpay/create
+  createVNPayPayment: async (data: CreatePaymentRequest): Promise<ApiResponse<VNPayPaymentResponse>> => {
+    return fetchAPI<VNPayPaymentResponse>('/payments/vnpay/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };

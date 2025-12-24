@@ -91,12 +91,36 @@ export const useCartStore = create<CartState>()(
 
       /**
        * Replace the entire items array (used to sync with backend)
+       * Deduplicate by productId + color + storage and combine quantities
        */
       setItems: (items) => {
+        // Normalize and dedupe items to avoid duplicates coming from backend
+        const dedupeMap = new Map<string, CartItem>();
+        const currentItems = get().items || [];
+
+        const nextIdStart = currentItems.length > 0 ? Math.max(...currentItems.map(i => i.id)) + 1 : 1;
+        let nextId = nextIdStart;
+
+        for (const raw of items) {
+          const item = raw as CartItem;
+          const key = `${item.productId}::${item.color ?? ''}::${item.storage ?? ''}`;
+          const existing = dedupeMap.get(key);
+          if (existing) {
+            existing.quantity += item.quantity;
+            // prefer explicit appliedPrice if provided, otherwise keep existing
+            if ((item as any).appliedPrice !== undefined) existing.appliedPrice = (item as any).appliedPrice;
+          } else {
+            const idToUse = Number(item.id ?? nextId++);
+            dedupeMap.set(key, { ...item, id: idToUse });
+          }
+        }
+
+        const newItems = Array.from(dedupeMap.values());
+
         set({
-          items,
-          totalItems: items.reduce((sum, it) => sum + it.quantity, 0),
-          totalPrice: items.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
+          items: newItems,
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
         });
       },
 

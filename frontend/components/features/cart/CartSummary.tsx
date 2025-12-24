@@ -14,9 +14,12 @@ interface CartSummaryProps {
   totalItems: number;
   totalPrice: number;
   onCheckout: () => void;
+  compact?: boolean;
+  selectedIds?: number[];
+  onBuySelected?: () => void;
 }
 
-export function CartSummary({ totalItems, totalPrice, onCheckout }: CartSummaryProps) {
+export function CartSummary({ totalItems, totalPrice, onCheckout, compact, selectedIds = [], onBuySelected }: CartSummaryProps) {
   const shippingFee = totalPrice >= 500000 ? 0 : 30000; // Free shipping over 500k VND
   const [code, setCode] = useState('');
   const [applied, setApplied] = useState<null | { id: string; code: string; title?: string }>(null);
@@ -35,6 +38,15 @@ export function CartSummary({ totalItems, totalPrice, onCheckout }: CartSummaryP
 
   const subtotal = totalPrice;
   const finalTotal = Math.max(0, subtotal - discountAmount) + shippingFee;
+  const mainButtonLabel = (selectedIds && selectedIds.length > 0 && onBuySelected)
+    ? `Mua ngay (${selectedIds.length})`
+    : 'Mua ngay';
+  const mainButtonOnClick = (selectedIds && selectedIds.length > 0 && onBuySelected)
+    ? onBuySelected
+    : onCheckout;
+  const mainButtonDisabled = (selectedIds && selectedIds.length > 0)
+    ? !onBuySelected
+    : totalItems === 0;
 
   const handleApply = async () => {
     const trimmed = (code || '').trim();
@@ -221,10 +233,10 @@ export function CartSummary({ totalItems, totalPrice, onCheckout }: CartSummaryP
           <Button
             className="w-full h-12 text-lg font-semibold"
             size="lg"
-            onClick={onCheckout}
-            disabled={totalItems === 0}
+            onClick={mainButtonOnClick}
+            disabled={mainButtonDisabled}
           >
-            Đặt hàng
+            {mainButtonLabel}
           </Button>
         </CardContent>
       </Card>

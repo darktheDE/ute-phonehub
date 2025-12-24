@@ -21,6 +21,7 @@ export default function OrdersTable({ orders, loading }: { orders?: Order[]; loa
   const pageSize = 8
   const start = (page - 1) * pageSize
   const pageData = (orders || []).slice(start, start + pageSize)
+  const total = orders?.length ?? 0
 
   return (
     <div>
@@ -67,10 +68,10 @@ export default function OrdersTable({ orders, loading }: { orders?: Order[]; loa
       </div>
 
       <div className="flex items-center justify-between mt-3 text-sm text-slate-500">
-        <div>Showing {start + 1}-{Math.min(start + pageSize, orders.length)} of {orders.length}</div>
+        <div>Showing {total === 0 ? 0 : start + 1}-{Math.min(start + pageSize, total)} of {total}</div>
         <div className="flex gap-2">
           <button disabled={page===1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-2 py-1 rounded bg-slate-100">Prev</button>
-          <button disabled={start+pageSize>=orders.length} onClick={()=>setPage(p=>p+1)} className="px-2 py-1 rounded bg-slate-100">Next</button>
+          <button disabled={start+pageSize>=total} onClick={()=>setPage(p=>p+1)} className="px-2 py-1 rounded bg-slate-100">Next</button>
         </div>
       </div>
     </div>

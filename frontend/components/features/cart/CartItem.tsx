@@ -111,6 +111,19 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
             return;
           }
 
+
+        // If item no longer exists on server (deleted/ordered), remove locally
+        const msg = (info.message || '').toString().toLowerCase();
+        if (info.status === 404 || msg.includes('không tồn tại') || msg.includes('not found') || msg.includes('does not exist')) {
+          try {
+            useCartStore.getState().removeItem(item.id);
+          } catch (e) {
+            console.error('Failed to remove missing cart item locally:', e);
+          }
+          toast.error('Sản phẩm không tồn tại trong giỏ (có thể đã đặt/hết hàng) — đã loại khỏi giỏ hàng.');
+          setIsUpdating(false);
+          return;
+        }
           try {
             onUpdateQuantity(item.id, qty);
           } catch (e) {

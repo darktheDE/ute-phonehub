@@ -21,7 +21,6 @@ interface ProductCardProps {
 
 export function ProductCard({
   id,
-  id,
   name,
   image,
   originalPrice,
@@ -33,11 +32,21 @@ export function ProductCard({
 }: ProductCardProps) {
   const { user } = useAuth();
   const isAuthenticated = !!user;
-  const { addItem } = useCartStore();
+  const { addItem, setItems } = useCartStore();
 
   const isValidImage = (src: unknown) => {
     if (!src || typeof src !== 'string') return false;
     return /^(https?:\/\/|\/|data:|blob:)/i.test(src);
+  };
+
+  const handleBuyNow = async (e?: any) => {
+    e?.stopPropagation?.();
+    await handleAddToCart();
+    try {
+      window.location.href = '/checkout';
+    } catch {
+      // noop
+    }
   };
 
   const handleAddToCart = async () => {
@@ -61,6 +70,28 @@ export function ProductCard({
     try {
       const resp = await cartAPI.addToCart({ productId: id, quantity: 1 });
       if (resp && resp.success) {
+        // After adding to backend, refresh local cart from backend to get server IDs
+        try {
+          const cartResp = await cartAPI.getCurrentCart();
+          if (cartResp && cartResp.success && cartResp.data) {
+            const backendItems = Array.isArray(cartResp.data.items) ? cartResp.data.items : [];
+            const mappedItems = backendItems.map((obj: any) => ({
+              id: Number(obj.id ?? 0),
+              productId: Number(obj.productId ?? 0),
+              productName: typeof obj.productName === 'string' ? obj.productName : (obj.product?.name ?? 'Unknown Product'),
+              productImage: typeof obj.productImage === 'string' ? obj.productImage : (obj.productThumbnailUrl ?? obj.product?.thumbnailUrl ?? ''),
+              price: typeof obj.price === 'number' ? obj.price : (obj.unitPrice ?? obj.product?.salePrice ?? 0),
+              quantity: Number(obj.quantity ?? 0),
+              color: obj.color,
+              storage: obj.storage,
+            }));
+
+            setItems(mappedItems as any);
+          }
+        } catch (syncErr) {
+          console.warn('ProductCard: failed to refresh cart after addToCart', syncErr);
+        }
+
         toast.success('Đã thêm vào giỏ hàng');
       } else {
         throw new Error(resp?.message || 'Không thể thêm vào giỏ');
