@@ -4,6 +4,7 @@ import { Heart, Star, ShoppingCart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   id: number;
