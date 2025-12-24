@@ -74,5 +74,9 @@ vnpay:
   command: pay
   order-type: other
 
+# Frontend Configuration
+frontend:
+  url: ${FRONTEND_URL}
+
 server:
   port: 8081

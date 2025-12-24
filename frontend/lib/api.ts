@@ -37,7 +37,7 @@ import type {
   PaymentHistoryResponse,
 } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
 
 // Helper function to get auth token from localStorage
 export const getAuthToken = (): string | null => {
@@ -126,7 +126,8 @@ async function fetchAPI<T>(
       }
     }
 
-    if (!response.ok || !data.success) {
+    // Check if response is not OK (400, 500, etc.)
+    if (!response.ok) {
       // Log more details for debugging
       console.error('API Error Details:', {
         url,
@@ -137,6 +138,11 @@ async function fetchAPI<T>(
       
       const errorMessage = data?.message || data?.error || `HTTP error! status: ${response.status}`;
       throw new Error(errorMessage);
+    }
+
+    // If response is OK, wrap data in standard format if not already wrapped
+    if (data && typeof data === 'object' && !('success' in data)) {
+      return { success: true, data };
     }
 
     return data;
