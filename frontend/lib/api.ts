@@ -41,7 +41,7 @@ import type {
   PaymentHistoryResponse,
 } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Helper function to get auth token from localStorage
 export const getAuthToken = (): string | null => {
@@ -146,7 +146,7 @@ async function fetchAPI<T>(
 
     // If response is OK, wrap data in standard format if not already wrapped
     if (data && typeof data === 'object' && !('success' in data)) {
-      return { success: true, data };
+      return { success: true, status: response.status, message: 'Success', data };
     }
 
     return data;
@@ -471,11 +471,11 @@ export const dashboardAPI = {
 /**
  * Payment API
  * Endpoints cho module thanh toán (M06)
- * Base URL: /api/payments
+ * Base URL: /api/v1/payments
  */
 export const paymentAPI = {
   /**
-   * POST /api/payments/vnpay/create
+   * POST /api/v1/payments/vnpay/create
    * Tạo URL thanh toán VNPay
    * @param request - Thông tin tạo thanh toán
    * @returns VNPayPaymentResponse chứa paymentUrl
@@ -488,7 +488,7 @@ export const paymentAPI = {
   },
 
   /**
-   * GET /api/payments/history?page=0&size=10
+   * GET /api/v1/payments/history?page=0&size=10
    * Lấy lịch sử thanh toán của user hiện tại
    * @param page - Số trang (bắt đầu từ 0)
    * @param size - Số lượng items mỗi trang
@@ -501,7 +501,7 @@ export const paymentAPI = {
   },
 
   /**
-   * GET /api/payments/{id}
+   * GET /api/v1/payments/{id}
    * Lấy chi tiết một payment
    * @param id - Payment ID
    * @returns PaymentResponse
@@ -513,7 +513,7 @@ export const paymentAPI = {
   },
 
   /**
-   * GET /api/payments/vnpay/callback
+   * GET /api/v1/payments/vnpay/callback
    * Xử lý callback từ VNPay sau khi thanh toán
    * @param queryParams - Query parameters từ VNPay
    * @returns PaymentResponse với status đã cập nhật
@@ -526,7 +526,7 @@ export const paymentAPI = {
   },
 
   /**
-   * GET /api/payments/order/{orderId}
+   * GET /api/v1/payments/order/{orderId}
    * Kiểm tra trạng thái payment của một đơn hàng
    * @param orderId - Order ID
    * @returns PaymentResponse
