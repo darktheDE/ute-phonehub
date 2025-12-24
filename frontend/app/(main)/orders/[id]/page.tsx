@@ -102,7 +102,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             Tiếp tục mua sắm
           </Button>
           <Button 
-            onClick={() => router.push('/account/orders')} 
+            onClick={() => router.push('/account/payments')} 
             className="flex-1"
           >
             Xem đơn hàng
