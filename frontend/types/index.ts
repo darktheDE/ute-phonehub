@@ -26,7 +26,16 @@ export type { CartItem, CartState } from './cart';
 export type { WishlistItem, WishlistState } from './wishlist';
 
 // Product types
-export type { Product, ProductResponse, TopProductResponse } from './product';
+export type { 
+  Product, 
+  ProductResponse, 
+  TopProductResponse,
+  CreateProductRequest,
+  UpdateProductRequest,
+  ProductTemplate,
+  ProductMetadata,
+  ProductImage
+} from './product';
 
 // Category types
 export type { Category, CreateCategoryRequest, UpdateCategoryRequest, CategoryResponse } from './category';

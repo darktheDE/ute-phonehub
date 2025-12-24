@@ -28,14 +28,14 @@ import {
   CustomerAddresses,
   CustomerWishlist,
   OrdersTable,
-  ProductsTable,
   UsersTable,
   CategoryManagement,
   BrandManagement,
 } from '@/components/features/dashboard';
+import { ProductsManagement } from '@/components/features/admin/ProductsManagement';
 import { Sidebar } from '@/components/features/layout/Sidebar';
 import { useOrders, useUsers } from '@/hooks';
-import { MOCK_PRODUCTS, MOCK_ORDERS } from '@/lib/mockData';
+import { MOCK_ORDERS } from '@/lib/mockData';
 
 type TabType = 'dashboard' | 'orders' | 'products' | 'categories' | 'brands' | 'users' | 'profile' | 'addresses' | 'wishlist';
 
@@ -177,9 +177,8 @@ export default function ManagePage() {
           {activeTab === 'dashboard' && isAdmin && <AdminDashboard />}
 
           {/* Products Management (Admin Only) */}
-          {/* Using mock data - GET /api/v1/admin/products doesn't exist */}
           {activeTab === 'products' && isAdmin && (
-            <ProductsTable products={MOCK_PRODUCTS} />
+            <ProductsManagement />
           )}
 
           {/* Categories Management (Admin Only) */}

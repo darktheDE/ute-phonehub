@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ProductFilterValidator {
 
-    private static final String VALID_SORT_FIELDS_REGEX = "^(name|price|stock|createdAt)$";
+    private static final String VALID_SORT_FIELDS_REGEX = "^(name|price|stockQuantity|createdAt)$";
     private static final String VALID_SORT_DIRECTION_REGEX = "^(asc|desc)$";
     private static final int MIN_KEYWORD_LENGTH = 2;
 
@@ -42,7 +42,7 @@ public class ProductFilterValidator {
         if (!sortBy.matches(VALID_SORT_FIELDS_REGEX)) {
             log.error("Invalid sortBy parameter: {}", sortBy);
             throw new BadRequestException(
-                    "Tham số sortBy không hợp lệ. Chỉ chấp nhận: name, price, stock, createdAt");
+                    "Tham số sortBy không hợp lệ. Chỉ chấp nhận: name, price, stockQuantity, createdAt");
         }
     }
 
