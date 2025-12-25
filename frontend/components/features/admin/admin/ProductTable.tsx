@@ -171,7 +171,7 @@ export function ProductTable({
 
         {/* Filters */}
         <div className="flex items-center gap-2">
-          <Select onValueChange={(value) => onFilter({ categoryId: value === 'all' ? undefined : Number(value) })}>
+          <Select onValueChange={(value: string) => onFilter({ categoryId: value === 'all' ? undefined : Number(value) })}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
@@ -185,7 +185,7 @@ export function ProductTable({
             </SelectContent>
           </Select>
 
-          <Select onValueChange={(value) => onFilter({ brandId: value === 'all' ? undefined : Number(value) })}>
+          <Select onValueChange={(value: string) => onFilter({ brandId: value === 'all' ? undefined : Number(value) })}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Brand" />
             </SelectTrigger>
@@ -199,7 +199,7 @@ export function ProductTable({
             </SelectContent>
           </Select>
 
-          <Select onValueChange={(value) => onFilter({ status: value === 'true' ? true : value === 'false' ? false : undefined })}>
+          <Select onValueChange={(value: string) => onFilter({ status: value === 'true' ? true : value === 'false' ? false : undefined })}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Status" />
             </SelectTrigger>

@@ -81,6 +81,15 @@ export interface TopProduct {
   revenue: number;          // ✅ Correct
 }
 
+// Legacy type for backward compatibility with backend TopProductResponse
+export interface TopProductResponse {
+  productId: number;
+  productName: string;
+  imageUrl?: string;
+  totalSold: number;
+  revenue: number;
+}
+
 // ==================== RECENT ORDERS ====================
 export interface RecentOrder {
   orderId: number;

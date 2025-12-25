@@ -29,7 +29,6 @@ export type { WishlistItem, WishlistState } from './wishlist';
 export type { 
   Product, 
   ProductResponse, 
-  TopProductResponse,
   CreateProductRequest,
   UpdateProductRequest,
   ProductTemplate,
@@ -76,6 +75,7 @@ export type {
   OrderStatusChartData,
   UserRegistrationChartData,
   TopProduct,
+  TopProductResponse,
   RecentOrder,
   LowStockProduct,
   DashboardPeriod,

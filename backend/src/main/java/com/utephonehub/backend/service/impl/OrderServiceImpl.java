@@ -36,6 +36,7 @@ import com.utephonehub.backend.util.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -90,6 +91,7 @@ public class OrderServiceImpl implements IOrderService {
     
     @Override
     @Transactional
+    @CacheEvict(value = "cart", key = "#userId")
     public CreateOrderResponse createOrder(CreateOrderRequest request, Long userId, HttpServletRequest servletRequest) {
         log.info("Creating order for user: {}", userId);
         

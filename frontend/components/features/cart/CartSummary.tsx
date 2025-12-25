@@ -48,12 +48,16 @@ export function CartSummary({ totalItems, totalPrice, onCheckout, compact, selec
     ? !onBuySelected
     : totalItems === 0;
 
-  const handleApply = async () => {
-    const trimmed = (code || '').trim();
+  const handleApply = async (fromVoucher = false, overrideCode?: string) => {
+    if (applied) return;
+
+    const trimmed = (overrideCode ?? code ?? '').trim();
+
     if (!trimmed) {
-      toast.error('Vui lòng nhập mã giảm giá');
+      if (!fromVoucher) toast.error('Vui lòng nhập mã giảm giá');
       return;
     }
+
     setIsApplying(true);
     try {
       const resp = await promotionAPI.getAvailablePromotions(subtotal);
@@ -155,7 +159,7 @@ export function CartSummary({ totalItems, totalPrice, onCheckout, compact, selec
                   onChange={(e) => setCode(e.target.value)}
                   className="flex-1"
                 />
-                <Button onClick={handleApply} disabled={isApplying} className="whitespace-nowrap">
+                <Button onClick={() => handleApply(false)} disabled={isApplying}>
                   {isApplying ? 'Đang áp dụng...' : 'Áp dụng'}
                 </Button>
               </div>
@@ -189,10 +193,11 @@ export function CartSummary({ totalItems, totalPrice, onCheckout, compact, selec
                         )}
                         <div className="mt-2">
                           <Button size="sm" onClick={async () => {
-                            setCode(String(p.id ?? p.code ?? ''));
+                            if (applied) return;
+                            const voucherCode = String(p.id ?? p.code ?? '');
+                            setCode(voucherCode);
                             setShowPromoModal(false);
-                            // small delay to ensure code state is set
-                            setTimeout(() => { void handleApply(); }, 50);
+                            handleApply(true, voucherCode); 
                           }}>Áp dụng</Button>
                         </div>
                       </div>

@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { PaymentMethodSelector } from '@/components/features/payment';
-import { orderAPI, userAPI } from '@/lib/api';
+import { orderAPI, userAPI, cartAPI } from '@/lib/api';
 import type { PaymentMethod, CreateOrderRequest } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Package, ShoppingCart, Check, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -215,7 +215,7 @@ function OrderSummary({
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, totalPrice, clearCart } = useCartStore();
+  const { items, totalPrice } = useCartStore();
 
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
@@ -322,7 +322,10 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     setError('');
-    if (items.length === 0) { setError('Giỏ hàng trống'); return; }
+    if (items.length === 0) {
+      setError('Giỏ hàng trống');
+      return;
+    }
 
     setIsProcessing(true);
 
@@ -332,10 +335,10 @@ export default function CheckoutPage() {
         recipientName: recipientName.trim(),
         phoneNumber: phoneNumber.trim(),
         shippingAddress: shippingAddress.trim(),
-        shippingFee: shippingFee,
-        shippingUnit: shippingUnit,
+        shippingFee,
+        shippingUnit,
         note: note.trim() || undefined,
-        paymentMethod: paymentMethod,
+        paymentMethod,
         promotionId: undefined,
         items: items.map((item: any) => ({
           productId: item.productId,
@@ -346,11 +349,11 @@ export default function CheckoutPage() {
       const orderResponse = await orderAPI.createOrder(orderRequest);
       const orderData = orderResponse.data;
 
+      useCartStore.getState().clearCart();
+
       if (paymentMethod === 'VNPAY' && orderData.paymentUrl) {
-        clearCart();
         window.location.href = orderData.paymentUrl;
       } else {
-        clearCart();
         router.push(`/orders/${orderData.orderId}`);
       }
     } catch (err: any) {

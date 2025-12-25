@@ -515,10 +515,31 @@ export const adminAPI = {
     });
   },
 
+
   // Brands (admin management)
   getAllBrands: async (): Promise<ApiResponse<any[]>> => {
     return fetchAPI<any[]>('/brands', {
       method: 'GET',
+    });
+  },
+
+  updateBrand: async (id: number, data: any): Promise<ApiResponse<any>> => {
+    return fetchAPI<any>(`/admin/brands/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  createBrand: async (data: any): Promise<ApiResponse<any>> => {
+    return fetchAPI<any>('/admin/brands', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteBrand: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/brands/${id}`, {
+      method: 'DELETE',
     });
   },
 

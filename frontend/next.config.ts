@@ -1,10 +1,17 @@
 import type { NextConfig } from "next";
 
+
 const nextConfig: NextConfig = {
   images: {
-    domains: [
-      'cdn.cellphones.com.vn',
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.cellphones.com.vn',
+      },
     ],
+  },
+  turbopack: {
+    root: 'C:/Users/Lenovo/ute-phonehub/frontend', // Absolute path to frontend
   },
 };
 

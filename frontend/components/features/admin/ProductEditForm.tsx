@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { updateProduct, getAllCategories, getAllBrands } from '@/lib/api';
+import { adminAPI, productAPI } from '@/lib/api';
 import type { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,6 @@ export function ProductEditForm({ product, onSuccess, onCancel }: ProductEditFor
     description: product.description || '',
     categoryId: product.categoryId,
     brandId: product.brandId,
-    thumbnailUrl: product.thumbnailUrl || '',
   });
 
   // Load categories and brands on mount
@@ -34,8 +33,8 @@ export function ProductEditForm({ product, onSuccess, onCancel }: ProductEditFor
     const loadData = async () => {
       try {
         const [catsRes, brandsRes] = await Promise.all([
-          getAllCategories(),
-          getAllBrands()
+          adminAPI.getAllCategories(),
+          adminAPI.getAllBrands()
         ]);
         if (catsRes.success && catsRes.data) setCategories(catsRes.data);
         if (brandsRes.success && brandsRes.data) setBrands(brandsRes.data);
@@ -53,7 +52,7 @@ export function ProductEditForm({ product, onSuccess, onCancel }: ProductEditFor
       setLoading(true);
       
       // Call update API
-      const response = await updateProduct(product.id, formData);
+      const response = await productAPI.update(product.id, formData);
       
       if (response.success) {
         alert('Cập nhật sản phẩm thành công!');
@@ -108,29 +107,7 @@ export function ProductEditForm({ product, onSuccess, onCancel }: ProductEditFor
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="thumbnailUrl">Ảnh đại diện (Thumbnail URL) *</Label>
-              <Input
-                id="thumbnailUrl"
-                type="url"
-                value={formData.thumbnailUrl}
-                onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-                placeholder="https://example.com/product-image.jpg"
-                required
-              />
-              {formData.thumbnailUrl && (
-                <div className="mt-2">
-                  <img
-                    src={formData.thumbnailUrl}
-                    alt="Preview"
-                    className="w-24 h-24 object-cover rounded border"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://placehold.co/200x200?text=Invalid+URL';
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+            {/* Thumbnail URL input removed as requested */}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

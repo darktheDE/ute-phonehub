@@ -95,6 +95,24 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
 
       const info = getErrorInfo(error);
 
+      const message = (info.message || '').toLowerCase();
+
+      if (
+        info.status === 404 ||
+        message.includes('không tồn tại') ||
+        message.includes('not found') ||
+        message.includes('does not exist')
+      ) {
+        try {
+          useCartStore.getState().removeItem(item.id);
+        } catch (e) {
+          console.error('Failed to remove missing cart item:', e);
+        }
+
+        toast.error('Sản phẩm không còn tồn tại — đã xóa khỏi giỏ hàng');
+        setIsUpdating(false);
+        return;
+      }
       // If server returns availableStock (insufficient stock), update UI accordingly
       const availableStock = (info.data && typeof (info.data as Record<string, unknown>).availableStock === 'number') ? (info.data as Record<string, unknown>).availableStock as number : (typeof (info as Record<string, unknown>).availableStock === 'number' ? (info as Record<string, unknown>).availableStock as number : undefined);
       if (typeof availableStock === 'number') {
