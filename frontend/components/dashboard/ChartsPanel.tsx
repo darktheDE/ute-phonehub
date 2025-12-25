@@ -33,7 +33,7 @@ export default function ChartsPanel({ revenueSeries = [], topProducts = [] }: Pr
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} />
               <YAxis tickFormatter={(v) => new Intl.NumberFormat('vi-VN').format(v)} />
-              <Tooltip formatter={(v: number) => new Intl.NumberFormat('vi-VN').format(v)} />
+              <Tooltip formatter={(v: number | undefined) => v !== undefined ? new Intl.NumberFormat('vi-VN').format(v) : ''} />
               <Line type="monotone" dataKey="revenue" stroke="#7c3aed" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -47,7 +47,7 @@ export default function ChartsPanel({ revenueSeries = [], topProducts = [] }: Pr
             <BarChart data={topData} layout="vertical">
               <XAxis type="number" hide />
               <YAxis dataKey="name" type="category" width={140} />
-              <Tooltip formatter={(v: number) => new Intl.NumberFormat('vi-VN').format(v)} />
+              <Tooltip formatter={(v: number | undefined) => v !== undefined ? new Intl.NumberFormat('vi-VN').format(v) : ''} />
               <Bar dataKey="value" fill="#06b6d4" />
             </BarChart>
           </ResponsiveContainer>
