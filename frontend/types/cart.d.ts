@@ -7,6 +7,10 @@ export interface CartItem {
   productName: string;
   productImage: string;
   price: number;
+  /** Percentage discount applied to this item (e.g. 10 for 10%) */
+  discountPercent?: number;
+  /** Final unit price after discount; if present used for totals */
+  appliedPrice?: number;
   quantity: number;
   color?: string;
   storage?: string;
@@ -24,4 +28,12 @@ export interface CartState {
   updateQuantity: (id: number, quantity: number) => void;
   clearCart: () => void;
   getItemById: (id: number) => CartItem | undefined;
+  /**
+   * Replace the entire cart items (used when syncing with backend)
+   */
+  setItems: (items: CartItem[]) => void;
+  /**
+   * Remove multiple items by id
+   */
+  removeItems: (ids: number[]) => void;
 }

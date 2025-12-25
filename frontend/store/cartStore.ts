@@ -34,13 +34,15 @@ export const useCartStore = create<CartState>()(
         } else {
           // New item, add to cart
           const newId = currentItems.length > 0 ? Math.max(...currentItems.map(i => i.id)) + 1 : 1;
+          // Preserve any discount/appliedPrice fields when adding
           newItems = [...currentItems, { ...item, id: newId }];
         }
 
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, item) => sum + item.quantity, 0),
-          totalPrice: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          // Use appliedPrice when available, otherwise fallback to price
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
         });
       },
 
@@ -51,8 +53,8 @@ export const useCartStore = create<CartState>()(
         const newItems = get().items.filter((item) => item.id !== id);
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, item) => sum + item.quantity, 0),
-          totalPrice: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
         });
       },
 
@@ -71,8 +73,8 @@ export const useCartStore = create<CartState>()(
 
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, item) => sum + item.quantity, 0),
-          totalPrice: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
         });
       },
 
@@ -84,6 +86,53 @@ export const useCartStore = create<CartState>()(
           items: [],
           totalItems: 0,
           totalPrice: 0,
+        });
+      },
+
+      /**
+       * Replace the entire items array (used to sync with backend)
+       * Deduplicate by productId + color + storage and combine quantities
+       */
+      setItems: (items) => {
+        // Normalize and dedupe items to avoid duplicates coming from backend
+        const dedupeMap = new Map<string, CartItem>();
+        const currentItems = get().items || [];
+
+        const nextIdStart = currentItems.length > 0 ? Math.max(...currentItems.map(i => i.id)) + 1 : 1;
+        let nextId = nextIdStart;
+
+        for (const raw of items) {
+          const item = raw as CartItem;
+          const key = `${item.productId}::${item.color ?? ''}::${item.storage ?? ''}`;
+          const existing = dedupeMap.get(key);
+          if (existing) {
+            existing.quantity += item.quantity;
+            // prefer explicit appliedPrice if provided, otherwise keep existing
+            if ((item as any).appliedPrice !== undefined) existing.appliedPrice = (item as any).appliedPrice;
+          } else {
+            const idToUse = Number(item.id ?? nextId++);
+            dedupeMap.set(key, { ...item, id: idToUse });
+          }
+        }
+
+        const newItems = Array.from(dedupeMap.values());
+
+        set({
+          items: newItems,
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
+        });
+      },
+
+      /**
+       * Remove multiple items by id
+       */
+      removeItems: (ids) => {
+        const newItems = get().items.filter((item) => !ids.includes(item.id));
+        set({
+          items: newItems,
+          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
+          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
         });
       },
 

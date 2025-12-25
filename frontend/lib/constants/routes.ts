@@ -17,6 +17,7 @@ export const ROUTES = {
   ORDERS: '/manage?tab=orders',
   ADDRESSES: '/manage?tab=addresses',
   WISHLIST: '/manage?tab=wishlist',
+  CART: '/cart',
   
   // Admin routes
   ADMIN_DASHBOARD: '/manage?tab=dashboard',

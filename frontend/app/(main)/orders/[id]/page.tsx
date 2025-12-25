@@ -16,10 +16,31 @@ interface OrderDetailPageProps {
   }>;
 }
 
-export default function OrderDetailPage({ params }: OrderDetailPageProps) {
+export default function OrderDetailPage(props: OrderDetailPageProps) {
+  const { params } = props;
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const { id } = use(params);
+  const [resolvedParams, setResolvedParams] = useState<OrderDetailPageProps['params'] | null>(
+    typeof params === 'object' && params !== null && !(params as any).then ? params : null
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    try {
+      if (params && typeof (params as any).then === 'function') {
+        (params as any).then((p: any) => {
+          if (mounted) setResolvedParams(p);
+        }).catch(() => {
+          if (mounted) setResolvedParams(null);
+        });
+      } else {
+        setResolvedParams(params as any);
+      }
+    } catch {
+      if (mounted) setResolvedParams(null);
+    }
+    return () => { mounted = false; };
+  }, [params]);
 
   useEffect(() => {
     // Simulate loading
@@ -65,7 +86,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <Package className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Mã đơn hàng</p>
-              <p className="font-semibold">#{id}</p>
+              <p className="font-semibold">#{resolvedParams?.id ?? '...'}</p>
             </div>
           </div>
 
