@@ -84,7 +84,7 @@ public class PaymentController {
         try {
             // FOR DEVELOPMENT: Simulate callback processing since VNPay can't reach localhost
             // In production, VNPay will call the callback URL directly
-            if ("dev".equals(activeProfile) || "local".equals(activeProfile)) {
+            if (activeProfile != null && (activeProfile.contains("dev") || activeProfile.contains("local"))) {
                 try {
                     log.info("Simulating VNPay callback for development environment");
                     vnPayService.handleCallback(request);

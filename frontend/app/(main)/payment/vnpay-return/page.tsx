@@ -39,13 +39,12 @@ function VNPayReturnContent() {
       }
 
       try {
-        // Wait for VNPay callback to complete (VNPay calls backend directly via IPN)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
+
+
         // Construct payment object from VNPay return parameters
         // The actual payment status is updated by backend via VNPay IPN callback
         // Here we just display the return result to the user
-        // Use placeholder orderId (real ID should be resolved on backend)
+        // Use placeholder ID 0, we will display vnpTxnRef (Order Code) in UI instead
         setPayment({
           id: 0,
           orderId: 0,
@@ -135,7 +134,7 @@ function VNPayReturnContent() {
               <div className="w-full space-y-3 bg-secondary/50 rounded-lg p-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Mã đơn hàng:</span>
-                  <span className="font-medium">#{payment.orderId}</span>
+                  <span className="font-medium text-primary uppercase">{vnpTxnRef || `#${payment.orderId}`}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Số tiền:</span>
