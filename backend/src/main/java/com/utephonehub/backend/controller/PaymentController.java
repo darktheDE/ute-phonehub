@@ -37,6 +37,9 @@ public class PaymentController {
     @Value("${frontend.url}")
     private String frontendUrl;
     
+    @Value("${spring.profiles.active:prod}")
+    private String activeProfile;
+    
     /**
      * Create VNPay payment URL
      */
@@ -81,12 +84,14 @@ public class PaymentController {
         try {
             // FOR DEVELOPMENT: Simulate callback processing since VNPay can't reach localhost
             // In production, VNPay will call the callback URL directly
-            try {
-                log.info("Simulating VNPay callback for development environment");
-                vnPayService.handleCallback(request);
-            } catch (Exception callbackError) {
-                log.error("Error simulating callback", callbackError);
-                // Continue even if callback fails, let frontend handle the display
+            if ("dev".equals(activeProfile) || "local".equals(activeProfile)) {
+                try {
+                    log.info("Simulating VNPay callback for development environment");
+                    vnPayService.handleCallback(request);
+                } catch (Exception callbackError) {
+                    log.error("Error simulating callback", callbackError);
+                    // Continue even if callback fails, let frontend handle the display
+                }
             }
             
             // Get all VNPay params to forward to frontend

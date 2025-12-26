@@ -39,46 +39,23 @@ function VNPayReturnContent() {
       }
 
       try {
-        // Extract order ID from vnpTxnRef (format: ORD_251224092342)
-        // Or use vnpTxnRef directly as order code to get order ID
-        // For now, we'll poll payment status by checking the order
-        
-        // Wait a bit for VNPay callback to complete (VNPay calls backend directly)
+        // Wait for VNPay callback to complete (VNPay calls backend directly via IPN)
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Try to get payment status multiple times (polling)
-        let attempts = 0;
-        const maxAttempts = 5;
-        
-        while (attempts < maxAttempts) {
-          try {
-            // Get order ID from order code (vnpTxnRef)
-            // Since we don't have direct API to get order by code, 
-            // we'll try to check payment history
-            // For now, just show the result based on vnpResponseCode
-            
-            setPayment({
-              id: 0,
-              orderId: parseInt(vnpTxnRef.replace('ORD_', '')),
-              paymentMethod: 'VNPAY',
-              provider: 'VNPAY',
-              transactionId: vnpTransactionNo || '',
-              amount: vnpAmount ? parseInt(vnpAmount) / 100 : 0,
-              status: vnpResponseCode === '00' ? 'SUCCESS' : 'FAILED',
-              createdAt: new Date().toISOString(),
-            });
-            break;
-          } catch (err) {
-            attempts++;
-            if (attempts < maxAttempts) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-          }
-        }
-        
-        if (attempts >= maxAttempts) {
-          throw new Error('Không thể xác nhận trạng thái thanh toán');
-        }
+        // Construct payment object from VNPay return parameters
+        // The actual payment status is updated by backend via VNPay IPN callback
+        // Here we just display the return result to the user
+        // Use placeholder orderId (real ID should be resolved on backend)
+        setPayment({
+          id: 0,
+          orderId: 0,
+          paymentMethod: 'VNPAY',
+          provider: 'VNPAY',
+          transactionId: vnpTransactionNo || '',
+          amount: vnpAmount ? parseInt(vnpAmount) / 100 : 0,
+          status: vnpResponseCode === '00' ? 'SUCCESS' : 'FAILED',
+          createdAt: new Date().toISOString(),
+        });
       } catch (err: any) {
         console.error('Payment status check error:', err);
         setError(err.message || 'Xử lý thanh toán thất bại');
@@ -88,7 +65,7 @@ function VNPayReturnContent() {
     };
 
     checkPaymentStatus();
-  }, [searchParams, vnpResponseCode, vnpTxnRef, vnpAmount, vnpTransactionNo]);
+  }, [vnpResponseCode, vnpTxnRef, vnpAmount, vnpTransactionNo]);
 
   if (isLoading) {
     return (
@@ -215,7 +192,7 @@ function VNPayReturnContent() {
                   className="w-full"
                   onClick={() => router.push('/account/payments')}
                 >
-                  Xem đơn hàng
+                  Xem lịch sử thanh toán
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
