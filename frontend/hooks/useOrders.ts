@@ -35,7 +35,8 @@ export function useOrders(isAdmin: boolean = false) {
               phoneNumber: '',
               shippingAddress: '',
               paymentMethod: '',
-              items: 1,
+              items: [],
+              itemCount: 1,
             }));
             setOrders(transformedOrders);
           }
@@ -83,7 +84,8 @@ export function useOrders(isAdmin: boolean = false) {
               phoneNumber: '',
               shippingAddress: '',
               paymentMethod: '',
-              items: 1,
+              items: [],
+              itemCount: 1,
             }));
             setOrders(transformedOrders);
           }

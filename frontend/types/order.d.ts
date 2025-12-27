@@ -34,7 +34,7 @@ export interface Order {
   customer?: string;
   total?: number;
   date?: string;
-  items?: number;
+  itemCount?: number;
 }
 
 export interface OrderResponse {

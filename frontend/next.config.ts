@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -8,8 +9,9 @@ const nextConfig: NextConfig = {
         hostname: 'cdn.cellphones.com.vn',
       },
       {
-        protocol: 'https',
-        hostname: '**',
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8081',
       },
     ],
   },

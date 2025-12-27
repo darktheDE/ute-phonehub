@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { createProduct, getAllCategories, getAllBrands } from '@/lib/api';
+import { productAPI, adminAPI } from '@/lib/api';
 import type { CreateProductRequest, ProductMetadata } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -233,7 +233,7 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
       
       console.log('📤 Submitting product data:', JSON.stringify(submitData, null, 2));
       
-      const response = await createProduct(submitData);
+      const response = await productAPI.create(submitData);
       
       console.log('✅ Product created successfully:', response);
       alert('Tạo sản phẩm thành công!');
@@ -313,8 +313,8 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
     const loadData = async () => {
       try {
         const [catsRes, brandsRes] = await Promise.all([
-          getAllCategories(),
-          getAllBrands()
+          adminAPI.getAllCategories(),
+          adminAPI.getAllBrands()
         ]);
         if (catsRes.success && catsRes.data) setCategories(catsRes.data);
         if (brandsRes.success && brandsRes.data) setBrands(brandsRes.data);

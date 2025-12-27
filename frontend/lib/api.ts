@@ -40,12 +40,23 @@ import type {
   PaymentHistoryResponse,
 } from '@/types';
 
+// Cart & Promotion API response types
+import type { CartResponseData, CartItemResponse, Promotion } from '@/types/api-cart';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
 
 // Helper function to get auth token from localStorage
 export const getAuthToken = (): string | null => {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('accessToken');
+  }
+  return null;
+};
+
+// Helper function to get refresh token from localStorage
+export const getRefreshToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('refreshToken');
   }
   return null;
 };
@@ -107,51 +118,142 @@ async function fetchAPI<T>(
       headers,
     });
 
-    // Try to parse JSON, but handle cases where response might not be JSON
-    let data: any;
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType?.includes('application/json');
-    
-    if (isJson) {
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        // If JSON parsing fails, use empty object
-        data = {};
+    // Parse response: prefer JSON, but capture raw text and headers for debugging
+    let data: any = {};
+    let bodyText: string | null = null;
+    const headersObj = Object.fromEntries(Array.from(response.headers.entries()));
+
+    try {
+      // Clone response so we can safely attempt both JSON and text reads for diagnostics
+      const cloned = response.clone();
+      const contentType = response.headers.get('content-type') ?? '';
+      const isJson = contentType.includes('application/json');
+
+      if (isJson) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          // JSON parse failed; fall back to text
+          try {
+            bodyText = await cloned.text();
+            data = bodyText ? { message: bodyText } : {};
+          } catch {
+            data = {};
+          }
+        }
+      } else {
+        try {
+          bodyText = await response.text();
+          data = bodyText ? { message: bodyText } : {};
+        } catch {
+          data = {};
+        }
       }
-    } else {
-      // If not JSON, try to get text
-      try {
-        const text = await response.text();
-        data = text ? { message: text } : {};
-      } catch {
-        data = {};
-      }
+    } catch (err) {
+      data = {};
     }
 
+    
+
     if (!response.ok || !data.success) {
-      // Log more details for debugging
-      console.error('🚨 API Error Details:', {
+      // Build a detailed debug object to help troubleshoot API responses
+      const debugInfo: Record<string, unknown> = {
         url,
-        status: response.status,
-        statusText: response.statusText,
-        data,
-      });
-      console.error('📋 Full Error Data:', JSON.stringify(data, null, 2));
-      
-      const errorMessage = data?.message || data?.error || `HTTP error! status: ${response.status}`;
-      
-      // Create error with validation data attached
-      const error: any = new Error(errorMessage);
-      if (data?.data) {
-        error.data = data.data; // Validation errors from backend
+        request: {
+          method: (options && (options.method as string)) || 'GET',
+          body: (options && (options as any).body) || null,
+          headers: Object.fromEntries(headers.entries()),
+        },
+        response: {
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          headers: headersObj,
+          contentType: response.headers.get('content-type') ?? null,
+        },
+        parsedData: data,
+        rawBody: bodyText,
+      };
+
+      // If parsedData is empty and we haven't captured raw text yet, attempt to read it once more
+      if ((!data || Object.keys(data).length === 0) && !bodyText) {
+        try {
+          const extraClone = await response.clone().text();
+          if (extraClone) debugInfo.rawBody = extraClone;
+        } catch {
+          // ignore
+        }
       }
-      throw error;
+
+      // Log structured debug info. Use console.error so it's easily visible in dev tools.
+      try {
+        console.warn('API Error Details:', debugInfo);
+      } catch (logErr) {
+        // Fallback if structured logging fails
+        console.warn('API Error Details (fallback):', url, response.status, response.statusText);
+      }
+
+      // If 401 Unauthorized, try refreshing the token once (avoid infinite loops)
+      if (response.status === 401 && !headers.has('x-api-retry')) {
+        try {
+          const refreshToken = getRefreshToken();
+          if (refreshToken) {
+            const refreshResp = await fetch(`${API_BASE_URL}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken }),
+            });
+
+            if (refreshResp.ok) {
+              const refreshData = await refreshResp.json();
+              // Expect refreshData.data to contain accessToken and refreshToken
+              const newAccess = refreshData?.data?.accessToken ?? refreshData?.data?.access_token ?? null;
+              const newRefresh = refreshData?.data?.refreshToken ?? refreshData?.data?.refresh_token ?? null;
+              if (newAccess) {
+                setAuthTokens(newAccess, newRefresh ?? refreshToken);
+
+                // Retry original request with new token, mark as retried to avoid loops
+                const retryHeaders = new Headers(options.headers || {});
+                retryHeaders.set('Content-Type', retryHeaders.get('Content-Type') || 'application/json');
+                retryHeaders.set('Authorization', `Bearer ${newAccess}`);
+                retryHeaders.set('x-api-retry', '1');
+
+                const retryResp = await fetch(url, { ...options, headers: retryHeaders });
+                // Attempt to parse retry response similarly
+                let retryData: any = {};
+                try {
+                  const ct = retryResp.headers.get('content-type') ?? '';
+                  if (ct.includes('application/json')) retryData = await retryResp.json();
+                  else retryData = { message: await retryResp.text() };
+                } catch {
+                  retryData = {};
+                }
+
+                if (!retryResp.ok || !retryData.success) {
+                  const errMsg = (retryData && (retryData.message || retryData.error)) || `HTTP error! status: ${retryResp.status}`;
+                  throw new Error(String(errMsg));
+                }
+
+                return retryData;
+              }
+            }
+          }
+        } catch (refreshErr) {
+          console.warn('Token refresh failed:', refreshErr);
+        }
+        // If refresh failed, clear tokens and fall through to throw original error
+        clearAuthTokens();
+      }
+
+      const errorMessage = (data && (data.message || data.error)) || (debugInfo.rawBody as string) || `HTTP error! status: ${response.status}`;
+      throw new Error(String(errorMessage));
     }
 
     return data;
   } catch (error) {
-    console.error('API Error:', error);
+    // Already logged structured details above; downgrade to warning to avoid noisy error logs
+    console.warn('API Error:', error);
     throw error;
   }
 }
@@ -387,7 +489,7 @@ export const adminAPI = {
   // Categories (admin management)
   // Note: GET endpoint is public (/api/v1/categories) - dùng chung cho client và admin
   getAllCategories: async (parentId?: number | null): Promise<ApiResponse<CategoryResponse[]>> => {
-    const query = Number.isInteger(parentId) && parentId > 0 ? `?parentId=${parentId}` : '';
+    const query = (typeof parentId === 'number' && Number.isInteger(parentId) && parentId > 0) ? `?parentId=${parentId}` : '';
     return fetchAPI<CategoryResponse[]>(`/categories${query}`, {
       method: 'GET',
     });
@@ -413,10 +515,31 @@ export const adminAPI = {
     });
   },
 
+
   // Brands (admin management)
   getAllBrands: async (): Promise<ApiResponse<any[]>> => {
     return fetchAPI<any[]>('/brands', {
       method: 'GET',
+    });
+  },
+
+  updateBrand: async (id: number, data: any): Promise<ApiResponse<any>> => {
+    return fetchAPI<any>(`/admin/brands/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  createBrand: async (data: any): Promise<ApiResponse<any>> => {
+    return fetchAPI<any>('/admin/brands', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteBrand: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/brands/${id}`, {
+      method: 'DELETE',
     });
   },
 
@@ -509,83 +632,123 @@ export const dashboardAPI = {
   },
 };
 
-/**
- * Payment API
- * Endpoints cho module thanh toán (M06)
- * Base URL: /api/payments
- */
-export const paymentAPI = {
+// Cart API
+export const cartAPI = {
   /**
-   * POST /api/payments/vnpay/create
-   * Tạo URL thanh toán VNPay
-   * @param request - Thông tin tạo thanh toán
-   * @returns VNPayPaymentResponse chứa paymentUrl
+   * GET /api/v1/cart/me
    */
-  createVNPayUrl: async (request: CreatePaymentRequest): Promise<ApiResponse<VNPayPaymentResponse>> => {
-    return fetchAPI<VNPayPaymentResponse>('/payments/vnpay/create', {
+  getCurrentCart: async (): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>('/cart/me', { method: 'GET' });
+  },
+
+  /**
+   * POST /api/v1/cart/items
+   */
+  addToCart: async (data: { productId: number; quantity: number; color?: string; storage?: string }): Promise<ApiResponse<CartItemResponse>> => {
+    return fetchAPI<CartItemResponse>('/cart/items', {
       method: 'POST',
-      body: JSON.stringify(request),
+      body: JSON.stringify(data),
     });
   },
 
   /**
-   * GET /api/payments/history?page=0&size=10
-   * Lấy lịch sử thanh toán của user hiện tại
-   * @param page - Số trang (bắt đầu từ 0)
-   * @param size - Số lượng items mỗi trang
-   * @returns PaymentHistoryResponse
+   * PUT /api/v1/cart/items/{itemId}
    */
+  updateCartItem: async (itemId: number, data: number | { quantity?: number }): Promise<ApiResponse<CartItemResponse>> => {
+    const payload = typeof data === 'number' ? { quantity: data } : data;
+    return fetchAPI<CartItemResponse>(`/cart/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/cart/items/{itemId}
+   */
+  removeCartItem: async (itemId: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/cart/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Remove multiple cart items by ids.
+   * Backend does not expose a bulk delete, so perform parallel deletes and aggregate.
+   */
+  removeCartItems: async (itemIds: number[]): Promise<ApiResponse<null[]>> => {
+    try {
+      const results = await Promise.all(
+        itemIds.map((id) => fetchAPI<null>(`/cart/items/${id}`, { method: 'DELETE' }))
+      );
+      return { success: true, data: results.map((r) => r.data ?? null) } as ApiResponse<null[]>;
+    } catch (error) {
+      console.error('Failed to remove multiple cart items:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * DELETE /api/v1/cart/clear
+   */
+  clearCart: async (): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>('/cart/clear', { method: 'DELETE' });
+  },
+
+  /**
+   * POST /api/v1/cart/merge
+   */
+  mergeGuestCart: async (data: { guestCartItems: { productId: number; quantity: number }[] }): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>('/cart/merge', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Promotion API (frontend helpers)
+export const promotionAPI = {
+  /**
+   * GET /api/v1/promotions/available?orderTotal={orderTotal}
+   */
+  getAvailablePromotions: async (orderTotal: number): Promise<ApiResponse<Promotion[]>> => {
+    return fetchAPI<Promotion[]>(`/promotions/available?orderTotal=${orderTotal}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/v1/promotions/calculate?promotionId={id}&orderTotal={orderTotal}
+   */
+  calculateDiscount: async (promotionId: string, orderTotal: number): Promise<ApiResponse<number>> => {
+    return fetchAPI<number>(`/promotions/calculate?promotionId=${encodeURIComponent(promotionId)}&orderTotal=${orderTotal}`, {
+      method: 'GET',
+    });
+  },
+};
+
+// Payment API
+export const paymentAPI = {
+  // GET /api/v1/payments/history?page={page}&size={size}
   getPaymentHistory: async (page: number = 0, size: number = 10): Promise<ApiResponse<PaymentHistoryResponse>> => {
     return fetchAPI<PaymentHistoryResponse>(`/payments/history?page=${page}&size=${size}`, {
       method: 'GET',
     });
   },
 
-  /**
-   * GET /api/payments/{id}
-   * Lấy chi tiết một payment
-   * @param id - Payment ID
-   * @returns PaymentResponse
-   */
-  getPaymentDetail: async (id: number): Promise<ApiResponse<PaymentResponse>> => {
-    return fetchAPI<PaymentResponse>(`/payments/${id}`, {
+  // GET /api/v1/payments/vnpay/callback?{params}
+  // Used by the frontend return page to verify/process VNPay result
+  handleVNPayCallback: async (params: Record<string, string>): Promise<ApiResponse<PaymentResponse>> => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchAPI<PaymentResponse>(`/payments/vnpay/callback?${qs}`, {
       method: 'GET',
     });
   },
 
-  /**
-   * GET /api/payments/vnpay/callback
-   * Xử lý callback từ VNPay sau khi thanh toán
-   * @param queryParams - Query parameters từ VNPay
-   * @returns PaymentResponse với status đã cập nhật
-   */
-  handleVNPayCallback: async (queryParams: Record<string, string>): Promise<ApiResponse<PaymentResponse>> => {
-    const params = new URLSearchParams(queryParams).toString();
-    return fetchAPI<PaymentResponse>(`/payments/vnpay/callback?${params}`, {
-      method: 'GET',
-    });
-  },
-
-  /**
-   * GET /api/payments/order/{orderId}
-   * Kiểm tra trạng thái payment của một đơn hàng
-   * @param orderId - Order ID
-   * @returns PaymentResponse
-   */
-  checkPaymentStatus: async (orderId: number): Promise<ApiResponse<PaymentResponse>> => {
-    return fetchAPI<PaymentResponse>(`/payments/order/${orderId}`, {
-      method: 'GET',
+  // POST /api/v1/payments/vnpay/create
+  createVNPayPayment: async (data: CreatePaymentRequest): Promise<ApiResponse<VNPayPaymentResponse>> => {
+    return fetchAPI<VNPayPaymentResponse>('/payments/vnpay/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };
-
-// ==================== HELPER EXPORTS ====================
-// Top-level exports for convenience
-export const createProduct = productAPI.create;
-export const updateProduct = productAPI.update;
-export const getProductById = productAPI.getById;
-export const getProductImages = productAPI.getImages;
-export const deleteProductImage = productAPI.deleteImage;
-export const uploadProductImage = productAPI.uploadImage;
-export const getAllCategories = adminAPI.getAllCategories;
-export const getAllBrands = adminAPI.getAllBrands;

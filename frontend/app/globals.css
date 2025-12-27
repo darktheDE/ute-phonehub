@@ -146,3 +146,13 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--foreground);
 }
+
+/* Make interactive elements show pointer cursor to indicate clickability */
+@layer components {
+  button:not([disabled]),
+  [role="button"],
+  a.button,
+  .clickable {
+    cursor: pointer;
+  }
+}

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X, Trash2, Loader2, Star, Upload, Plus, Image as ImageIcon } from 'lucide-react';
 import { Product, ProductImage } from '@/types/product';
-import { deleteProductImage, uploadProductImage } from '@/lib/api';
+import { productAPI } from '@/lib/api';
 
 interface ImageManagementModalProps {
   product: Product;
@@ -42,8 +42,10 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
       setIsPrimary(true);
     }
     
-    // Debug thumbnail
-    console.log('🖼️ Product thumbnail URL:', product.thumbnailUrl);
+    // Debug: Product may not have thumbnailUrl
+    // if ('thumbnailUrl' in product) {
+    //   console.log('🖼️ Product thumbnail URL:', (product as any).thumbnailUrl);
+    // }
   }, [product]);
 
   const handleDeleteImage = async (imageId: number) => {
@@ -53,7 +55,7 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
       setDeleting(imageId);
       console.log('🗑️ Deleting image:', imageId, 'from product:', product.id);
       
-      const response = await deleteProductImage(product.id, imageId);
+      const response = await productAPI.deleteImage(product.id, imageId);
       console.log('📥 Delete response:', response);
       
       if (response.success) {
@@ -115,7 +117,7 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
       
       console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
       
-      const response = await uploadProductImage(product.id, requestBody);
+      const response = await productAPI.uploadImage(product.id, requestBody);
       console.log('📥 Upload response:', response);
       console.log('📥 Response success:', response.success);
       console.log('📥 Response data:', response.data);
@@ -164,10 +166,10 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
               Ảnh đại diện sản phẩm (Thumbnail)
             </h3>
             <div className="flex items-center gap-4">
-              {product.thumbnailUrl ? (
+                {'thumbnailUrl' in product && (product as any).thumbnailUrl ? (
                 <>
                   <img
-                    src={product.thumbnailUrl}
+                        src={String((product as any).thumbnailUrl)}
                     alt={product.name}
                     className="w-24 h-24 object-cover rounded border-2 border-blue-300"
                     onError={(e) => {
@@ -176,17 +178,17 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
                   />
                   <div className="text-sm">
                     <p className="font-medium">Ảnh này hiển thị trong danh sách sản phẩm</p>
-                    <p className="text-xs mt-1 text-muted-foreground break-all">{product.thumbnailUrl}</p>
-                    {product.thumbnailUrl.includes('placeholder') && (
-                      <p className="text-xs mt-2 text-orange-600 font-medium">
-                        ⚠️ Đang dùng ảnh mẫu. Vui lòng cập nhật thumbnail từ trang chỉnh sửa sản phẩm.
-                      </p>
-                    )}
+                        <p className="text-xs mt-1 text-muted-foreground break-all">{String((product as any).thumbnailUrl)}</p>
+                      {String((product as any).thumbnailUrl).includes('placeholder') && (
+                        <p className="text-xs mt-2 text-orange-600 font-medium">
+                          ⚠️ Đang dùng ảnh mẫu. Vui lòng cập nhật thumbnail từ trang chỉnh sửa sản phẩm.
+                        </p>
+                      )}
                   </div>
                 </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Chưa có ảnh đại diện</p>
-              )}
+                ) : (
+                  <span className="text-muted-foreground text-xs">Chưa có ảnh đại diện</span>
+                )}
             </div>
           </div>
 

@@ -42,13 +42,7 @@ public class SecurityUtils {
      * @param request the HTTP request containing the Authorization header
      * @return the user ID if authenticated, or null if not authenticated/invalid token
      */
-    public Long getUserIdIfAuthenticated(HttpServletRequest request) {
-        try {
-            return getCurrentUserId(request);
-        } catch (UnauthorizedException ex) {
-            return null;
-        }
-    }
+    // Note: implementation below uses token extraction and validation directly.
 
     /**
      * Extracts the JWT token from the Authorization header.
@@ -73,5 +67,22 @@ public class SecurityUtils {
             ipAddress = request.getRemoteAddr();
         }
         return ipAddress;
+    }
+
+    /**
+     * Returns the user id if the request contains a valid JWT token, otherwise null.
+     * This method does not throw an exception for unauthenticated requests.
+     */
+    public Long getUserIdIfAuthenticated(HttpServletRequest request) {
+        try {
+            String token = extractToken(request);
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                return jwtTokenProvider.getUserIdFromToken(token);
+            }
+        } catch (Exception ex) {
+            // swallow and return null for unauthenticated
+            return null;
+        }
+        return null;
     }
 }

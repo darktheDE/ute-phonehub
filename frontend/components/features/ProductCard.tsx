@@ -1,9 +1,10 @@
 'use client';
 
 import { Heart, Star, ShoppingCart } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
+import { useAuth } from '@/hooks';
+import { useCartStore } from '@/store';
+import { cartAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -29,30 +30,77 @@ export function ProductCard({
   discount,
   isNew = false,
 }: ProductCardProps) {
-  const router = useRouter();
-  const { addItem } = useCartStore();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
+  const { addItem, setItems } = useCartStore();
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent navigating to detail page if we add that later
-    addItem({
-      productId: id,
-      productName: name,
-      productImage: image,
-      price: salePrice,
-      quantity: 1,
-      // color and storage will be undefined - should be set from product details page
-    });
-    toast.success('Đã thêm vào giỏ hàng!', {
-      description: `${name} - ${formatPrice(salePrice)}`,
-    });
+  const isValidImage = (src: unknown) => {
+    if (!src || typeof src !== 'string') return false;
+    return /^(https?:\/\/|\/|data:|blob:)/i.test(src);
   };
 
-  const handleBuyNow = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    handleAddToCart(e);
-    router.push('/checkout');
+  const handleBuyNow = async (e?: any) => {
+    e?.stopPropagation?.();
+    await handleAddToCart();
+    try {
+      window.location.href = '/checkout';
+    } catch {
+      // noop
+    }
   };
 
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      // Add to local cart store for guest
+      // compute applied price when discount present
+      const appliedPrice = discount && discount > 0 ? Math.round(salePrice * (100 - discount) / 100) : salePrice;
+      addItem({
+        productId: id,
+        productName: name,
+        productImage: isValidImage(image) ? image : '',
+        price: salePrice,
+        discountPercent: discount > 0 ? discount : undefined,
+        appliedPrice: appliedPrice,
+        quantity: 1,
+      } as any);
+      toast.success('Đã thêm vào giỏ (khách) — đăng nhập để đồng bộ');
+      return;
+    }
+
+    try {
+      const resp = await cartAPI.addToCart({ productId: id, quantity: 1 });
+      if (resp && resp.success) {
+        // After adding to backend, refresh local cart from backend to get server IDs
+        try {
+          const cartResp = await cartAPI.getCurrentCart();
+          if (cartResp && cartResp.success && cartResp.data) {
+            const backendItems = Array.isArray(cartResp.data.items) ? cartResp.data.items : [];
+            const mappedItems = backendItems.map((obj: any) => ({
+              id: Number(obj.id ?? 0),
+              productId: Number(obj.productId ?? 0),
+              productName: typeof obj.productName === 'string' ? obj.productName : (obj.product?.name ?? 'Unknown Product'),
+              productImage: typeof obj.productImage === 'string' ? obj.productImage : (obj.productThumbnailUrl ?? obj.product?.thumbnailUrl ?? ''),
+              price: typeof obj.price === 'number' ? obj.price : (obj.unitPrice ?? obj.product?.salePrice ?? 0),
+              quantity: Number(obj.quantity ?? 0),
+              color: obj.color,
+              storage: obj.storage,
+            }));
+
+            setItems(mappedItems as any);
+          }
+        } catch (syncErr) {
+          console.warn('ProductCard: failed to refresh cart after addToCart', syncErr);
+        }
+
+        toast.success('Đã thêm vào giỏ hàng');
+      } else {
+        throw new Error(resp?.message || 'Không thể thêm vào giỏ');
+      }
+    } catch (e: any) {
+      console.error('Add to cart failed:', e);
+      toast.error(e?.message || 'Lỗi khi thêm vào giỏ');
+    }
+  };
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all group relative">
       <div className="relative">
@@ -119,6 +167,15 @@ export function ProductCard({
           <span className="text-xs md:text-sm text-muted-foreground line-through">
             {formatPrice(originalPrice)}
           </span>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            onClick={handleAddToCart}
+            className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm text-white hover:opacity-95"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Thêm vào giỏ
+          </button>
         </div>
       </div>
     </div>

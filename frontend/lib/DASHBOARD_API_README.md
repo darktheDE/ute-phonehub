@@ -15,187 +15,208 @@
 - ✅ `LowStockProduct` - Sản phẩm sắp hết hàng
 - ✅ `DashboardPeriod` & `RegistrationPeriod` - Enum thời gian
 
-### 2. API Service (`frontend/lib/api.ts`)
+# Dashboard API - Module M10.2
 
-Đã tạo object `dashboardAPI` với 7 endpoints:
+Mục đích: mô tả các endpoint, DTO và cách tích hợp frontend (`frontend/lib/api.ts`) với backend để hiển thị dashboard giỏ hàng (metrics, charts, orders list, exports).
 
-```typescript
-dashboardAPI.getOverview()
-dashboardAPI.getRevenueChart(period)
-dashboardAPI.getOrderStatusChart()
-dashboardAPI.getUserRegistrationChart(period)
-dashboardAPI.getTopProducts(limit)
-dashboardAPI.getRecentOrders(limit)
-dashboardAPI.getLowStockProducts(threshold)
-```
+---
 
-## 🧪 Cách Test API
+## Tổng quan endpoints (tóm tắt)
 
-### Option 1: Test trong Browser Console
+- GET  `/api/v1/dashboard/overview` — KPIs tổng quan (revenue, orders, aov, abandonedRate)
+- GET  `/api/v1/dashboard/metrics` — Các metric dạng time-series (query params: metric, start, end, granularity)
+- GET  `/api/v1/dashboard/orders` — Danh sách đơn hàng với pagination + filters
+- GET  `/api/v1/dashboard/top-products` — Top sản phẩm theo doanh thu / số lượng
+- GET  `/api/v1/dashboard/low-stock` — Sản phẩm sắp hết hàng
+- GET  `/api/v1/dashboard/export/orders` — Export CSV/Excel theo filter (triggers background job or sync download)
 
-1. Mở trang dashboard trong browser
-2. Mở Developer Console (F12)
-3. Chạy lệnh:
+---
 
-```javascript
-// Import test functions (nếu cần)
-import { testAllDashboardEndpoints } from '@/lib/test-dashboard-api';
+## Contract chi tiết
 
-// Test tất cả endpoints
-testAllDashboardEndpoints();
+All responses follow a common wrapper:
 
-// Hoặc test từng endpoint
-dashboardAPI.getOverview().then(console.log);
-dashboardAPI.getRevenueChart('MONTH').then(console.log);
-```
-
-### Option 2: Test trong Component
-
-Tạo một component test đơn giản:
-
-```typescript
-'use client';
-
-import { useEffect } from 'react';
-import { dashboardAPI } from '@/lib/api';
-
-export default function TestDashboardAPI() {
-  useEffect(() => {
-    const testAPI = async () => {
-      try {
-        // Test Overview
-        const overview = await dashboardAPI.getOverview();
-        console.log('Overview:', overview.data);
-
-        // Test Revenue Chart
-        const revenue = await dashboardAPI.getRevenueChart('MONTH');
-        console.log('Revenue:', revenue.data);
-
-        // ... test các endpoint khác
-      } catch (error) {
-        console.error('API Error:', error);
-      }
-    };
-
-    testAPI();
-  }, []);
-
-  return (
-    <div className="p-8">
-      <h1>Testing Dashboard API</h1>
-      <p>Check console for results</p>
-    </div>
-  );
+```ts
+type ApiResponse<T> = {
+  success: boolean
+  data?: T
+  message?: string
 }
 ```
 
-## 📝 Mapping Backend ↔ Frontend
+### 1) Overview
 
-### Backend DashboardServiceImpl
+GET /api/v1/dashboard/overview?start=YYYY-MM-DD&end=YYYY-MM-DD
 
-```java
-// Backend Java
-@GetMapping("/overview")
-public ResponseEntity<DashboardOverviewResponse> getOverview() { ... }
-```
+Response:
 
-### Frontend dashboardAPI
-
-```typescript
-// Frontend TypeScript
-dashboardAPI.getOverview(): Promise<ApiResponse<DashboardOverview>>
-```
-
-## 🎯 Các Endpoints
-
-| Method | Backend Endpoint                     | Frontend Function                          | Mô tả                        |
-| ------ | ------------------------------------ | ------------------------------------------ | ---------------------------- |
-| GET    | `/api/v1/dashboard/overview`         | `dashboardAPI.getOverview()`               | 4 chỉ số tổng quan           |
-| GET    | `/api/v1/dashboard/revenue-chart`    | `dashboardAPI.getRevenueChart(period)`     | Biểu đồ doanh thu            |
-| GET    | `/api/v1/dashboard/order-status-chart` | `dashboardAPI.getOrderStatusChart()`       | Biểu đồ trạng thái đơn hàng  |
-| GET    | `/api/v1/dashboard/user-registration-chart` | `dashboardAPI.getUserRegistrationChart(period)` | Biểu đồ người dùng đăng ký   |
-| GET    | `/api/v1/dashboard/top-products`     | `dashboardAPI.getTopProducts(limit)`       | Top sản phẩm bán chạy        |
-| GET    | `/api/v1/dashboard/recent-orders`    | `dashboardAPI.getRecentOrders(limit)`      | Đơn hàng gần đây             |
-| GET    | `/api/v1/dashboard/low-stock-products` | `dashboardAPI.getLowStockProducts(threshold)` | Sản phẩm sắp hết hàng        |
-
-## 🚦 Error Handling
-
-Tất cả API functions đều có error handling tích hợp:
-
-```typescript
-try {
-  const response = await dashboardAPI.getOverview();
-  if (response.success) {
-    console.log('Data:', response.data);
-  } else {
-    console.error('Error:', response.message);
-  }
-} catch (error) {
-  console.error('Network error:', error);
+```ts
+type DashboardOverview = {
+  totalRevenue: number
+  totalOrders: number
+  averageOrderValue: number
+  abandonedRate: number // percent
+  ordersByStatus: { [status: string]: number }
+  sparklineRevenue?: { date: string; value: number }[]
 }
 ```
 
-## 📋 TypeScript Interface Examples
+### 2) Metrics / Charts
 
-### DashboardOverview
+GET /api/v1/dashboard/metrics?metric=revenue|orders|conversion&start=YYYY-MM-DD&end=YYYY-MM-DD&granularity=daily|weekly|monthly
 
-```typescript
-{
-  totalRevenue: 150000000,
-  totalOrders: 234,
-  totalProducts: 45,
-  totalUsers: 1250
+Response:
+
+```ts
+type TimeSeriesPoint = { ts: string; value: number }
+
+type MetricSeries = {
+  metric: string
+  series: TimeSeriesPoint[]
+  total?: number
 }
 ```
 
-### RevenueChartData
+### 3) Orders list (server-side pagination, filters, sort)
 
-```typescript
-{
-  labels: ["01/12", "02/12", "03/12", ...],
-  values: [5000000, 7500000, 6200000, ...],
-  total: 180000000,
-  averagePerDay: 6000000,
-  period: "MONTH"
+GET /api/v1/dashboard/orders?start=&end=&status=&search=&page=1&size=25&sort=createdAt,desc
+
+Response:
+
+```ts
+type OrderItem = { sku: string; name: string; qty: number; price: number }
+
+type Order = {
+  id: string
+  customer: { id: string; name: string; email?: string }
+  items: OrderItem[]
+  total: number
+  discount?: number
+  paymentMethod?: string
+  status: string
+  createdAt: string
+}
+
+type Paginated<T> = {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+// Example wrapper
+ApiResponse<Paginated<Order>>
+```
+
+Notes:
+- `search` should match order id, customer email or phone.
+- Use `status` multi-value: `status=COMPLETED,PENDING`
+
+### 4) Top products
+
+GET /api/v1/dashboard/top-products?limit=10&period=30
+
+Response:
+
+```ts
+type TopProduct = { sku: string; name: string; revenue: number; quantity: number }
+ApiResponse<TopProduct[]>
+```
+
+### 5) Low stock
+
+GET /api/v1/dashboard/low-stock?threshold=5
+
+Response: `ApiResponse<LowStockProduct[]>`
+
+### 6) Export orders
+
+GET /api/v1/dashboard/export/orders?start=&end=&status=&format=csv
+
+- If export is heavy, backend should return 202 + job id; frontend polls `/api/v1/jobs/{id}` for completed download URL.
+
+---
+
+## Authentication & headers
+
+- Use `Authorization: Bearer <token>` for authenticated requests.
+- Optionally add `X-Admin-Id` for tracing internal calls.
+
+Example fetch:
+
+```ts
+const res = await fetch('/api/v1/dashboard/overview', {
+  headers: { Authorization: `Bearer ${token}` }
+})
+const payload = await res.json()
+```
+
+## Frontend integration patterns
+
+- Use `react-query` or `SWR` for caching, background refetch and pagination.
+- Cache summary (overview) for short TTL (30s). Cache heavy charts longer (5-10min) and invalidate on data-changing operations.
+- Debounce `search` and use server-side filtering.
+
+Example `react-query` hooks (sketch):
+
+```ts
+// useDashboard.ts
+import { useQuery } from '@tanstack/react-query'
+
+export function useOverview(start, end) {
+  return useQuery(['dashboard','overview',start,end], () => fetch(`/api/v1/dashboard/overview?start=${start}&end=${end}`).then(r=>r.json()), { staleTime: 30_000 })
+}
+
+export function useOrders(params) {
+  return useQuery(['dashboard','orders', params], () => fetch('/api/v1/dashboard/orders?'+new URLSearchParams(params)).then(r=>r.json()), { keepPreviousData: true })
 }
 ```
 
-### OrderStatusChartData
+## Backend implementation notes (recommended)
 
-```typescript
-{
-  labels: ["Chờ xử lý", "Đã xác nhận", "Đang giao", "Hoàn thành", "Đã hủy"],
-  values: [25, 50, 30, 120, 9],
-  percentages: [10.7, 21.4, 12.8, 51.3, 3.8],
-  totalOrders: 234
+- Aggregate metrics via optimized SQL (GROUP BY date) or materialized views for large datasets.
+- Cache computed charts in Redis with keys per date-range and metric.
+- Use background worker (e.g., Spring + @Async or message queue) for heavy exports.
+- Add indexes on `orders.created_at`, `orders.status`, `order_items.sku` for fast queries.
+
+## Errors and retry
+
+- Standardize errors: return HTTP 4xx/5xx with JSON `{ success: false, message }`.
+- Frontend: show toast on network error and allow retry button for failed fetches.
+
+## Example: calling orders endpoint from frontend (SWR)
+
+```ts
+import useSWR from 'swr'
+
+const fetcher = (url: string) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
+
+export function useDashboardOrders(params) {
+  const qs = new URLSearchParams(params).toString()
+  const { data, error } = useSWR(`/api/v1/dashboard/orders?${qs}`, fetcher, { revalidateOnFocus: false })
+  return { data, error }
 }
 ```
 
-## ⏭️ Bước tiếp theo
+## Pagination & UX notes
 
-Bây giờ bạn có thể:
+- Return `totalElements` so frontend can render accurate pagination.
+- For very large datasets consider cursor-based paging.
+- Provide `page` and `size` defaults (page=1, size=25).
 
-1. ✅ Tạo component đầu tiên (ví dụ: StatsCard)
-2. ✅ Test component với API đã tạo
-3. ✅ Nếu thành công, tiếp tục tạo các components khác
-4. ✅ Cuối cùng assemble thành trang Dashboard hoàn chỉnh
+## Deployment / debug checklist
 
-## 🔍 Debug Tips
+1. Backend running at `http://localhost:8081` (or configured proxy to Next dev server)
+2. CORS: allow `http://localhost:3000` in dev
+3. Auth: ensure token generation and refresh flow works
+4. Test endpoints using `frontend/lib/test-dashboard-api.ts` helper
 
-Nếu gặp lỗi:
+---
 
-1. **Check Backend**: Đảm bảo backend đang chạy tại `http://localhost:8081`
-2. **Check Auth**: Xác nhận đã đăng nhập và có token hợp lệ
-3. **Check Console**: Xem lỗi chi tiết trong Browser Console
-4. **Check Network**: Xem request/response trong Network tab (F12)
-5. **Check CORS**: Xác nhận backend cho phép CORS từ frontend
+## Next steps I can do for bạn
 
-## 📦 Dependencies Required
+- Implement `frontend/lib/dashboardClient.ts` wrappers (fetch / react-query hooks) and wire them into the example dashboard page.
+- Add server-side proxy API routes in Next (`/app/api/dashboard/*`) to attach tokens or handle local dev CORS.
 
-Để build components, bạn sẽ cần:
-
-```bash
-npm install chart.js react-chartjs-2 date-fns sonner lucide-react
-```
-
-Nhưng hiện tại chỉ cần types và API, chưa cần cài dependencies này.
+Bạn muốn tôi tiếp tục tự động tạo các hooks (`useOverview`, `useOrders`) và cập nhật `frontend/lib/api.ts` để kết nối thật với backend chứ? 

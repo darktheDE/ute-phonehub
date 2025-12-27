@@ -10,16 +10,19 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, Package, Loader2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 
+
 interface OrderDetailPageProps {
   params: Promise<{
     id: string;
   }>;
 }
 
-export default function OrderDetailPage({ params }: OrderDetailPageProps) {
+
+export default function OrderDetailPage(props: OrderDetailPageProps) {
+  const params = use(props.params);
   const router = useRouter();
+  const orderId = params.id;
   const [isLoading, setIsLoading] = useState(true);
-  const { id } = use(params);
 
   useEffect(() => {
     // Simulate loading
@@ -65,7 +68,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <Package className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Mã đơn hàng</p>
-              <p className="font-semibold">#{id}</p>
+              <p className="font-semibold">#{params.id ?? '...'}</p>
             </div>
           </div>
 

@@ -6,15 +6,17 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { PaymentMethodSelector } from '@/components/features/payment';
-import { orderAPI, userAPI } from '@/lib/api';
+import { orderAPI, userAPI, cartAPI } from '@/lib/api';
 import type { PaymentMethod, CreateOrderRequest } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Package, ShoppingCart, Check } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { mapBackendCartItems } from '@/lib/utils/cartMapper';
+import { toast } from 'sonner';
 
 const getConfiguredShippingFee = (): number => {
   const envValue = process.env.NEXT_PUBLIC_DEFAULT_SHIPPING_FEE;
@@ -75,6 +77,7 @@ function OrderSummary({
   onCheckout,
   isProcessing,
   showCheckoutButton,
+  processingIds,
 }: {
   items: any[];
   totalPrice: number;
@@ -83,6 +86,7 @@ function OrderSummary({
   onCheckout?: () => void;
   isProcessing?: boolean;
   showCheckoutButton?: boolean;
+  processingIds?: number[];
 }) {
   const finalAmount = totalPrice + shippingFee;
 
@@ -92,26 +96,32 @@ function OrderSummary({
 
       {/* Cart Items */}
       <div className="space-y-3 max-h-80 overflow-y-auto mb-4">
-        {items.map((item) => (
-          <div key={item.id} className="flex gap-3">
-            <div className="relative w-16 h-16 bg-muted rounded flex items-center justify-center flex-shrink-0">
-              {item.productImage && item.productImage.length <= 4 ? (
-                <span className="text-2xl">{item.productImage}</span>
-              ) : (
-                <Package className="h-6 w-6 text-muted-foreground" />
-              )}
-              {item.quantity > 1 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
-                  {item.quantity}
-                </span>
-              )}
+        {items.map((item) => {
+          const isItemProcessing = Array.isArray(processingIds) && processingIds.includes(item.id);
+          return (
+            <div
+              key={item.id}
+              className={`flex gap-3 ${isItemProcessing ? 'opacity-60 pointer-events-none' : ''}`}
+            >
+              <div className="relative w-16 h-16 bg-muted rounded flex items-center justify-center flex-shrink-0">
+                {item.productImage && item.productImage.length <= 4 ? (
+                  <span className="text-2xl">{item.productImage}</span>
+                ) : (
+                  <Package className="h-6 w-6 text-muted-foreground" />
+                )}
+                {item.quantity > 1 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
+                    {item.quantity}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium line-clamp-2">{item.productName}</p>
+                <p className="text-sm font-semibold mt-1">{formatPrice(item.price * item.quantity)}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium line-clamp-2">{item.productName}</p>
-              <p className="text-sm font-semibold mt-1">{formatPrice(item.price * item.quantity)}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Price Summary */}
@@ -159,9 +169,51 @@ function OrderSummary({
   );
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
-  const { items, totalPrice, clearCart } = useCartStore();
+  const searchParams = useSearchParams();
+  const { items, totalPrice, clearCart, removeItems, setItems } = useCartStore();
+
+  const selectedParam = searchParams?.get?.('selected') ?? null;
+  const selectedIdsFromQuery = selectedParam 
+    ? selectedParam.split(',').map(s => Number(s)).filter(Boolean) 
+    : null;
+  
+  // Validate selected items exist in cart
+  const itemsForOrder = selectedIdsFromQuery && selectedIdsFromQuery.length > 0 
+    ? items.filter((it: any) => selectedIdsFromQuery.includes(it.id)) 
+    : items;
+  
+  // Show warning if selected items don't exist in cart
+  const [hasShownMissingItemsWarning, setHasShownMissingItemsWarning] = useState(false);
+  
+  useEffect(() => {
+    if (
+      selectedIdsFromQuery && 
+      selectedIdsFromQuery.length > 0 && 
+      itemsForOrder.length === 0 &&
+      !hasShownMissingItemsWarning
+    ) {
+      setHasShownMissingItemsWarning(true);
+      toast.error('Các sản phẩm đã chọn không còn trong giỏ hàng');
+      // Redirect to cart after showing error
+      setTimeout(() => router.push('/cart'), 2000);
+    } else if (
+      selectedIdsFromQuery &&
+      selectedIdsFromQuery.length > itemsForOrder.length &&
+      !hasShownMissingItemsWarning
+    ) {
+      setHasShownMissingItemsWarning(true);
+      const missingCount = selectedIdsFromQuery.length - itemsForOrder.length;
+      toast.warning(`${missingCount} sản phẩm đã được loại bỏ vì không còn trong giỏ hàng`);
+    }
+  }, [selectedIdsFromQuery, itemsForOrder.length, hasShownMissingItemsWarning, router]);
+
+  const orderItemsTotalPrice = itemsForOrder.reduce(
+    (s: number, it: any) => s + ((it.appliedPrice ?? it.price) * it.quantity), 
+    0
+  );
+  
   const [currentStep, setCurrentStep] = useState(1);
   
   // Form states
@@ -173,6 +225,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('COD');
   
   const [isProcessing, setIsProcessing] = useState(false);
+  const [orderingItemIds, setOrderingItemIds] = useState<number[]>([]);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [error, setError] = useState('');
 
@@ -249,11 +302,17 @@ export default function CheckoutPage() {
   // Place Order
   const handlePlaceOrder = async () => {
     setError('');
-    if (items.length === 0) {
+    if (itemsForOrder.length === 0) {
       setError('Giỏ hàng trống');
       return;
     }
 
+    // mark items as being ordered and notify other tabs immediately
+    const orderedLocalIds = itemsForOrder.map((it: any) => it.id);
+    try {
+      localStorage.setItem('lastOrderPlacedAt', String(Date.now()));
+    } catch {}
+    setOrderingItemIds(orderedLocalIds);
     setIsProcessing(true);
     try {
       const orderRequest: CreateOrderRequest = {
@@ -266,7 +325,7 @@ export default function CheckoutPage() {
         note: note.trim() || undefined,
         paymentMethod,
         promotionId: undefined,
-        items: items.map((item: any) => ({
+        items: itemsForOrder.map((item: any) => ({
           productId: item.productId,
           quantity: item.quantity,
         })),
@@ -275,18 +334,59 @@ export default function CheckoutPage() {
       const orderResponse = await orderAPI.createOrder(orderRequest);
       const orderData = orderResponse.data;
 
-      if (paymentMethod === 'VNPAY' && orderData.paymentUrl) {
-        clearCart();
+      // After order is created, prefer server state: fetch cart and set local store.
+      try {
+        const cartResp = await cartAPI.getCurrentCart();
+        if (cartResp && cartResp.success && cartResp.data) {
+          const backendItems = Array.isArray(cartResp.data.items) ? cartResp.data.items : [];
+          const mappedItems = mapBackendCartItems(backendItems);
+          setItems(mappedItems);
+        } else {
+          // Backend didn't clear ordered items yet — remove only ordered local items as fallback
+          removeItems(orderedLocalIds);
+        }
+      } catch (e) {
+        // Network or other error — fall back to removing only ordered local items
+        removeItems(orderedLocalIds);
+      }
+
+      // Mark order placed so other tabs/pages refresh cart
+      try {
+        localStorage.setItem('lastOrderPlacedAt', String(Date.now()));
+      } catch {}
+
+      // Remove ordered items locally as immediate feedback
+      try {
+        const orderedLocalIds = itemsForOrder.map((it: any) => it.id);
+        removeItems(orderedLocalIds);
+      } catch {}
+
+      // Try a final refresh from backend to ensure server state wins
+      try {
+        const final = await cartAPI.getCurrentCart();
+        if (final && final.success && final.data) {
+          const backendItems = Array.isArray(final.data.items) ? final.data.items : [];
+          const mappedItems = mapBackendCartItems(backendItems);
+          clearCart();
+          if (mappedItems.length > 0) setItems(mappedItems);
+        }
+      } catch (e) {
+        console.warn('Failed final cart refresh after order:', e);
+      }
+
+      // Navigate to appropriate page
+      if (paymentMethod === 'VNPAY' && orderData?.paymentUrl) {
         window.location.href = orderData.paymentUrl;
       } else {
-        clearCart();
-        router.push(`/orders/${orderData.orderId}`);
+        router.push(`/orders/${orderData?.orderId || ''}`);
       }
     } catch (err: any) {
       console.error('Checkout error:', err);
       setError(err.message || 'Đặt hàng thất bại. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
+      // clear ordering flags so UI stops showing processing state
+      setOrderingItemIds([]);
     }
   };
 
@@ -462,16 +562,25 @@ export default function CheckoutPage() {
         {/* Right: Order Summary */}
         <div>
           <OrderSummary
-            items={items}
-            totalPrice={totalPrice}
-            shippingFee={shippingFee}
-            error={currentStep === 3 ? error : undefined}
-            onCheckout={handlePlaceOrder}
-            isProcessing={isProcessing}
-            showCheckoutButton={currentStep === 3}
-          />
+              items={itemsForOrder}
+              totalPrice={orderItemsTotalPrice}
+              shippingFee={shippingFee}
+              error={currentStep === 3 ? error : undefined}
+              onCheckout={handlePlaceOrder}
+              isProcessing={isProcessing}
+              showCheckoutButton={currentStep === 3}
+              processingIds={orderingItemIds}
+            />
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin" /></div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }

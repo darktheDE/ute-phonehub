@@ -7,9 +7,8 @@ import { getRootCategories, CategoryResponse } from '@/services/category.service
 import { getAllBrands, BrandResponse } from '@/services/brand.service';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import type { Product } from '@/types';
-
-interface Product {
+// Local lightweight product type for admin listing
+interface LocalProduct {
   id: number;
   name: string;
   price: number;
@@ -23,14 +22,14 @@ interface Product {
 export default function ProductsPage() {
   console.log('🏠 ProductsPage component rendering');
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<LocalProduct[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [brands, setBrands] = useState<BrandResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
   console.log('🏠 editingProduct state:', editingProduct);
   
   const [filters, setFilters] = useState({
@@ -116,10 +115,16 @@ export default function ProductsPage() {
     setCurrentPage(page);
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = async (product: any) => {
     console.log('🎯 PAGE.TSX handleEdit called with product:', product);
-    console.log('🎯 Setting editingProduct state');
-    setEditingProduct(product);
+    try {
+      const full = await productService.getProductById(product.id);
+      setEditingProduct(full);
+    } catch (err) {
+      console.error('Failed to load full product for edit:', err);
+      // fallback to shallow product
+      setEditingProduct(product as any);
+    }
   };
 
   const handleEditSuccess = () => {

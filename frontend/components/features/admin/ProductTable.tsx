@@ -12,7 +12,7 @@ import {
   deleteProduct, 
   restoreProduct 
 } from '@/services/product.service';
-import { getAllCategories, getAllBrands } from '@/lib/api';
+import { adminAPI, productAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 
 interface ProductTableProps {
@@ -29,7 +29,7 @@ interface ProductTableProps {
 
 export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) {
   console.log('ProductTable received onEdit:', typeof onEdit, onEdit);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -61,15 +61,14 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
     const loadFilters = async () => {
       try {
         const [catsRes, brandsRes] = await Promise.all([
-          getAllCategories(),
-          getAllBrands()
+          adminAPI.getAllCategories(),
+          adminAPI.getAllBrands()
         ]);
-        
         if (catsRes.data) {
-          setCategories(catsRes.data.map(c => ({ id: c.id, name: c.name })));
+          setCategories(catsRes.data.map((c: any) => ({ id: c.id, name: c.name })));
         }
         if (brandsRes.data) {
-          setBrands(brandsRes.data.map(b => ({ id: b.id, name: b.name })));
+          setBrands(brandsRes.data.map((b: any) => ({ id: b.id, name: b.name })));
         }
       } catch (err) {
         console.error('Failed to load filters:', err);
@@ -204,7 +203,6 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
       brandId: product.brandId || brands[0]?.id || 1,
       price: (product as any).price || 0,
       stockQuantity: (product as any).stockQuantity || 0,
-      thumbnailUrl: product.thumbnailUrl || ''
     });
   };
 
@@ -214,8 +212,7 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
 
   const handleUpdateProduct = async (productId: number) => {
     try {
-      const { updateProduct } = await import('@/lib/api');
-      const response = await updateProduct(productId, editForm);
+      const response = await productAPI.update(productId, editForm);
       
       if (response.success) {
         alert('Cập nhật sản phẩm thành công!');
@@ -238,12 +235,12 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
         comparison = a.name.localeCompare(b.name);
         break;
       case 'price':
-        const aPrice = a.price || 0;
-        const bPrice = b.price || 0;
+        const aPrice = (a as any).price || 0;
+        const bPrice = (b as any).price || 0;
         comparison = aPrice - bPrice;
         break;
       case 'stockQuantity':
-        comparison = (a.stockQuantity || 0) - (b.stockQuantity || 0);
+        comparison = ((a as any).stockQuantity || 0) - ((b as any).stockQuantity || 0);
         break;
       case 'createdAt':
         comparison = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
@@ -392,26 +389,7 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
                         rows={2}
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Ảnh đại diện (Thumbnail URL)</label>
-                      <input
-                        type="url"
-                        value={editForm.thumbnailUrl || ''}
-                        onChange={(e) => setEditForm({...editForm, thumbnailUrl: e.target.value})}
-                        placeholder="https://example.com/image.jpg"
-                        className="w-full px-3 py-2 border rounded-md"
-                      />
-                      {editForm.thumbnailUrl && (
-                        <img
-                          src={editForm.thumbnailUrl}
-                          alt="Preview"
-                          className="mt-2 w-20 h-20 object-cover rounded border"
-                          onError={(e) => {
-                            e.currentTarget.src = 'https://placehold.co/200x200?text=Invalid';
-                          }}
-                        />
-                      )}
-                    </div>
+                    {/* Thumbnail URL removed from inline edit */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium mb-1">Danh mục</label>
@@ -490,9 +468,9 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
               <td className="px-4 py-3 text-sm">{product.categoryName || '—'}</td>
               <td className="px-4 py-3 text-sm">{product.brandName || '—'}</td>
               <td className="px-4 py-3 text-sm">
-                {product.price ? formatPrice(product.price) : '—'}
+                {(product as any).price ? formatPrice((product as any).price) : '—'}
               </td>
-              <td className="px-4 py-3 text-sm">{product.stockQuantity || 0}</td>
+              <td className="px-4 py-3 text-sm">{(product as any).stockQuantity || 0}</td>
               <td className="px-4 py-3 text-sm">
                 {product.isDeleted || filters?.deletedStatus === 'deleted' ? (
                   <span className="text-orange-600 font-medium">Ngưng bán</span>

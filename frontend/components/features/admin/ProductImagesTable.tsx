@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Images, Loader2 } from 'lucide-react';
 import { Product } from '@/types/product';
 import { getAllProductsAdmin } from '@/services/product.service';
-import { getProductById } from '@/lib/api';
+import { productAPI } from '@/lib/api';
 import { ImageManagementModal } from './ImageManagementModal';
 
 export function ProductImagesTable() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -24,7 +24,7 @@ export function ProductImagesTable() {
       setLoadingDetail(true);
       console.log('🔍 Fetching full product details for ID:', product.id);
       
-      const response = await getProductById(product.id);
+      const response = await productAPI.getById(product.id);
       
       if (response.success && response.data) {
         console.log('✅ Product detail loaded:', response.data);
@@ -62,11 +62,11 @@ export function ProductImagesTable() {
         
         // Debug: Check if images field exists
         if (response.data.length > 0) {
-          const firstProduct = response.data[0];
+          const firstProduct = response.data[0] as any;
           console.log('🔍 First product ID:', firstProduct.id);
           console.log('🔍 First product name:', firstProduct.name);
           console.log('🔍 First product has images field?', 'images' in firstProduct);
-          console.log('🔍 First product images:', firstProduct.images);
+          console.log('🔍 First product images:', (firstProduct as any).images);
           console.log('🔍 All fields:', Object.keys(firstProduct));
         }
       } else {
@@ -123,9 +123,9 @@ export function ProductImagesTable() {
                     <td className="px-4 py-3 text-sm">{product.id}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        {product.thumbnailUrl && (
+                        {(product as any).thumbnailUrl && (
                           <img
-                            src={product.thumbnailUrl}
+                            src={(product as any).thumbnailUrl}
                             alt={product.name}
                             className="w-10 h-10 object-cover rounded border"
                           />
@@ -133,12 +133,12 @@ export function ProductImagesTable() {
                         <span className="font-medium">{product.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm">{product.category?.name || '-'}</td>
-                    <td className="px-4 py-3 text-sm">{product.brand?.name || '-'}</td>
+                    <td className="px-4 py-3 text-sm">{(product as any).category?.name || '-'}</td>
+                    <td className="px-4 py-3 text-sm">{(product as any).brand?.name || '-'}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
                         <Images className="w-3 h-3" />
-                        {product.images?.length || 0}
+                        {(product as any).images?.length || 0}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">

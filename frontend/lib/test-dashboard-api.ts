@@ -30,8 +30,8 @@ export async function testAllDashboardEndpoints() {
     console.log('✅ Order Status Chart:', orderStatusRes.data);
 
     // 4. Test User Registration Chart
-    console.log('\n4️⃣ Testing getUserRegistrationChart (THIRTY_DAYS)...');
-    const userRegRes = await dashboardAPI.getUserRegistrationChart('THIRTY_DAYS');
+    console.log('\n4️⃣ Testing getUserRegistrationChart (WEEKLY)...');
+    const userRegRes = await dashboardAPI.getUserRegistrationChart('WEEKLY');
     console.log('✅ User Registration Chart:', userRegRes.data);
 
     // 5. Test Top Products
@@ -94,9 +94,9 @@ export const dashboardAPITests = {
     }
   },
 
-  testUserRegistrationChart: async (period: 'SEVEN_DAYS' | 'THIRTY_DAYS' | 'THREE_MONTHS' = 'THIRTY_DAYS') => {
+  testUserRegistrationChart: async (period: 'WEEKLY' | 'MONTHLY' = 'WEEKLY') => {
     try {
-      const res = await dashboardAPI.getUserRegistrationChart(period);
+      const res = await dashboardAPI.getUserRegistrationChart(period as any);
       console.log(`✅ User Registration Chart (${period}) API works:`, res.data);
       return res;
     } catch (error) {
