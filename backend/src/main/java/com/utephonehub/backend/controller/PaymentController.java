@@ -25,7 +25,6 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/v1/payments")
-@RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Payment", description = "Payment Management APIs")
 public class PaymentController {
@@ -33,12 +32,21 @@ public class PaymentController {
     private final IPaymentService paymentService;
     private final IVNPayService vnPayService;
     private final SecurityUtils securityUtils;
+    private final String frontendUrl;
+    private final String activeProfile;
     
-    @Value("${frontend.url}")
-    private String frontendUrl;
-    
-    @Value("${spring.profiles.active:prod}")
-    private String activeProfile;
+    public PaymentController(
+            IPaymentService paymentService,
+            IVNPayService vnPayService,
+            SecurityUtils securityUtils,
+            @Value("${frontend.url}") String frontendUrl,
+            @Value("${spring.profiles.active:prod}") String activeProfile) {
+        this.paymentService = paymentService;
+        this.vnPayService = vnPayService;
+        this.securityUtils = securityUtils;
+        this.frontendUrl = frontendUrl;
+        this.activeProfile = activeProfile;
+    }
     
     /**
      * Create VNPay payment URL
