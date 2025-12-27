@@ -697,10 +697,42 @@ export const cartAPI = {
   /**
    * POST /api/v1/cart/merge
    */
-  mergeGuestCart: async (data: { guestCartItems: { productId: number; quantity: number }[] }): Promise<ApiResponse<CartResponseData>> => {
+  mergeGuestCart: async (data: { guestCartItems?: { productId: number; quantity: number }[]; guestCartId?: string }): Promise<ApiResponse<CartResponseData>> => {
     return fetchAPI<CartResponseData>('/cart/merge', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+};
+
+// Guest Cart API (Redis-backed)
+export const guestCartAPI = {
+  /**
+   * POST /api/v1/guest-cart
+   */
+  createGuestCart: async (): Promise<ApiResponse<{ guestCartId: string }>> => {
+    return fetchAPI<{ guestCartId: string }>('/guest-cart', { method: 'POST' });
+  },
+
+  /**
+   * PUT /api/v1/guest-cart/{guestCartId}
+   */
+  replaceGuestCart: async (
+    guestCartId: string,
+    data: { items: { productId: number; quantity: number }[] }
+  ): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/guest-cart/{guestCartId}
+   */
+  deleteGuestCart: async (guestCartId: string): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
+      method: 'DELETE',
     });
   },
 };

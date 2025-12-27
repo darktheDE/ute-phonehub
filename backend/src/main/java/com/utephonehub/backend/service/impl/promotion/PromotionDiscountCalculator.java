@@ -19,11 +19,23 @@ public class PromotionDiscountCalculator {
      * @return Discount amount
      */
     public Double calculateDiscountAmount(Promotion promotion, Double orderTotal) {
-        if (promotion.getPercentDiscount() != null && promotion.getPercentDiscount() > 0) {
-            return calculatePercentageDiscount(orderTotal, promotion.getPercentDiscount());
+        // Priority 1: Fixed amount discount
+        if (promotion.getFixedAmount() != null && promotion.getFixedAmount() > 0) {
+            return Math.min(promotion.getFixedAmount(), orderTotal);
         }
         
-        // Future: Can add fixed amount discount, buy-one-get-one, etc.
+        // Priority 2: Percentage-based discount
+        if (promotion.getPercentDiscount() != null && promotion.getPercentDiscount() > 0) {
+            Double discount = calculatePercentageDiscount(orderTotal, promotion.getPercentDiscount());
+            
+            // Apply max discount cap if exists
+            if (promotion.getMaxDiscount() != null && promotion.getMaxDiscount() > 0) {
+                discount = Math.min(discount, promotion.getMaxDiscount());
+            }
+            
+            return discount;
+        }
+        
         return 0.0;
     }
 

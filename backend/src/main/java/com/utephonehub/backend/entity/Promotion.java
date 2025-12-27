@@ -37,6 +37,12 @@ public class Promotion {
     @Column(name = "percent_discount")
     private Double percentDiscount; // Diagram: percentDiscount: double
 
+    @Column(name = "fixed_amount")
+    private Double fixedAmount; // Fixed discount amount
+
+    @Column(name = "max_discount")
+    private Double maxDiscount; // Maximum discount cap for percentage-based promotions
+
     @Column(name = "min_value_to_be_applied")
     private Double minValueToBeApplied; // Diagram: minValueToBeApplied: double
 

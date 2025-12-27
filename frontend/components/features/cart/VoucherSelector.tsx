@@ -233,18 +233,28 @@ export function VoucherSelector({ orderTotal, onApplyVoucher, currentVoucher, di
                             {(voucher.percent_discount ?? voucher.percentDiscount) && (
                               <span className="font-semibold text-orange-600">
                                 Giảm {voucher.percent_discount ?? voucher.percentDiscount}%
-                                {(voucher.max_discount ?? voucher.maxDiscount) && 
-                                  ` (tối đa ${formatPrice(voucher.max_discount ?? voucher.maxDiscount)})`}
+                                {(() => {
+                                  const maxDiscount = voucher.max_discount ?? voucher.maxDiscount;
+                                  return typeof maxDiscount === 'number' && maxDiscount > 0
+                                    ? ` (tối đa ${formatPrice(maxDiscount)})`
+                                    : null;
+                                })()}
                               </span>
                             )}
-                            {(voucher.fixed_amount ?? voucher.fixedAmount) && (
-                              <span className="font-semibold text-orange-600">
-                                Giảm {formatPrice(voucher.fixed_amount ?? voucher.fixedAmount)}
-                              </span>
-                            )}
-                            {(voucher.min_value_to_be_applied ?? voucher.minValueToBeApplied) && (
-                              <span>• Đơn tối thiểu {formatPrice(voucher.min_value_to_be_applied ?? voucher.minValueToBeApplied)}</span>
-                            )}
+                            {(() => {
+                              const fixedAmount = voucher.fixed_amount ?? voucher.fixedAmount;
+                              return typeof fixedAmount === 'number' && fixedAmount > 0 ? (
+                                <span className="font-semibold text-orange-600">
+                                  Giảm {formatPrice(fixedAmount)}
+                                </span>
+                              ) : null;
+                            })()}
+                            {(() => {
+                              const minValue = voucher.min_value_to_be_applied ?? voucher.minValueToBeApplied;
+                              return typeof minValue === 'number' && minValue > 0 ? (
+                                <span>• Đơn tối thiểu {formatPrice(minValue)}</span>
+                              ) : null;
+                            })()}
                           </div>
 
                           {!applicable && (

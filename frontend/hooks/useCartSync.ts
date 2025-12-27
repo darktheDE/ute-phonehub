@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useCartStore } from '@/store';
-import { cartAPI } from '@/lib/api';
+import { cartAPI, guestCartAPI } from '@/lib/api';
 import { mapBackendCartItems } from '@/lib/utils/cartMapper';
 import { toast } from 'sonner';
 
 export function useCartSync() {
   const { user } = useAuth();
   const isAuthenticated = !!user;
-  const { items, clearCart, setItems } = useCartStore();
+  const { items, clearCart, setItems, guestCartId, setGuestCartId, clearGuestCartId } = useCartStore();
   
   // Use sessionStorage to persist merge status across page reloads
   const getMergeStatus = () => {
@@ -27,43 +27,83 @@ export function useCartSync() {
     }
   };
 
-  const [hasCheckedMerge, setHasCheckedMerge] = useState(getMergeStatus);
-
   useEffect(() => {
     const alreadyMerged = getMergeStatus();
     
     if (isAuthenticated && user && !alreadyMerged) {
       // Only check merge once per session
-      setHasCheckedMerge(true);
       setMergeStatus(true);
       checkAndMergeCart();
     } else if (!isAuthenticated) {
       // Clear merge status when user logs out
-      setHasCheckedMerge(false);
       setMergeStatus(false);
       clearCart();
     }
   }, [isAuthenticated, user]);
 
+  // Guest cart Redis sync: keep server-side guest cart updated during the current tab session.
+  // IMPORTANT: guestCartId is in-memory only (no localStorage/sessionStorage) so reload/new tab loses it.
+  useEffect(() => {
+    if (isAuthenticated) return;
+    if (typeof window === 'undefined') return;
+
+    let cancelled = false;
+    const doSync = async () => {
+      try {
+        const currentItems = Array.isArray(items) ? items : [];
+
+        // If cart is empty, cleanup guest cart id (and best-effort delete in Redis)
+        if (currentItems.length === 0) {
+          if (guestCartId) {
+            try {
+              await guestCartAPI.deleteGuestCart(guestCartId);
+            } catch {
+              // ignore
+            }
+            if (!cancelled) clearGuestCartId();
+          }
+          return;
+        }
+
+        // Ensure we have a guestCartId
+        let id = guestCartId;
+        if (!id) {
+          const created = await guestCartAPI.createGuestCart();
+          if (!created?.success || !created.data?.guestCartId) return;
+          id = created.data.guestCartId;
+          if (!cancelled) setGuestCartId(id);
+        }
+
+        // Replace items in Redis (compact payload: productId + quantity)
+        const payloadItems = currentItems
+          .map((it: any) => ({
+            productId: Number(it.productId ?? 0),
+            quantity: Math.max(1, Math.min(10, Number(it.quantity ?? 1))),
+          }))
+          .filter((it) => it.productId > 0);
+
+        await guestCartAPI.replaceGuestCart(id, { items: payloadItems });
+      } catch (e) {
+        // Keep silent to avoid spamming toasts; guest flow still works locally.
+        console.warn('Guest cart Redis sync failed:', e);
+      }
+    };
+
+    // Debounce changes to avoid too many network calls
+    const t = window.setTimeout(() => {
+      if (!cancelled) void doSync();
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [isAuthenticated, items, guestCartId, setGuestCartId, clearGuestCartId]);
+
   const checkAndMergeCart = async () => {
     try {
-      // Read guest cart from localStorage (Zustand may not be hydrated yet)
-      let guestItems: any[] = Array.isArray(items) && items.length > 0 ? items : [];
-      
-      if (guestItems.length === 0 && typeof window !== 'undefined') {
-        try {
-          const raw = localStorage.getItem('cart-storage');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            const foundItems = findItemsArray(parsed);
-            if (Array.isArray(foundItems) && foundItems.length > 0) {
-              guestItems = foundItems;
-            }
-          }
-        } catch (e) {
-          console.warn('useCartSync: failed to read persisted cart', e);
-        }
-      }
+      // Guest cart is in-memory only (no localStorage). If this tab has guest items, merge them.
+      const guestItems: any[] = Array.isArray(items) && items.length > 0 ? items : [];
 
       // Fetch backend cart
       const backendResp = await cartAPI.getCurrentCart();
@@ -78,11 +118,9 @@ export function useCartSync() {
         // No guest cart, just sync with backend
         if (hasBackendItems) {
           const mapped = mapBackendCartItems(backendItems);
-          // Clear any stale guest cart data
+          // Clear any stale guest cart data in this tab
           clearCart();
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('cart-storage');
-          }
+          clearGuestCartId();
           setItems(mapped);
         }
         return;
@@ -144,7 +182,8 @@ export function useCartSync() {
       }
 
       try {
-        await cartAPI.mergeGuestCart({ guestCartItems });
+        // Prefer Redis-based merge if this tab has a guestCartId; include items as fallback.
+        await cartAPI.mergeGuestCart({ guestCartId, guestCartItems });
         if (showSuccessToast) {
           toast.success('Đã gộp giỏ hàng thành công');
         }
@@ -173,12 +212,9 @@ export function useCartSync() {
       const finalResp = await cartAPI.getCurrentCart();
       if (finalResp?.success && finalResp.data?.items) {
         const mapped = mapBackendCartItems(finalResp.data.items);
-        // Clear guest cart from both store and localStorage to prevent re-merge on reload
+        // Clear guest cart from this tab to prevent re-merge
         clearCart();
-        // Clear localStorage explicitly
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('cart-storage');
-        }
+        clearGuestCartId();
         setItems(mapped);
       }
 
@@ -192,39 +228,13 @@ export function useCartSync() {
         if (resp?.success && resp.data?.items) {
           const mapped = mapBackendCartItems(resp.data.items);
           clearCart();
+          clearGuestCartId();
           setItems(mapped);
         }
       } catch (e) {
         console.error('Failed to fetch cart after merge error:', e);
       }
     }
-  };
-
-  const findItemsArray = (obj: unknown, depth = 0): unknown[] | null => {
-    if (!obj || depth > 4) return null;
-    if (Array.isArray(obj)) {
-      if (obj.length === 0) return obj;
-      const first = obj[0];
-      if (isCartItemCandidate(first)) return obj;
-    }
-    if (typeof obj === 'object') {
-      for (const k of Object.keys(obj as Record<string, unknown>)) {
-        try {
-          const v = (obj as Record<string, unknown>)[k];
-          const found = findItemsArray(v, depth + 1);
-          if (found) return found;
-        } catch (_) {
-          continue;
-        }
-      }
-    }
-    return null;
-  };
-
-  const isCartItemCandidate = (x: unknown): boolean => {
-    if (!x || typeof x !== 'object') return false;
-    const obj = x as Record<string, unknown>;
-    return (typeof obj.productId === 'number' || typeof obj.id === 'number') && typeof obj.quantity === 'number';
   };
 
   return { syncLocalCartToBackend: checkAndMergeCart };

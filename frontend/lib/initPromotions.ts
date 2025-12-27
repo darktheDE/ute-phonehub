@@ -15,7 +15,6 @@ const initPromotions: Promotion[] = [
     id: 'promo-002',
     title: 'Miễn phí vận chuyển',
     description: 'Miễn phí ship cho đơn từ 500K',
-    percent_discount: null,
     min_value_to_be_applied: 500000.0,
     status: 'ACTIVE',
     template_id: 'template-002',
@@ -24,7 +23,6 @@ const initPromotions: Promotion[] = [
     id: 'promo-003',
     title: 'Voucher 500K',
     description: 'Giảm 500K cho đơn từ 10 triệu',
-    percent_discount: null,
     min_value_to_be_applied: 10000000.0,
     // include a helper amount for fixed voucher display
     fixed_amount: 500000,

@@ -10,7 +10,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { PaymentMethodSelector } from '@/components/features/payment';
-import { orderAPI, userAPI, cartAPI } from '@/lib/api';
+import { orderAPI, userAPI, cartAPI, getAuthToken } from '@/lib/api';
 import type { PaymentMethod, CreateOrderRequest } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Package, ShoppingCart, Check } from 'lucide-react';
@@ -304,6 +304,15 @@ function CheckoutContent() {
     setError('');
     if (itemsForOrder.length === 0) {
       setError('Giỏ hàng trống');
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      toast.error('Vui lòng đăng nhập để đặt hàng');
+      const qs = searchParams?.toString?.() ?? '';
+      const redirectPath = `/checkout${qs ? `?${qs}` : ''}`;
+      router.push(`/login?redirect=${encodeURIComponent(redirectPath)}`);
       return;
     }
 

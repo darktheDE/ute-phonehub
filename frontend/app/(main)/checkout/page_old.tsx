@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCartStore } from '@/store/cartStore';
 import { PaymentMethodSelector } from '@/components/features/payment';
 import { orderAPI, userAPI, cartAPI } from '@/lib/api';
@@ -398,7 +399,7 @@ export default function CheckoutPage() {
           <div className="max-w-xl mx-auto lg:mx-0 lg:ml-auto">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Thanh toán</h1>
             <p className="text-sm text-gray-500 mb-8">
-              <a href="/" className="hover:underline hover:text-black">Trang chủ</a>
+              <Link href="/" className="hover:underline hover:text-black">Trang chủ</Link>
               <span className="mx-2">/</span>
               Checkout
             </p>

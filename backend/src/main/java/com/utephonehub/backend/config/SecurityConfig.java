@@ -51,7 +51,8 @@ public class SecurityConfig {
                 // Cho phép truy cập tự do vào các API xác thực
                 .requestMatchers(
                     "/api/v1/auth/**",
-                    "/api/v1/health/**"
+                    "/api/v1/health/**",
+                    "/api/v1/guest-cart/**"
                 ).permitAll()
                 // Cho phép VNPay endpoints
                 .requestMatchers(
