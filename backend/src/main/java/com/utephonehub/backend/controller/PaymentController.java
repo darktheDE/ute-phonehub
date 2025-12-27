@@ -88,9 +88,11 @@ public class PaymentController {
                 try {
                     log.info("Simulating VNPay callback for development environment");
                     vnPayService.handleCallback(request);
+                    log.info("Callback simulation completed successfully");
                 } catch (Exception callbackError) {
-                    log.error("Error simulating callback", callbackError);
+                    log.error("Error simulating callback (order may still be processed): {}", callbackError.getMessage());
                     // Continue even if callback fails, let frontend handle the display
+                    // The actual payment will be processed by VNPay's IPN in production
                 }
             }
             

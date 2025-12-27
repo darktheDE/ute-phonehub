@@ -271,8 +271,8 @@ function CheckoutContent() {
       setError('Vui lòng nhập số điện thoại');
       return false;
     }
-    if (!/^0\d{9}$/.test(phoneNumber.trim())) {
-      setError('Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)');
+    if (!/^0\d{9,10}$/.test(phoneNumber.trim())) {
+      setError('Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)');
       return false;
     }
     if (!shippingAddress.trim()) {
