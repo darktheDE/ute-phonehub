@@ -23,6 +23,16 @@ export interface CartState {
   items: CartItem[];
   totalItems: number;
   totalPrice: number;
+
+  /**
+   * In-memory guest cart id used to sync guest cart to Redis.
+   * Not persisted (reload/new tab => lost).
+   */
+  guestCartId?: string;
+
+  setGuestCartId: (guestCartId: string) => void;
+  clearGuestCartId: () => void;
+
   addItem: (item: Omit<CartItem, 'id'>) => void;
   removeItem: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;

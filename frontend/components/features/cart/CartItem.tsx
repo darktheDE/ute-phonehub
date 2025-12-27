@@ -9,6 +9,7 @@ import { cartAPI } from '@/lib/api';
 import { toast } from 'sonner';
 import { scheduleDelete, undoDelete } from '@/lib/undo';
 import { useCartStore } from '@/store';
+import { useAuth } from '@/hooks/useAuth';
 import type { CartItem as CartItemType } from '@/types';
 import { mapBackendCartItems, getItemSubtotal } from '@/lib/utils/cartMapper';
 
@@ -24,6 +25,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
   const [isUpdating, setIsUpdating] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const isValidImageSrc = (src: unknown) => {
     if (!src || typeof src !== 'string') return false;
@@ -66,6 +68,19 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
     
     // Optimistic update
     onUpdateQuantity(item.id, newQuantity);
+
+    if (!isAuthenticated) {
+      toast.success(
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>Cập nhật số lượng thành công</span>
+        </div>
+      );
+      setIsUpdating(false);
+      return;
+    }
 
     try {
       const response = await cartAPI.updateCartItem(item.id, newQuantity);
@@ -146,6 +161,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
     scheduleDelete(
       item.id,
       async () => {
+        if (!isAuthenticated) return;
         try {
           const response = await cartAPI.removeCartItem(item.id);
           if (!response?.success) {
@@ -179,7 +195,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
         </button>
       </div>
     );
-  }, [item, isUpdating, onRemove, refetchAndSyncCart]);
+  }, [item, isUpdating, isAuthenticated, onRemove, refetchAndSyncCart]);
 
   return (
     <Card className="mb-4 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-transparent hover:border-l-primary">

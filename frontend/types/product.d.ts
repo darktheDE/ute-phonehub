@@ -76,4 +76,4 @@ export interface UpdateProductRequest {
 }
 
 // Response DTO
-export interface ProductResponse extends Product {}
+export type ProductResponse = Product;
