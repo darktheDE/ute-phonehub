@@ -15,6 +15,8 @@ import type { PaymentMethod, CreateOrderRequest } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Package, ShoppingCart, Check } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { mapBackendCartItems } from '@/lib/utils/cartMapper';
+import { toast } from 'sonner';
 
 const getConfiguredShippingFee = (): number => {
   const envValue = process.env.NEXT_PUBLIC_DEFAULT_SHIPPING_FEE;
@@ -173,9 +175,45 @@ function CheckoutContent() {
   const { items, totalPrice, clearCart, removeItems, setItems } = useCartStore();
 
   const selectedParam = searchParams?.get?.('selected') ?? null;
-  const selectedIdsFromQuery = selectedParam ? selectedParam.split(',').map(s => Number(s)).filter(Boolean) : null;
-  const itemsForOrder = selectedIdsFromQuery && selectedIdsFromQuery.length > 0 ? items.filter((it: any) => selectedIdsFromQuery.includes(it.id)) : items;
-  const orderItemsTotalPrice = itemsForOrder.reduce((s: number, it: any) => s + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0);
+  const selectedIdsFromQuery = selectedParam 
+    ? selectedParam.split(',').map(s => Number(s)).filter(Boolean) 
+    : null;
+  
+  // Validate selected items exist in cart
+  const itemsForOrder = selectedIdsFromQuery && selectedIdsFromQuery.length > 0 
+    ? items.filter((it: any) => selectedIdsFromQuery.includes(it.id)) 
+    : items;
+  
+  // Show warning if selected items don't exist in cart
+  const [hasShownMissingItemsWarning, setHasShownMissingItemsWarning] = useState(false);
+  
+  useEffect(() => {
+    if (
+      selectedIdsFromQuery && 
+      selectedIdsFromQuery.length > 0 && 
+      itemsForOrder.length === 0 &&
+      !hasShownMissingItemsWarning
+    ) {
+      setHasShownMissingItemsWarning(true);
+      toast.error('Các sản phẩm đã chọn không còn trong giỏ hàng');
+      // Redirect to cart after showing error
+      setTimeout(() => router.push('/cart'), 2000);
+    } else if (
+      selectedIdsFromQuery &&
+      selectedIdsFromQuery.length > itemsForOrder.length &&
+      !hasShownMissingItemsWarning
+    ) {
+      setHasShownMissingItemsWarning(true);
+      const missingCount = selectedIdsFromQuery.length - itemsForOrder.length;
+      toast.warning(`${missingCount} sản phẩm đã được loại bỏ vì không còn trong giỏ hàng`);
+    }
+  }, [selectedIdsFromQuery, itemsForOrder.length, hasShownMissingItemsWarning, router]);
+
+  const orderItemsTotalPrice = itemsForOrder.reduce(
+    (s: number, it: any) => s + ((it.appliedPrice ?? it.price) * it.quantity), 
+    0
+  );
+  
   const [currentStep, setCurrentStep] = useState(1);
   
   // Form states
@@ -301,18 +339,8 @@ function CheckoutContent() {
         const cartResp = await cartAPI.getCurrentCart();
         if (cartResp && cartResp.success && cartResp.data) {
           const backendItems = Array.isArray(cartResp.data.items) ? cartResp.data.items : [];
-          const mappedItems = backendItems.map((item: any) => ({
-            id: Number(item.id),
-            productId: item.productId,
-            productName: item.productName || item.product?.name || 'Unknown Product',
-            productImage: item.productImage || item.productThumbnailUrl || item.product?.thumbnailUrl || '',
-            price: item.price || item.unitPrice || item.product?.salePrice || 0,
-            quantity: item.quantity,
-            color: item.color,
-            storage: item.storage,
-          }));
-
-          setItems(mappedItems as any);
+          const mappedItems = mapBackendCartItems(backendItems);
+          setItems(mappedItems);
         } else {
           // Backend didn't clear ordered items yet — remove only ordered local items as fallback
           removeItems(orderedLocalIds);
@@ -338,31 +366,26 @@ function CheckoutContent() {
         const final = await cartAPI.getCurrentCart();
         if (final && final.success && final.data) {
           const backendItems = Array.isArray(final.data.items) ? final.data.items : [];
-          const mappedItems = backendItems.map((item: any) => ({
-            id: Number(item.id),
-            productId: item.productId,
-            productName: item.productName || item.product?.name || 'Unknown Product',
-            productImage: item.productImage || item.productThumbnailUrl || item.product?.thumbnailUrl || '',
-            price: item.price || item.unitPrice || item.product?.salePrice || 0,
-            quantity: item.quantity,
-            color: item.color,
-            storage: item.storage,
-          }));
-          setItems(mappedItems as any);
+          const mappedItems = mapBackendCartItems(backendItems);
+          clearCart();
+          if (mappedItems.length > 0) setItems(mappedItems);
         }
-      } catch {}
+      } catch (e) {
+        console.warn('Failed final cart refresh after order:', e);
+      }
 
-      if (paymentMethod === 'VNPAY' && orderData.paymentUrl) {
+      // Navigate to appropriate page
+      if (paymentMethod === 'VNPAY' && orderData?.paymentUrl) {
         window.location.href = orderData.paymentUrl;
       } else {
-        router.push(`/orders/${orderData.orderId}`);
+        router.push(`/orders/${orderData?.orderId || ''}`);
       }
     } catch (err: any) {
       console.error('Checkout error:', err);
       setError(err.message || 'Đặt hàng thất bại. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
-      // clear ordering flags so UI stops showing processing state (server-set items will have been applied above)
+      // clear ordering flags so UI stops showing processing state
       setOrderingItemIds([]);
     }
   };

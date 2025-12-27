@@ -8,10 +8,12 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'cdn.cellphones.com.vn',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8081',
+      },
     ],
-  },
-  turbopack: {
-    root: 'C:/Users/Lenovo/ute-phonehub/frontend', // Absolute path to frontend
   },
 };
 

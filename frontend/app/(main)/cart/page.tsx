@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store';
 import { useAuth } from '@/lib/auth-context';
@@ -12,6 +12,8 @@ import { ArrowLeft, Trash2, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { scheduleDelete, undoMultiple } from '@/lib/undo';
+import { mapBackendCartItems } from '@/lib/utils/cartMapper';
+import type { Promotion } from '@/types/api-cart';
 
 export default function CartPage() {
   const router = useRouter();
@@ -20,13 +22,44 @@ export default function CartPage() {
   const { items, totalItems, totalPrice, updateQuantity, removeItem, clearCart, setItems, removeItems } = useCartStore();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  
+  // Voucher state
+  const [selectedVoucher, setSelectedVoucher] = useState<Promotion | null>(null);
+  const [voucherDiscount, setVoucherDiscount] = useState(0);
+
+  const handleVoucherChange = (voucher: Promotion | null, discount: number) => {
+    setSelectedVoucher(voucher);
+    setVoucherDiscount(discount);
+  };
+
+  // Memoized fetch function to avoid useEffect dependency warning
+  const fetchCartFromBackend = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await cartAPI.getCurrentCart();
+      if (response.success && response.data) {
+        // Use centralized mapper that handles discount/appliedPrice
+        const backendItems = Array.isArray(response.data.items) ? response.data.items : [];
+        const mappedItems = mapBackendCartItems(backendItems);
+
+        // Replace local cart with backend data
+        clearCart();
+        if (mappedItems.length > 0) setItems(mappedItems);
+      }
+    } catch (error) {
+      console.error('Failed to fetch cart from backend:', error);
+      toast.error('Không thể tải giỏ hàng từ server');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clearCart, setItems]);
 
   // Fetch cart from backend when component mounts and user is authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       fetchCartFromBackend();
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, fetchCartFromBackend]);
 
   // Refresh cart when an order is placed in another tab/window
   useEffect(() => {
@@ -37,36 +70,7 @@ export default function CartPage() {
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [isAuthenticated, user]);
-
-  const fetchCartFromBackend = async () => {
-    setIsLoading(true);
-    try {
-      const response = await cartAPI.getCurrentCart();
-      if (response.success && response.data) {
-        // Map backend cart items and set to local store preserving backend ids
-        const backendItems = Array.isArray(response.data.items) ? response.data.items : [];
-        const mappedItems = backendItems.map((item: any) => ({
-          id: Number(item.id),
-          productId: item.productId,
-          productName: item.productName || item.product?.name || 'Unknown Product',
-          productImage: item.productImage || item.productThumbnailUrl || item.product?.thumbnailUrl || '',
-          price: item.price || item.unitPrice || item.product?.salePrice || 0,
-          quantity: item.quantity,
-          color: item.color,
-          storage: item.storage,
-        }));
-
-        // Replace local cart with backend data
-        clearCart();
-        if (mappedItems.length > 0) setItems(mappedItems as any);
-      }
-    } catch (error) {
-      console.error('Failed to fetch cart from backend:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [isAuthenticated, user, fetchCartFromBackend]);
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showDeleteSelectedConfirm, setShowDeleteSelectedConfirm] = useState(false);
@@ -87,58 +91,40 @@ export default function CartPage() {
         clearCart();
 
         // Show undo toast which will attempt to re-add previous items if clicked
-        // Prevent duplicate undo clicks by using a captured flag
+        let undone = false;
         toast.success(
-          (() => {
-            let undone = false;
-            return (
-              <div className="flex items-center gap-3">
-                <span>Đã xóa tất cả sản phẩm</span>
-                <button
-                  className="underline ml-2 text-sm"
-                  onClick={async () => {
-                    if (undone) return; // ignore subsequent clicks
-                    undone = true;
-                    try {
-                      // Re-add items sequentially (could be parallel but sequential reduces race)
-                      for (const it of prevItems) {
-                        await cartAPI.addToCart({
-                          productId: it.productId,
-                          quantity: it.quantity,
-                          color: it.color,
-                          storage: it.storage,
-                        });
-                      }
+          <div className="flex items-center gap-3">
+            <span>Đã xóa tất cả sản phẩm</span>
+            <button
+              className="underline ml-2 text-sm"
+              onClick={async () => {
+                if (undone) return; // ignore subsequent clicks
+                undone = true;
+                try {
+                  // Re-add items in parallel for better performance
+                  await Promise.allSettled(
+                    prevItems.map(it => 
+                      cartAPI.addToCart({
+                        productId: it.productId,
+                        quantity: it.quantity,
+                        color: it.color,
+                        storage: it.storage,
+                      })
+                    )
+                  );
 
-                      // Refresh cart from backend
-                      const r = await cartAPI.getCurrentCart();
-                      if (r && r.success && r.data) {
-                        const backendItems = Array.isArray(r.data.items) ? r.data.items : [];
-                        const mappedItems = backendItems.map((item: any) => ({
-                          id: Number(item.id),
-                          productId: item.productId,
-                          productName: item.productName || item.product?.name || 'Unknown Product',
-                          productImage: item.productImage || item.productThumbnailUrl || item.product?.thumbnailUrl || '',
-                          price: item.price || item.unitPrice || item.product?.salePrice || 0,
-                          quantity: item.quantity,
-                          color: item.color,
-                          storage: item.storage,
-                        }));
-                        clearCart();
-                        if (mappedItems.length > 0) setItems(mappedItems as any);
-                      }
-                      toast.success('Hoàn tác thành công — đã phục hồi giỏ hàng');
-                    } catch (e) {
-                      console.error('Failed to undo clearCart:', e);
-                      toast.error('Không thể hoàn tác xóa giỏ hàng');
-                    }
-                  }}
-                >
-                  Hoàn tác
-                </button>
-              </div>
-            );
-          })()
+                  // Refresh cart from backend
+                  await fetchCartFromBackend();
+                  toast.success('Hoàn tác thành công — đã phục hồi giỏ hàng');
+                } catch (e) {
+                  console.error('Failed to undo clearCart:', e);
+                  toast.error('Không thể hoàn tác xóa giỏ hàng');
+                }
+              }}
+            >
+              Hoàn tác
+            </button>
+          </div>
         );
       } else {
         throw new Error(resp?.message || 'Không thể xóa giỏ hàng');
@@ -146,7 +132,7 @@ export default function CartPage() {
     } catch (e: any) {
       console.error('Failed to clear cart on server:', e);
       // Restore local items if server clear failed
-      if (prevItems.length > 0) setItems(prevItems as any);
+      if (prevItems.length > 0) setItems(prevItems);
       toast.error(e?.message || 'Lỗi khi xóa toàn bộ giỏ hàng');
     } finally {
       setIsLoading(false);
@@ -209,8 +195,11 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (items.length === 0) return;
-    // Navigate to checkout page
-    router.push('/checkout');
+    // Navigate to checkout page with voucher info
+    const voucherParam = selectedVoucher 
+      ? `?voucher=${encodeURIComponent(JSON.stringify({ id: selectedVoucher.id, code: selectedVoucher.code, discount: voucherDiscount }))}` 
+      : '';
+    router.push(`/checkout${voucherParam}`);
   };
 
   if (isLoading) {
@@ -317,9 +306,15 @@ export default function CartPage() {
                     selectedIds={selectedIds}
                     onBuySelected={() => {
                       if (selectedIds.length === 0) return;
-                      // Navigate to checkout with selected item ids in query
-                      router.push(`/checkout?selected=${selectedIds.join(',')}`);
+                      // Navigate to checkout with selected item ids and voucher info
+                      const voucherParam = selectedVoucher 
+                        ? `&voucher=${encodeURIComponent(JSON.stringify({ id: selectedVoucher.id, code: selectedVoucher.code, discount: voucherDiscount }))}` 
+                        : '';
+                      router.push(`/checkout?selected=${selectedIds.join(',')}${voucherParam}`);
                     }}
+                    selectedVoucher={selectedVoucher}
+                    voucherDiscount={voucherDiscount}
+                    onVoucherChange={handleVoucherChange}
                   />
             </div>
           </div>
@@ -339,6 +334,7 @@ export default function CartPage() {
             </div>
           </div>
         )}
+        
         {/* Confirm dialogs */}
         <ConfirmDialog
           open={showClearConfirm}

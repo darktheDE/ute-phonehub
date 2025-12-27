@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { scheduleDelete, undoDelete } from '@/lib/undo';
 import { useCartStore } from '@/store';
 import type { CartItem as CartItemType } from '@/types';
+import { mapBackendCartItems, getItemSubtotal } from '@/lib/utils/cartMapper';
 
 interface CartItemProps {
   item: CartItemType;
@@ -27,12 +28,9 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
   const isValidImageSrc = (src: unknown) => {
     if (!src || typeof src !== 'string') return false;
     const s = src.trim();
-    // Only allow absolute URLs, protocol-relative, root-relative, data:, blob:
-    // and ensure the string contains only ASCII URL-safe characters (reject emoji)
     const hasAllowedPrefix = /^(https?:\/\/|\/\/|\/|data:|blob:)/i.test(s);
     if (!hasAllowedPrefix) return false;
-    // Reject strings containing non-ASCII characters (emoji, full-width, etc.)
-    // This keeps `next/image` from attempting to parse invalid src values like emoji
+    // Reject non-ASCII (emoji, full-width)
     const isAscii = /^[\x00-\x7F]+$/.test(s);
     return isAscii;
   };
@@ -41,221 +39,151 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
     if (!e || typeof e !== 'object') return { message: String(e) };
     const obj = e as Record<string, unknown>;
     return {
-      status: typeof obj.status === 'number' ? (obj.status as number) : undefined,
-      message: typeof obj.message === 'string' ? (obj.message as string) : undefined,
+      status: typeof obj.status === 'number' ? obj.status : undefined,
+      message: typeof obj.message === 'string' ? obj.message : undefined,
       data: obj.data,
     };
   };
 
-  const mapBackendItems = (backendItems: unknown[]): CartItemType[] => {
-    return backendItems.map((it) => {
-      const obj = (it && typeof it === 'object') ? it as Record<string, unknown> : {};
-      const id = typeof obj.id === 'number' ? obj.id : Number(obj.id ?? 0);
-      const productId = typeof obj.productId === 'number' ? obj.productId : Number(obj.productId ?? 0);
-      const productName = typeof obj.productName === 'string' ? obj.productName : (typeof obj.product === 'object' && obj.product ? String((obj.product as Record<string, unknown>).name ?? 'Unknown Product') : 'Unknown Product');
-      const productImage = typeof obj.productImage === 'string' ? obj.productImage : (typeof obj.productThumbnailUrl === 'string' ? obj.productThumbnailUrl : (typeof obj.product === 'object' && obj.product ? String((obj.product as Record<string, unknown>).thumbnailUrl ?? '') : ''));
-      const price = typeof obj.price === 'number' ? obj.price : (typeof obj.unitPrice === 'number' ? obj.unitPrice : (typeof obj.product === 'object' && obj.product ? Number((obj.product as Record<string, unknown>).salePrice ?? 0) : 0));
-      const quantity = typeof obj.quantity === 'number' ? obj.quantity : Number(obj.quantity ?? 0);
-      const color = typeof obj.color === 'string' ? obj.color : undefined;
-      const storage = typeof obj.storage === 'string' ? obj.storage : undefined;
-
-      return {
-        id,
-        productId,
-        productName,
-        productImage,
-        price,
-        quantity,
-        color,
-        storage,
-      };
-    });
-  };
+  const refetchAndSyncCart = useCallback(async () => {
+    try {
+      const resp = await cartAPI.getCurrentCart();
+      if (resp?.success && resp.data?.items) {
+        const backendItems = Array.isArray(resp.data.items) ? resp.data.items : [];
+        const mappedItems = mapBackendCartItems(backendItems);
+        useCartStore.getState().setItems(mappedItems);
+      }
+    } catch (e) {
+      console.error('Failed to refetch cart:', e);
+    }
+  }, []);
 
   const handleQuantityChange = async (newQuantity: number) => {
     if (newQuantity < 1 || isUpdating) return;
 
+    const previousQuantity = item.quantity;
     setIsUpdating(true);
+    
+    // Optimistic update
+    onUpdateQuantity(item.id, newQuantity);
+
     try {
-      // Call backend API to update quantity
       const response = await cartAPI.updateCartItem(item.id, newQuantity);
       if (response.success) {
-        // Update local store
-        onUpdateQuantity(item.id, newQuantity);
         toast.success(
-          (<div className="flex items-center gap-2"><svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> <span>Cập nhật số lượng thành công</span></div>)
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Cập nhật số lượng thành công</span>
+          </div>
         );
       } else {
-        toast.error(
-          (<div className="flex items-center gap-2"><svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> <span>Không thể cập nhật số lượng</span></div>)
-        );
+        // Revert on failure
+        onUpdateQuantity(item.id, previousQuantity);
+        toast.error('Không thể cập nhật số lượng');
       }
     } catch (error: unknown) {
       console.error('Failed to update cart item:', error);
-
       const info = getErrorInfo(error);
-
       const message = (info.message || '').toLowerCase();
 
+      // Revert optimistic update
+      onUpdateQuantity(item.id, previousQuantity);
+
+      // Handle specific errors
       if (
         info.status === 404 ||
         message.includes('không tồn tại') ||
         message.includes('not found') ||
         message.includes('does not exist')
       ) {
-        try {
-          useCartStore.getState().removeItem(item.id);
-        } catch (e) {
-          console.error('Failed to remove missing cart item:', e);
-        }
-
+        useCartStore.getState().removeItem(item.id);
         toast.error('Sản phẩm không còn tồn tại — đã xóa khỏi giỏ hàng');
         setIsUpdating(false);
         return;
       }
-      // If server returns availableStock (insufficient stock), update UI accordingly
-      const availableStock = (info.data && typeof (info.data as Record<string, unknown>).availableStock === 'number') ? (info.data as Record<string, unknown>).availableStock as number : (typeof (info as Record<string, unknown>).availableStock === 'number' ? (info as Record<string, unknown>).availableStock as number : undefined);
+
+      // Handle insufficient stock
+      const availableStock = (info.data && typeof (info.data as Record<string, unknown>).availableStock === 'number') 
+        ? (info.data as Record<string, unknown>).availableStock as number 
+        : undefined;
+
       if (typeof availableStock === 'number') {
-        try {
-          const qty = Math.max(0, Number(availableStock));
-          if (qty === 0) {
-            try {
-              useCartStore.getState().removeItem(item.id);
-            } catch (e) {
-              console.error('Failed to remove item after availableStock=0:', e);
-            }
-            toast.error(`Chỉ còn 0 sản phẩm trong kho — sản phẩm đã được loại khỏi giỏ.`);
-            setIsUpdating(false);
-            return;
-          }
-
-
-        // If item no longer exists on server (deleted/ordered), remove locally
-        const msg = (info.message || '').toString().toLowerCase();
-        if (info.status === 404 || msg.includes('không tồn tại') || msg.includes('not found') || msg.includes('does not exist')) {
-          try {
-            useCartStore.getState().removeItem(item.id);
-          } catch (e) {
-            console.error('Failed to remove missing cart item locally:', e);
-          }
-          toast.error('Sản phẩm không tồn tại trong giỏ (có thể đã đặt/hết hàng) — đã loại khỏi giỏ hàng.');
-          setIsUpdating(false);
-          return;
-        }
-          try {
-            onUpdateQuantity(item.id, qty);
-          } catch (e) {
-            try {
-              useCartStore.getState().setItems(
-                useCartStore.getState().items.map((it) => (it.id === item.id ? { ...it, quantity: qty } : it))
-              );
-            } catch (err) {
-              console.error('Failed to set availableStock on item:', err);
-            }
-          }
-
+        const qty = Math.max(0, availableStock);
+        if (qty === 0) {
+          useCartStore.getState().removeItem(item.id);
+          toast.error('Sản phẩm đã hết hàng — đã loại khỏi giỏ');
+        } else {
+          onUpdateQuantity(item.id, qty);
           toast.error(`Chỉ còn ${qty} sản phẩm trong kho`);
-          setIsUpdating(false);
-          return;
-        } catch (e) {
-          console.error('Error handling availableStock:', e);
         }
+        setIsUpdating(false);
+        return;
       }
 
-      // If conflict (optimistic locking), refetch current cart and sync local store
+      // Handle conflict (optimistic locking)
       if (info.status === 409) {
-        try {
-          const resp = await cartAPI.getCurrentCart();
-          if (resp && resp.success && resp.data) {
-            const backendItems = Array.isArray(resp.data.items) ? resp.data.items : [];
-            const mappedItems = mapBackendItems(backendItems);
-
-            try {
-              useCartStore.getState().setItems(mappedItems as CartItemType[]);
-            } catch (e) {
-              console.error('Failed to set items after conflict:', e);
-            }
-
-            toast.error('Giỏ hàng đã thay đổi do cập nhật đồng thời — đã tải lại trạng thái giỏ.');
-            setIsUpdating(false);
-            return;
-          }
-        } catch (e) {
-          console.error('Failed to refetch cart after conflict:', e);
-        }
+        await refetchAndSyncCart();
+        toast.error('Giỏ hàng đã thay đổi — đã tải lại trạng thái');
+        setIsUpdating(false);
+        return;
       }
 
-      toast.error(
-        (<div className="flex items-center gap-2"><svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> <span>{info.message || 'Lỗi khi cập nhật số lượng'}</span></div>)
-      );
+      toast.error(info.message || 'Lỗi khi cập nhật số lượng');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const handleRemove = async () => {
+  const handleRemove = useCallback(() => {
     if (isUpdating) return;
-    // Optimistic remove + undo
-    // Remove locally immediately
+    
+    // Optimistic remove
     onRemove(item.id);
 
-    // schedule finalize: call backend after timeout
+    // Schedule finalize
     scheduleDelete(
       item.id,
       async () => {
         try {
-          setIsUpdating(true);
           const response = await cartAPI.removeCartItem(item.id);
-          setIsUpdating(false);
-          if (!response || !response.success) {
-            const err = new Error(response?.message || 'Không thể xóa sản phẩm');
-            throw err;
+          if (!response?.success) {
+            throw new Error(response?.message || 'Không thể xóa sản phẩm');
           }
         } catch (e: unknown) {
-          setIsUpdating(false);
           const info = getErrorInfo(e);
 
-          // If conflict, refetch and sync store
+          // If conflict, refetch
           if (info.status === 409) {
-            try {
-              const resp = await cartAPI.getCurrentCart();
-              if (resp && resp.success && resp.data) {
-                const backendItems = Array.isArray(resp.data.items) ? resp.data.items : [];
-                const mappedItems = mapBackendItems(backendItems);
-                useCartStore.getState().setItems(mappedItems as CartItemType[]);
-                toast.error('Giỏ hàng đã thay đổi — đã tải lại trạng thái giỏ.');
-              }
-            } catch (re) {
-              console.error('Failed to refetch cart after conflict:', re);
-            }
+            await refetchAndSyncCart();
+            toast.error('Giỏ hàng đã thay đổi — đã tải lại trạng thái');
           }
 
           throw e;
         }
       },
-      // restore function
+      // Restore function
       () => {
-        try {
-          const current = useCartStore.getState().items;
-          useCartStore.getState().setItems([item, ...current]);
-        } catch (e) {
-          console.error('Failed to restore item after undo:', e);
-        }
+        const current = useCartStore.getState().items;
+        useCartStore.getState().setItems([item, ...current]);
       }
     );
 
-    // show undo toast
+    // Show undo toast
     toast.success(
-      (<div className="flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <span>Đã xóa sản phẩm</span>
-        <button className="underline ml-2 text-sm" onClick={() => undoDelete(item.id)}>Hoàn tác</button>
-      </div>)
+        <button className="underline ml-2 text-sm" onClick={() => undoDelete(item.id)}>
+          Hoàn tác
+        </button>
+      </div>
     );
-  };
+  }, [item, isUpdating, onRemove, refetchAndSyncCart]);
 
   return (
-    <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
-      <CardContent className="p-6">
+    <Card className="mb-4 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-transparent hover:border-l-primary">
+      <CardContent className="p-6 bg-gradient-to-r from-white to-gray-50/30">
         <div className="flex items-center space-x-6">
           <div>
             <input
@@ -266,19 +194,19 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
               aria-label={`Chọn sản phẩm ${item.productName}`}
             />
           </div>
-          <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 flex items-center justify-center">
+          <div className="relative w-28 h-28 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 flex items-center justify-center shadow-sm border border-gray-200">
             {isValidImageSrc(item.productImage) && !imageError ? (
               <Image
                 src={item.productImage}
                 alt={item.productName}
                 fill
-                className="object-cover"
+                className="object-cover transition-transform hover:scale-105 duration-200"
                 onError={() => setImageError(true)}
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
               </div>
@@ -286,18 +214,22 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2">
+            <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2 hover:text-primary transition-colors cursor-pointer">
               {item.productName}
             </h3>
 
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-4">
               {item.color && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-200">
+                  <span className="inline-block w-3 h-3 rounded-full border-2 border-blue-400 mr-1.5" style={{backgroundColor: item.color.toLowerCase()}}></span>
                   {item.color}
                 </Badge>
               )}
               {item.storage && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-200">
+                  <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
                   {item.storage}
                 </Badge>
               )}
@@ -305,7 +237,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="flex items-center border rounded-lg">
+                <div className="flex items-center border-2 border-gray-200 rounded-lg shadow-sm hover:border-primary transition-colors">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -319,11 +251,11 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
                       handleQuantityChange(item.quantity - 1);
                     }}
                     disabled={isUpdating}
-                    className="h-8 w-8 p-0 hover:bg-gray-100"
+                    className="h-9 w-9 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="w-12 text-center text-sm font-medium">
+                  <span className="w-14 text-center text-sm font-semibold">
                     {isUpdating ? (
                       <Loader2 className="h-4 w-4 animate-spin mx-auto" />
                     ) : (
@@ -335,7 +267,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
                     size="sm"
                     onClick={() => handleQuantityChange(item.quantity + 1)}
                     disabled={isUpdating}
-                    className="h-8 w-8 p-0 hover:bg-gray-100"
+                    className="h-9 w-9 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -346,7 +278,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
                   size="sm"
                   onClick={handleRemove}
                   disabled={isUpdating}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 h-9 w-9 p-0 rounded-lg transition-colors"
                 >
                   {isUpdating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -356,17 +288,19 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
                 </Button>
               </div>
 
-                <div className="text-right">
-                <div className="text-lg font-bold text-gray-900">
-                  {(((item as any).appliedPrice ?? item.price) * item.quantity).toLocaleString('vi-VN')}₫
+              <div className="text-right">
+                <div className="text-xl font-bold text-primary">
+                  {getItemSubtotal(item).toLocaleString('vi-VN')}₫
                 </div>
-                {((item as any).appliedPrice && (item as any).appliedPrice !== item.price) ? (
-                  <div className="text-sm text-gray-500">
-                    <div className="line-through text-xs">{item.price.toLocaleString('vi-VN')}₫</div>
-                    <div className="text-xs">{( (item as any).appliedPrice).toLocaleString('vi-VN')}₫ × {item.quantity}</div>
+                {item.appliedPrice && item.appliedPrice !== item.price ? (
+                  <div className="text-sm text-gray-500 space-y-0.5">
+                    <div className="line-through text-xs text-gray-400">{item.price.toLocaleString('vi-VN')}₫</div>
+                    <div className="text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded inline-block">
+                      {item.appliedPrice.toLocaleString('vi-VN')}₫ × {item.quantity}
+                    </div>
                   </div>
                 ) : item.quantity > 1 ? (
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 mt-1">
                     {item.price.toLocaleString('vi-VN')}₫ × {item.quantity}
                   </div>
                 ) : null}
@@ -375,20 +309,20 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
           </div>
         </div>
       </CardContent>
-        {/* Confirm dialog for removing when decrementing from 1 */}
-        <ConfirmDialog
-          open={showRemoveConfirm}
-          title="Xóa sản phẩm"
-          description="Bạn chắc chắn muốn xóa sản phẩm này?"
-          confirmLabel="Xóa"
-          cancelLabel="Hủy"
-          intent="danger"
-          onConfirm={() => {
-            setShowRemoveConfirm(false);
-            handleRemove();
-          }}
-          onClose={() => setShowRemoveConfirm(false)}
-        />
+      {/* Confirm dialog for removing when decrementing from 1 */}
+      <ConfirmDialog
+        open={showRemoveConfirm}
+        title="Xóa sản phẩm"
+        description="Bạn chắc chắn muốn xóa sản phẩm này?"
+        confirmLabel="Xóa"
+        cancelLabel="Hủy"
+        intent="danger"
+        onConfirm={() => {
+          setShowRemoveConfirm(false);
+          handleRemove();
+        }}
+        onClose={() => setShowRemoveConfirm(false)}
+      />
     </Card>
   );
 }

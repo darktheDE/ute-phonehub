@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CartItem, CartState } from '@/types';
+import { calculateCartTotals, getItemSubtotal } from '@/lib/utils/cartMapper';
 
 /**
  * Cart Store using Zustand
@@ -34,15 +35,13 @@ export const useCartStore = create<CartState>()(
         } else {
           // New item, add to cart
           const newId = currentItems.length > 0 ? Math.max(...currentItems.map(i => i.id)) + 1 : 1;
-          // Preserve any discount/appliedPrice fields when adding
           newItems = [...currentItems, { ...item, id: newId }];
         }
 
+        const totals = calculateCartTotals(newItems);
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
-          // Use appliedPrice when available, otherwise fallback to price
-          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
+          ...totals,
         });
       },
 
@@ -51,10 +50,10 @@ export const useCartStore = create<CartState>()(
        */
       removeItem: (id) => {
         const newItems = get().items.filter((item) => item.id !== id);
+        const totals = calculateCartTotals(newItems);
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
-          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
+          ...totals,
         });
       },
 
@@ -71,10 +70,10 @@ export const useCartStore = create<CartState>()(
           item.id === id ? { ...item, quantity } : item
         );
 
+        const totals = calculateCartTotals(newItems);
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
-          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
+          ...totals,
         });
       },
 
@@ -107,8 +106,10 @@ export const useCartStore = create<CartState>()(
           const existing = dedupeMap.get(key);
           if (existing) {
             existing.quantity += item.quantity;
-            // prefer explicit appliedPrice if provided, otherwise keep existing
-            if ((item as any).appliedPrice !== undefined) existing.appliedPrice = (item as any).appliedPrice;
+            // prefer explicit appliedPrice if provided
+            if (item.appliedPrice !== undefined) {
+              existing.appliedPrice = item.appliedPrice;
+            }
           } else {
             const idToUse = Number(item.id ?? nextId++);
             dedupeMap.set(key, { ...item, id: idToUse });
@@ -116,11 +117,11 @@ export const useCartStore = create<CartState>()(
         }
 
         const newItems = Array.from(dedupeMap.values());
+        const totals = calculateCartTotals(newItems);
 
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
-          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
+          ...totals,
         });
       },
 
@@ -129,10 +130,10 @@ export const useCartStore = create<CartState>()(
        */
       removeItems: (ids) => {
         const newItems = get().items.filter((item) => !ids.includes(item.id));
+        const totals = calculateCartTotals(newItems);
         set({
           items: newItems,
-          totalItems: newItems.reduce((sum, it) => sum + it.quantity, 0),
-          totalPrice: newItems.reduce((sum, it) => sum + (('appliedPrice' in it ? (it as any).appliedPrice : it.price) as number) * it.quantity, 0),
+          ...totals,
         });
       },
 

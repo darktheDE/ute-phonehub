@@ -12,14 +12,14 @@ import { formatPrice } from '@/lib/utils';
 
 
 interface OrderDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 
 export default function OrderDetailPage(props: OrderDetailPageProps) {
-  const { params } = props;
+  const params = use(props.params);
   const router = useRouter();
   const orderId = params.id;
   const [isLoading, setIsLoading] = useState(true);

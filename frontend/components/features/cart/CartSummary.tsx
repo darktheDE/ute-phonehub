@@ -2,13 +2,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Truck, Shield, CreditCard } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { promotionAPI } from '@/lib/api';
+import { Shield, CreditCard } from 'lucide-react';
+import { VoucherSelector } from './VoucherSelector';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import type { Promotion } from '@/types/api-cart';
-import initPromotions from '@/lib/initPromotions';
 
 interface CartSummaryProps {
   totalItems: number;
@@ -17,27 +14,40 @@ interface CartSummaryProps {
   compact?: boolean;
   selectedIds?: number[];
   onBuySelected?: () => void;
+  selectedVoucher?: Promotion | null;
+  voucherDiscount?: number;
+  onVoucherChange?: (voucher: Promotion | null, discount: number) => void;
 }
 
-export function CartSummary({ totalItems, totalPrice, onCheckout, compact, selectedIds = [], onBuySelected }: CartSummaryProps) {
-  const shippingFee = totalPrice >= 500000 ? 0 : 30000; // Free shipping over 500k VND
-  const [code, setCode] = useState('');
-  const [applied, setApplied] = useState<null | { id: string; code: string; title?: string }>(null);
-  const [discountAmount, setDiscountAmount] = useState(0);
-  const [isApplying, setIsApplying] = useState(false);
-  const [showPromoModal, setShowPromoModal] = useState(false);
+export function CartSummary({ 
+  totalItems, 
+  totalPrice, 
+  onCheckout, 
+  compact, 
+  selectedIds = [], 
+  onBuySelected,
+  selectedVoucher: externalVoucher,
+  voucherDiscount: externalDiscount = 0,
+  onVoucherChange
+}: CartSummaryProps) {
+  const [internalVoucher, setInternalVoucher] = useState<Promotion | null>(null);
+  const [internalDiscount, setInternalDiscount] = useState(0);
 
-  const getErrorMessage = (err: unknown) => {
-    if (err instanceof Error) return err.message;
-    try {
-      return String(err);
-    } catch {
-      return 'Lỗi không xác định';
+  // Use external voucher if controlled, otherwise use internal state
+  const selectedVoucher = externalVoucher !== undefined ? externalVoucher : internalVoucher;
+  const voucherDiscount = externalDiscount !== undefined ? externalDiscount : internalDiscount;
+
+  const handleVoucherChange = (voucher: Promotion | null, discount: number) => {
+    if (onVoucherChange) {
+      onVoucherChange(voucher, discount);
+    } else {
+      setInternalVoucher(voucher);
+      setInternalDiscount(discount);
     }
   };
 
   const subtotal = totalPrice;
-  const finalTotal = Math.max(0, subtotal - discountAmount) + shippingFee;
+  const finalTotal = Math.max(0, subtotal - voucherDiscount);
   const mainButtonLabel = (selectedIds && selectedIds.length > 0 && onBuySelected)
     ? `Mua ngay (${selectedIds.length})`
     : 'Mua ngay';
@@ -47,75 +57,6 @@ export function CartSummary({ totalItems, totalPrice, onCheckout, compact, selec
   const mainButtonDisabled = (selectedIds && selectedIds.length > 0)
     ? !onBuySelected
     : totalItems === 0;
-
-  const handleApply = async (fromVoucher = false, overrideCode?: string) => {
-    if (applied) return;
-
-    const trimmed = (overrideCode ?? code ?? '').trim();
-
-    if (!trimmed) {
-      if (!fromVoucher) toast.error('Vui lòng nhập mã giảm giá');
-      return;
-    }
-
-    setIsApplying(true);
-    try {
-      const resp = await promotionAPI.getAvailablePromotions(subtotal);
-      if (!resp || !resp.success) throw new Error('Không lấy được khuyến mãi');
-      const promos: Promotion[] = resp.data || [];
-
-      // Log promos shape to help debug mismatched field names from backend
-      console.debug('Available promotions response shape:', promos);
-
-      const key = trimmed.toLowerCase();
-      const found = promos.find((p) => {
-        const candidates: unknown[] = [p.templateCode, p.code, p.id, p.title, p.name, p.template];
-        return candidates.some((c: unknown) => (typeof c === 'string' || typeof c === 'number') && String(c).toLowerCase() === key);
-      });
-
-      if (!found) {
-        toast.error('Mã không hợp lệ hoặc không áp dụng cho đơn hàng này');
-        return;
-      }
-
-      // Try calculateDiscount with `id` first (preferred), fallback to `code` if server accepts codes as identifiers
-      const promotionIdCandidate = found.id ? String(found.id) : (found.code || found.templateCode || '');
-      let calcResp = null as (Awaited<ReturnType<typeof promotionAPI.calculateDiscount>> | null);
-      try {
-        calcResp = await promotionAPI.calculateDiscount(promotionIdCandidate, subtotal);
-      } catch (err) {
-        // If initial attempt failed and we have a `code` field different from id, try it as a fallback
-        if (found.code && String(found.code) !== promotionIdCandidate) {
-          try {
-            calcResp = await promotionAPI.calculateDiscount(String(found.code), subtotal);
-          } catch (err2) {
-            throw err2;
-          }
-        } else {
-          throw err;
-        }
-      }
-
-      if (!calcResp || !calcResp.success) throw new Error('Không thể tính tiền giảm');
-      const amount = Number(calcResp.data || 0);
-      setDiscountAmount(amount);
-      setApplied({ id: String(found.id ?? found.code ?? found.templateCode ?? ''), code: trimmed, title: found.title });
-      toast.success(`Áp dụng mã ${trimmed} - Giảm ${amount.toLocaleString('vi-VN')}₫`);
-    } catch (e: unknown) {
-      console.error('Apply promotion error:', e);
-      const msg = getErrorMessage(e);
-      toast.error(msg || 'Lỗi khi áp dụng mã giảm giá');
-    } finally {
-      setIsApplying(false);
-    }
-  };
-
-  const handleRemoveCode = () => {
-    setApplied(null);
-    setDiscountAmount(0);
-    setCode('');
-    toast.success('Đã hủy mã giảm giá');
-  };
 
   return (
     <div className="space-y-6">
@@ -133,145 +74,111 @@ export function CartSummary({ totalItems, totalPrice, onCheckout, compact, selec
             <span className="font-medium">{subtotal.toLocaleString('vi-VN')}₫</span>
           </div>
 
-          {/* Discount code input */}
+          {/* Voucher Selector */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">Có {initPromotions.filter((p: any) => p.status === 'ACTIVE').length} voucher</div>
-              <Button variant="ghost" size="sm" onClick={() => setShowPromoModal(true)}>Xem voucher</Button>
-            </div>
-            
-            {applied ? (
-              <div className="flex items-center justify-between gap-3 p-3 bg-yellow-50 rounded-md">
-                <div>
-                  <div className="text-sm font-medium">Mã đã áp dụng</div>
-                  <div className="text-sm text-gray-700">{applied.code} {applied.title ? `— ${applied.title}` : ''}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-red-600 font-semibold">-{discountAmount.toLocaleString('vi-VN')}₫</div>
-                  <button className="text-xs underline mt-1" onClick={handleRemoveCode}>Gỡ</button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Nhập mã giảm giá"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="flex-1"
-                />
-                <Button onClick={() => handleApply(false)} disabled={isApplying}>
-                  {isApplying ? 'Đang áp dụng...' : 'Áp dụng'}
-                </Button>
-              </div>
-            )}
+            <label className="text-sm font-medium text-gray-700">Mã giảm giá</label>
+            <VoucherSelector
+              orderTotal={subtotal}
+              onApplyVoucher={handleVoucherChange}
+              currentVoucher={selectedVoucher}
+              disabled={totalItems === 0}
+            />
           </div>
 
-          {/* Promotions modal (simple) */}
-          {showPromoModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/40" onClick={() => setShowPromoModal(false)} />
-              <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold">Voucher có sẵn</h3>
-                  <button className="text-sm text-gray-600" onClick={() => setShowPromoModal(false)}>Đóng</button>
-                </div>
-                <div className="space-y-2 max-h-72 overflow-auto">
-                  {initPromotions.filter((p: any) => p.status === 'ACTIVE').map((p: any) => (
-                    <div key={String(p.id)} className="p-3 rounded-md bg-gray-50 flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{p.title}</div>
-                        <div className="text-sm text-gray-600">{p.description}</div>
-                        <div className="text-xs text-gray-500">Điều kiện: từ {(p.min_value_to_be_applied ?? 0).toLocaleString('vi-VN')}₫</div>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        {p.percent_discount ? (
-                          <div className="font-bold text-red-600">-{p.percent_discount}%</div>
-                        ) : p.fixed_amount ? (
-                          <div className="font-bold text-red-600">-{p.fixed_amount.toLocaleString('vi-VN')}₫</div>
-                        ) : (
-                          <div className="text-sm text-gray-600">Xem</div>
-                        )}
-                        <div className="mt-2">
-                          <Button size="sm" onClick={async () => {
-                            if (applied) return;
-                            const voucherCode = String(p.id ?? p.code ?? '');
-                            setCode(voucherCode);
-                            setShowPromoModal(false);
-                            handleApply(true, voucherCode); 
-                          }}>Áp dụng</Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Phí vận chuyển</span>
-            <div className="text-right">
-              {shippingFee === 0 ? (
-                <div>
-                  <Badge variant="secondary" className="text-xs mb-1">Miễn phí</Badge>
-                  <div className="text-sm text-gray-500 line-through">30,000₫</div>
-                </div>
-              ) : (
-                <span className="font-medium">{shippingFee.toLocaleString('vi-VN')}₫</span>
-              )}
-            </div>
-          </div>
-
-          {totalPrice < 500000 && (
-            <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded-lg">
-              Mua thêm {(500000 - totalPrice).toLocaleString('vi-VN')}₫ để được miễn phí vận chuyển
+          {voucherDiscount > 0 && (
+            <div className="flex justify-between items-center text-green-600">
+              <span className="text-sm">Giảm giá</span>
+              <span className="font-semibold">-{voucherDiscount.toLocaleString('vi-VN')}₫</span>
             </div>
           )}
 
           <Separator />
 
-          <div className="flex justify-between items-center text-lg font-bold">
-            <span>Tổng cộng</span>
-            <span className="text-primary">{finalTotal.toLocaleString('vi-VN')}₫</span>
+          <div className="flex justify-between items-center">
+            <span className="text-lg font-bold">Tổng cộng</span>
+            <span className="text-xl font-bold text-primary">{finalTotal.toLocaleString('vi-VN')}₫</span>
           </div>
 
           <Button
-            className="w-full h-12 text-lg font-semibold"
-            size="lg"
             onClick={mainButtonOnClick}
             disabled={mainButtonDisabled}
+            className="w-full"
+            size="lg"
           >
             {mainButtonLabel}
           </Button>
+
+          {totalItems > 0 && (
+            <p className="text-xs text-center text-muted-foreground">
+            </p>
+          )}
         </CardContent>
       </Card>
 
       {/* Benefits */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-          <Truck className="h-5 w-5 text-green-600" />
-          <div>
-            <div className="font-medium text-green-800">Giao hàng tận nơi</div>
-            <div className="text-sm text-green-600">Miễn phí giao hàng cho đơn ≥ 500k</div>
-          </div>
-        </div>
+      <Card className="shadow-sm">
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Shield className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="font-medium text-sm">Bảo hành chính hãng</div>
+                <div className="text-xs text-gray-600">Bảo hành 12 tháng tại các trung tâm bảo hành ủy quyền</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-green-50 rounded-lg">
+                <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-sm">Hàng chính hãng 100%</div>
+                <div className="text-xs text-gray-600">Cam kết sản phẩm chính hãng, hoàn tiền nếu phát hiện hàng giả</div>
+              </div>
+            </div>
 
-        <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-          <Shield className="h-5 w-5 text-blue-600" />
-          <div>
-            <div className="font-medium text-blue-800">Bảo hành chính hãng</div>
-            <div className="text-sm text-blue-600">Bảo hành lên đến 24 tháng</div>
-          </div>
-        </div>
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <svg className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-sm">Đổi trả linh hoạt</div>
+                <div className="text-xs text-gray-600">Đổi trả trong 7 ngày nếu sản phẩm lỗi do nhà sản xuất</div>
+              </div>
+            </div>
 
-        <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-          <CreditCard className="h-5 w-5 text-purple-600" />
-          <div>
-            <div className="font-medium text-purple-800">Thanh toán linh hoạt</div>
-            <div className="text-sm text-purple-600">COD, chuyển khoản, thẻ tín dụng</div>
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-orange-50 rounded-lg">
+                <svg className="h-5 w-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-sm">Giao hàng nhanh chóng</div>
+                <div className="text-xs text-gray-600">Giao hàng nội thành trong 2h, miễn phí với đơn hàng từ 500K</div>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-red-50 rounded-lg">
+                <svg className="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-sm">Thanh toán an toàn</div>
+                <div className="text-xs text-gray-600">Hỗ trợ nhiều phương thức thanh toán, bảo mật thông tin</div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

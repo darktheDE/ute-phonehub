@@ -29,6 +29,18 @@ export interface Promotion {
   templateCode?: string;
   title?: string;
   name?: string;
+  description?: string;
+  status?: string;
+  effectiveDate?: string;
+  expirationDate?: string;
+  percent_discount?: number;
+  percentDiscount?: number;
+  fixed_amount?: number;
+  fixedAmount?: number;
+  max_discount?: number;
+  maxDiscount?: number;
+  min_value_to_be_applied?: number;
+  minValueToBeApplied?: number;
   template?: any;
   [key: string]: any;
 }
