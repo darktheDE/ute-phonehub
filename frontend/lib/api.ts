@@ -784,3 +784,6 @@ export const paymentAPI = {
     });
   },
 };
+
+// Export default fetchAPI for use in services
+export default fetchAPI;
