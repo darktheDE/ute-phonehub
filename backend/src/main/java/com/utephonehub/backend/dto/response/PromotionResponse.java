@@ -18,6 +18,8 @@ public class PromotionResponse {
     private LocalDateTime effectiveDate;
     private LocalDateTime expirationDate;
     private Double percentDiscount;
+    private Double fixedAmount;
+    private Double maxDiscount;
     private Double minValueToBeApplied;
     private EPromotionStatus status;
 

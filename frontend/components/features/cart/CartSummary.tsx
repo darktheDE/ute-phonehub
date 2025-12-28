@@ -6,12 +6,12 @@ import { Shield, CreditCard } from 'lucide-react';
 import { VoucherSelector } from './VoucherSelector';
 import { useState } from 'react';
 import type { Promotion } from '@/types/api-cart';
+import type { CartItem } from '@/types';
+import { calculateCartTotals } from '@/lib/utils/cartMapper';
 
 interface CartSummaryProps {
-  totalItems: number;
-  totalPrice: number;
+  items: CartItem[];
   onCheckout: () => void;
-  compact?: boolean;
   selectedIds?: number[];
   onBuySelected?: () => void;
   selectedVoucher?: Promotion | null;
@@ -20,10 +20,8 @@ interface CartSummaryProps {
 }
 
 export function CartSummary({ 
-  totalItems, 
-  totalPrice, 
+  items,
   onCheckout, 
-  compact, 
   selectedIds = [], 
   onBuySelected,
   selectedVoucher: externalVoucher,
@@ -46,57 +44,111 @@ export function CartSummary({
     }
   };
 
-  const subtotal = totalPrice;
-  const finalTotal = Math.max(0, subtotal - voucherDiscount);
-  const mainButtonLabel = (selectedIds && selectedIds.length > 0 && onBuySelected)
+  const selectedItems = Array.isArray(items) && selectedIds.length > 0
+    ? items.filter((it) => selectedIds.includes(it.id))
+    : [];
+  const hasSelection = selectedItems.length > 0;
+  const { totalItems: selectedTotalItems, totalPrice: selectedTotalPrice } = calculateCartTotals(selectedItems);
+
+  // Requirement: totals only calculated when selecting products.
+  const subtotal = hasSelection ? selectedTotalPrice : 0;
+  const finalTotal = hasSelection ? Math.max(0, subtotal - voucherDiscount) : 0;
+
+  const mainButtonLabel = hasSelection
     ? `Mua ngay (${selectedIds.length})`
     : 'Mua ngay';
-  const mainButtonOnClick = (selectedIds && selectedIds.length > 0 && onBuySelected)
-    ? onBuySelected
-    : onCheckout;
-  const mainButtonDisabled = (selectedIds && selectedIds.length > 0)
-    ? !onBuySelected
-    : totalItems === 0;
+
+  const mainButtonOnClick = onBuySelected ?? onCheckout;
+  const mainButtonDisabled = !hasSelection;
 
   return (
     <div className="space-y-6">
       {/* Order Summary */}
       <Card className="shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-xl">
             <CreditCard className="h-5 w-5" />
             Tóm tắt đơn hàng
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Tổng sản phẩm ({totalItems})</span>
-            <span className="font-medium">{subtotal.toLocaleString('vi-VN')}₫</span>
+          {!hasSelection ? (
+            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-5">
+              <div className="flex items-center justify-between">
+                <div className="text-base font-semibold text-gray-900">Chưa chọn sản phẩm</div>
+                <Badge variant="secondary" className="text-sm">0</Badge>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-primary/20 bg-white p-5 ring-1 ring-primary/10">
+              <div className="flex items-center justify-between">
+                <div className="text-base font-semibold text-gray-900">Sản phẩm đã chọn</div>
+                <Badge variant="secondary" className="text-sm">{selectedIds.length}</Badge>
+              </div>
+              <div className="mt-4 max-h-56 space-y-3 overflow-auto pr-1">
+                {selectedItems.map((it) => (
+                  <div
+                    key={it.id}
+                    className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-primary/60" />
+                          <div className="text-base font-medium text-gray-900 line-clamp-2">{it.productName}</div>
+                        </div>
+                        {(it.color || it.storage) && (
+                          <div className="mt-1 inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm text-gray-700">
+                            {[it.color, it.storage].filter(Boolean).join(' • ')}
+                          </div>
+                        )}
+                      </div>
+                      <div className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-primary/20 bg-primary/5 px-2 text-base font-bold text-primary whitespace-nowrap">
+                        ×{it.quantity}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex items-center justify-between rounded-xl bg-primary/5 px-4 py-3">
+                <span className="text-base font-medium text-gray-800">Tổng số lượng</span>
+                <span className="text-base font-bold text-gray-900">{selectedTotalItems}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-base text-gray-700">Tạm tính</span>
+              <span className="text-base font-semibold text-gray-900">{subtotal.toLocaleString('vi-VN')}₫</span>
+            </div>
           </div>
 
           {/* Voucher Selector */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Mã giảm giá</label>
+            <label className="text-base font-medium text-gray-800">Mã giảm giá</label>
             <VoucherSelector
               orderTotal={subtotal}
               onApplyVoucher={handleVoucherChange}
               currentVoucher={selectedVoucher}
-              disabled={totalItems === 0}
+              disabled={!hasSelection}
             />
           </div>
 
-          {voucherDiscount > 0 && (
+          {hasSelection && voucherDiscount > 0 && (
             <div className="flex justify-between items-center text-green-600">
-              <span className="text-sm">Giảm giá</span>
-              <span className="font-semibold">-{voucherDiscount.toLocaleString('vi-VN')}₫</span>
+              <span className="text-base">Giảm giá</span>
+              <span className="text-base font-semibold">-{voucherDiscount.toLocaleString('vi-VN')}₫</span>
             </div>
           )}
 
           <Separator />
 
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-bold">Tổng cộng</span>
-            <span className="text-xl font-bold text-primary">{finalTotal.toLocaleString('vi-VN')}₫</span>
+          <div className="flex items-center justify-between rounded-2xl border border-primary/15 bg-primary/5 px-5 py-4">
+            <div>
+              <div className="text-base font-semibold text-gray-900">Tổng cộng</div>
+            </div>
+            <div className="text-2xl font-bold text-primary">{finalTotal.toLocaleString('vi-VN')}₫</div>
           </div>
 
           <Button
@@ -108,7 +160,7 @@ export function CartSummary({
             {mainButtonLabel}
           </Button>
 
-          {totalItems > 0 && (
+          {hasSelection && (
             <p className="text-xs text-center text-muted-foreground">
             </p>
           )}

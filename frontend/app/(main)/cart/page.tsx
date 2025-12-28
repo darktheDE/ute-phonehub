@@ -8,7 +8,7 @@ import { cartAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { CartItem, CartSummary, EmptyCart } from '@/components/features/cart';
-import { ArrowLeft, Trash2, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { scheduleDelete, undoMultiple } from '@/lib/undo';
@@ -79,6 +79,30 @@ export default function CartPage() {
     // Server-side clearCart (single request) with undo that re-adds previous items if requested
     const prevItems = [...items];
     if (prevItems.length === 0) {
+      setShowClearConfirm(false);
+      return;
+    }
+
+    // Guest cart: local-only clear + undo
+    if (!isAuthenticated) {
+      clearCart();
+      let undone = false;
+      toast.success(
+        <div className="flex items-center gap-3">
+          <span>Đã xóa tất cả sản phẩm</span>
+          <button
+            className="underline ml-2 text-sm"
+            onClick={() => {
+              if (undone) return;
+              undone = true;
+              setItems(prevItems);
+              toast.success('Hoàn tác thành công — đã phục hồi giỏ hàng');
+            }}
+          >
+            Hoàn tác
+          </button>
+        </div>
+      );
       setShowClearConfirm(false);
       return;
     }
@@ -162,6 +186,7 @@ export default function CartPage() {
         it.id,
         async () => {
           try {
+            if (!isAuthenticated) return;
             await cartAPI.removeCartItem(it.id);
           } catch (e) {
             // on failure, restore only this item
@@ -299,10 +324,8 @@ export default function CartPage() {
           <div className="xl:col-span-1">
             <div className="sticky top-8">
               <CartSummary
-                    totalItems={totalItems}
-                    totalPrice={totalPrice}
+                  items={items}
                     onCheckout={handleCheckout}
-                    compact
                     selectedIds={selectedIds}
                     onBuySelected={() => {
                       if (selectedIds.length === 0) return;
