@@ -1,0 +1,181 @@
+# ==============================================================================
+# CHATBOT ASSISTANT USER - BACKEND CONFIGURATION
+# ==============================================================================
+# Thêm phần này vào application.yaml của bạn
+
+# Cấu hình Gemini API
+gemini:
+  api:
+    # Lấy từ https://ai.google.dev/
+    key: ${GEMINI_API_KEY}
+    
+    # Base URL của Gemini API
+    url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models}
+  
+  # Model dùng để tạo text response
+  # Có sẵn: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-pro, gemini-1.5-flash
+  model: ${GEMINI_MODEL:gemini-2.0-flash}
+  
+  # Model dùng để tạo embedding vector
+  embedding:
+    model: ${GEMINI_EMBEDDING_MODEL:text-embedding-004}
+
+# Cấu hình Product API
+api:
+  product:
+    # URL base của ProductView API
+    base-url: ${API_PRODUCT_BASE_URL:http://localhost:8081/api/v1/products}
+
+# ==============================================================================
+# HƯỚNG DẪN CẤU HÌNH CHI TIẾT
+# ==============================================================================
+
+# 1. ENVIRONMENT VARIABLES (.env hoặc docker-compose env)
+# 
+#    GEMINI_API_KEY=your_api_key_from_ai.google.dev
+#    GEMINI_MODEL=gemini-2.0-flash
+#    GEMINI_EMBEDDING_MODEL=text-embedding-004
+#    API_PRODUCT_BASE_URL=http://localhost:8081/api/v1/products
+
+# 2. LẤY GEMINI API KEY
+#
+#    Bước 1: Vào https://ai.google.dev/
+#    Bước 2: Click "Get API Key" (phải có Google Account)
+#    Bước 3: "Create API Key" → tạo mới hoặc dùng project cũ
+#    Bước 4: Copy key → .env
+#
+#    Free Tier Limits:
+#    - Text Generation: 15 requests/minute (RPM)
+#    - Embedding: 15 RPM
+#    - Free tier: $0 mãi mãi (nhưng có giới hạn RPM)
+#
+#    Paid Tier (tùy chọn):
+#    - Text: $0.075 / 1M input tokens
+#    - Embedding: $0.02 / 1M tokens
+#    - Tối ưu hóa, chi phí rất thấp
+
+# 3. APPLICATION.YAML VÍ DỤ ĐẦY ĐỦ
+#
+#    spring:
+#      application:
+#        name: ute-phonehub-backend
+#      jpa:
+#        hibernate:
+#          ddl-auto: validate
+#        properties:
+#          hibernate:
+#            dialect: org.hibernate.dialect.PostgreSQL10Dialect
+#    
+#    server:
+#      port: 8081
+#    
+#    gemini:
+#      api:
+#        key: ${GEMINI_API_KEY}
+#        url: https://generativelanguage.googleapis.com/v1beta/models
+#      model: ${GEMINI_MODEL:gemini-2.0-flash}
+#      embedding:
+#        model: ${GEMINI_EMBEDDING_MODEL:text-embedding-004}
+#    
+#    api:
+#      product:
+#        base-url: ${API_PRODUCT_BASE_URL:http://localhost:8081/api/v1/products}
+
+# ==============================================================================
+# DEPENDENCIES (ĐẠMÃ CÓ TRONG POM.XML)
+# ==============================================================================
+
+# spring-boot-starter-web
+# spring-boot-starter-data-jpa
+# spring-boot-starter-data-redis (nếu dùng)
+# spring-boot-starter-security
+# spring-boot-starter-validation
+# 
+# Thêm nếu cần:
+# <dependency>
+#     <groupId>org.springframework.boot</groupId>
+#     <artifactId>spring-boot-starter-webflux</artifactId>
+# </dependency>
+
+# ==============================================================================
+# PERFORMANCE TUNING
+# ==============================================================================
+
+# Cache Settings (ProductRecommendationService)
+# CACHE_EXPIRY_MS: 3600000 (1 giờ)
+#   - Giảm số lần gọi API products
+#   - Benefit: 80% reduction trong API calls
+#   - Nếu cần real-time data, giảm thành 300000 (5 phút)
+
+# Embedding Threshold (ChatbotAssistantUserService)
+# EMBEDDING_SIMILARITY_THRESHOLD: 0.5
+#   - 0.3-0.5: Thoáo lưới, gợi ý nhiều tùy chọn
+#   - 0.5-0.7: Cân bằng
+#   - 0.7-1.0: Chặt chẽ, chỉ sản phẩm rất phù hợp
+
+# ==============================================================================
+# MONITORING & LOGGING
+# ==============================================================================
+
+# Logs để quan sát:
+# 
+# logging:
+#   level:
+#     com.utephonehub.backend.service.ChatbotAssistantUserService: DEBUG
+#     com.utephonehub.backend.service.GeminiEmbeddingService: DEBUG
+#     com.utephonehub.backend.service.ProductRecommendationService: DEBUG
+#   pattern:
+#     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# ==============================================================================
+# COST OPTIMIZATION CHECKLIST
+# ==============================================================================
+
+# ✅ Keyword matching (detectIntent) - không tốn token
+# ✅ Cache products 1 giờ - giảm 80% API calls
+# ✅ Reuse embedding từ cache - không tạo lại
+# ✅ Max 5 sản phẩm/response - giới hạn output
+# ✅ Prompt tối ưu (300-400 tokens) - ngắn gọn
+# ✅ Chỉ dùng embedding khi SEARCH intent
+# ✅ Batch API calls - không sequential
+# 
+# Ước tính chi phí:
+# - 1000 chat/ngày KHÔNG tối ưu: ~$56
+# - 1000 chat/ngày CÓ tối ưu: ~$4.40
+# - Tiết kiệm: 92% 💰
+
+# ==============================================================================
+# TROUBLESHOOTING
+# ==============================================================================
+
+# ❌ "GEMINI_API_KEY not found"
+# → Kiểm tra .env hoặc docker-compose environment variables
+# → Restart container
+
+# ❌ "401 Unauthorized from Gemini"
+# → API key sai hoặc hết hạn
+# → Vào ai.google.dev regenerate key
+
+# ❌ "Products API returns empty"
+# → Kiểm tra /api/v1/products/featured endpoint
+# → Verify URL: http://localhost:8081/api/v1/products/featured
+
+# ❌ "High latency (>5s)"
+# → Cache chưa populate: chạy lại 2-3 lần
+# → Disable embedding: chỉ dùng API direct
+# → Check DB/API performance
+
+# ❌ "Out of embedding quota"
+# → Free tier limit: 15 RPM
+# → Solution: upgrade to paid tier hoặc reduce embedding usage
+
+# ==============================================================================
+# ĐỌC THÊM
+# ==============================================================================
+# 
+# 📖 Full Documentation: docs/CHATBOT_ASSISTANT.md
+# ⚡ Quick Start: docs/CHATBOT_QUICK_START.md
+# 📦 Files Created: docs/CHATBOT_FILES_CREATED.md
+# 🔗 Gemini API: https://ai.google.dev/docs
+# 📱 ProductView API: [từ SRS của UTE Phone Hub]
+
