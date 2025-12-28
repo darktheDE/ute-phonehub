@@ -57,7 +57,14 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/v1/payments/**"
                 ).permitAll()
-                // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
+                // Cho phép Chatbot endpoint (public - không cần xác thực)
+                .requestMatchers(
+                    "/api/v1/chatbot-assistant/**"
+                ).permitAll()
+                // Cho phép truy cập tự do vào API địa chỉ hành chính (OpenAPI Vietnam)
+                .requestMatchers(
+                    "/api/v1/locations/**"
+                ).permitAll()                // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
                 .requestMatchers(
                     "/api/v1/categories",
                     "/api/v1/brands",
