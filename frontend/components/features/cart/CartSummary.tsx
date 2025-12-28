@@ -12,7 +12,6 @@ import { calculateCartTotals } from '@/lib/utils/cartMapper';
 interface CartSummaryProps {
   items: CartItem[];
   onCheckout: () => void;
-  compact?: boolean;
   selectedIds?: number[];
   onBuySelected?: () => void;
   selectedVoucher?: Promotion | null;
@@ -23,7 +22,6 @@ interface CartSummaryProps {
 export function CartSummary({ 
   items,
   onCheckout, 
-  compact, 
   selectedIds = [], 
   onBuySelected,
   selectedVoucher: externalVoucher,

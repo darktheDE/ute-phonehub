@@ -25,9 +25,29 @@ import java.util.UUID;
 public class GuestCartServiceImpl implements IGuestCartService {
 
     private static final String KEY_PREFIX = "guest-cart:";
+    private static final String RATE_LIMIT_PREFIX = "rl:guest-cart:create:";
     private static final Duration TTL = Duration.ofHours(24);
+    private static final Duration RATE_LIMIT_WINDOW = Duration.ofMinutes(1);
 
     private final RedisTemplate<String, Object> redisTemplate;
+
+    @Override
+    public boolean allowCreateGuestCart(String ipAddress, int limitPerMinute) {
+        if (limitPerMinute <= 0) return true;
+        String ip = (ipAddress == null || ipAddress.isBlank()) ? "unknown" : ipAddress.trim();
+        String key = RATE_LIMIT_PREFIX + ip;
+
+        try {
+            Long count = redisTemplate.opsForValue().increment(key);
+            if (count != null && count == 1L) {
+                redisTemplate.expire(key, RATE_LIMIT_WINDOW);
+            }
+            return count == null || count <= (long) limitPerMinute;
+        } catch (Exception e) {
+            // Best-effort: if Redis hiccups, do not break guest flow.
+            return true;
+        }
+    }
 
     @Override
     public String createGuestCart() {
