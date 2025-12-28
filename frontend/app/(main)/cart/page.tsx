@@ -326,7 +326,6 @@ export default function CartPage() {
               <CartSummary
                   items={items}
                     onCheckout={handleCheckout}
-                    compact
                     selectedIds={selectedIds}
                     onBuySelected={() => {
                       if (selectedIds.length === 0) return;

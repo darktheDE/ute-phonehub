@@ -14,10 +14,19 @@ ADD COLUMN IF NOT EXISTS max_discount DOUBLE PRECISION;
 COMMENT ON COLUMN promotions.fixed_amount IS 'Fixed discount amount (VND) - takes priority over percent_discount';
 COMMENT ON COLUMN promotions.max_discount IS 'Maximum discount cap (VND) for percentage-based promotions';
 
--- Add check constraint: either percent_discount or fixed_amount must be set
+-- Add check constraint: enforce valid discount configuration while allowing
+-- promotions with no numeric discount (e.g., free-shipping promotions).
+-- Rules:
+-- - percent_discount, when present, must be > 0
+-- - fixed_amount, when present, must be > 0
+-- - percent_discount and fixed_amount cannot both be set at the same time
+ALTER TABLE promotions
+DROP CONSTRAINT IF EXISTS chk_promotion_discount_type;
+
 ALTER TABLE promotions
 ADD CONSTRAINT chk_promotion_discount_type
 CHECK (
-    (percent_discount IS NOT NULL AND percent_discount > 0) OR
-    (fixed_amount IS NOT NULL AND fixed_amount > 0)
+    (percent_discount IS NULL OR percent_discount > 0)
+    AND (fixed_amount IS NULL OR fixed_amount > 0)
+    AND NOT (percent_discount IS NOT NULL AND fixed_amount IS NOT NULL)
 );

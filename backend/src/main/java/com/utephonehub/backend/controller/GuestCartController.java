@@ -6,8 +6,10 @@ import com.utephonehub.backend.dto.response.guestcart.GuestCartSessionResponse;
 import com.utephonehub.backend.service.IGuestCartService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +21,18 @@ public class GuestCartController {
 
     private final IGuestCartService guestCartService;
 
+    // Minimal anti-abuse: limit create requests per IP per minute.
+    private static final int CREATE_RATE_LIMIT_PER_MINUTE = 30;
+
     @PostMapping
     @Operation(summary = "Tạo guest cart", description = "Tạo một guestCartId (lưu trong Redis) để FE đồng bộ giỏ tạm theo phiên")
-    public ResponseEntity<ApiResponse<GuestCartSessionResponse>> createGuestCart() {
+    public ResponseEntity<ApiResponse<GuestCartSessionResponse>> createGuestCart(HttpServletRequest request) {
+        String ip = request != null ? request.getRemoteAddr() : null;
+        if (!guestCartService.allowCreateGuestCart(ip, CREATE_RATE_LIMIT_PER_MINUTE)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(ApiResponse.error(HttpStatus.TOO_MANY_REQUESTS.value(), "Too many requests"));
+        }
+
         String guestCartId = guestCartService.createGuestCart();
         return ResponseEntity.ok(ApiResponse.success(GuestCartSessionResponse.builder().guestCartId(guestCartId).build()));
     }

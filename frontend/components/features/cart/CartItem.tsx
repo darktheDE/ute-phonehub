@@ -9,7 +9,7 @@ import { cartAPI } from '@/lib/api';
 import { toast } from 'sonner';
 import { scheduleDelete, undoDelete } from '@/lib/undo';
 import { useCartStore } from '@/store';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks';
 import type { CartItem as CartItemType } from '@/types';
 import { mapBackendCartItems, getItemSubtotal } from '@/lib/utils/cartMapper';
 

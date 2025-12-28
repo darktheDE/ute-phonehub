@@ -83,6 +83,15 @@ export const useCartStore = create<CartState>()(
      * Clear all items from cart
      */
     clearCart: () => {
+      const state = get();
+      const isAlreadyEmpty =
+        (state.items?.length ?? 0) === 0 &&
+        (state.totalItems ?? 0) === 0 &&
+        (state.totalPrice ?? 0) === 0 &&
+        state.guestCartId === undefined;
+
+      if (isAlreadyEmpty) return;
+
       set({
         items: [],
         totalItems: 0,
