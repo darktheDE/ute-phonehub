@@ -199,11 +199,12 @@ public ResponseEntity<ApiResponse<ProductComparisonResponse>> compareProducts(
 
 /**
  * Lấy sản phẩm liên quan
+ * Hỗ trợ cả query all (limit=null) hoặc query với limit cụ thể
  */
 @GetMapping("/{id}/related")
 @Operation(
         summary = "Xem sản phẩm liên quan",
-        description = "Lấy danh sách sản phẩm liên quan (cùng danh mục hoặc thương hiệu)"
+        description = "Lấy danh sách sản phẩm liên quan (cùng danh mục hoặc thương hiệu). Nếu không chỉ định limit thì lấy tất cả, nếu chỉ định limit thì giới hạn số lượng"
 )
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -218,22 +219,23 @@ public ResponseEntity<ApiResponse<ProductComparisonResponse>> compareProducts(
 })
 public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getRelatedProducts(
         @Parameter(description = "ID sản phẩm", required = true) @PathVariable Long id,
-        @Parameter(description = "Số lượng sản phẩm liên quan") @RequestParam(required = false, defaultValue = "8") Integer limit
+        @Parameter(description = "Số lượng sản phẩm liên quan (nếu không chỉ định thì lấy tất cả)") @RequestParam(required = false) Integer limit
 ) {
         log.info("Getting related products for ID: {} with limit: {}", id, limit);
         
-        List<ProductViewResponse> result = productViewService.getRelatedProducts(id, limit);
+        List<ProductViewResponse> result = productViewService.getRelatedProducts(id, limit != null ? limit : Integer.MAX_VALUE);
 
         return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm liên quan thành công", result));
 }
 
 /**
  * Lấy sản phẩm bán chạy
+ * Hỗ trợ cả query all (limit=null) hoặc query với limit cụ thể
  */
 @GetMapping("/best-selling")
 @Operation(
         summary = "Xem sản phẩm bán chạy",
-        description = "Lấy danh sách sản phẩm bán chạy nhất"
+        description = "Lấy danh sách sản phẩm bán chạy nhất. Nếu không chỉ định limit thì lấy tất cả, nếu chỉ định limit thì giới hạn số lượng"
 )
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -243,22 +245,23 @@ public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getRelatedProducts
         )
 })
 public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getBestSellingProducts(
-        @Parameter(description = "Số lượng sản phẩm") @RequestParam(required = false, defaultValue = "10") Integer limit
+        @Parameter(description = "Số lượng sản phẩm (nếu không chỉ định thì lấy tất cả)") @RequestParam(required = false) Integer limit
 ) {
         log.info("Getting best selling products with limit: {}", limit);
         
-        List<ProductViewResponse> result = productViewService.getBestSellingProducts(limit);
+        List<ProductViewResponse> result = productViewService.getBestSellingProducts(limit != null ? limit : Integer.MAX_VALUE);
         
         return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm bán chạy thành công", result));
 }
 
 /**
  * Lấy sản phẩm mới nhất
+ * Hỗ trợ cả query all (limit=null) hoặc query với limit cụ thể
  */
 @GetMapping("/new-arrivals")
 @Operation(
         summary = "Xem sản phẩm mới nhất",
-        description = "Lấy danh sách sản phẩm mới ra mắt"
+        description = "Lấy danh sách sản phẩm mới ra mắt. Nếu không chỉ định limit thì lấy tất cả, nếu chỉ định limit thì giới hạn số lượng"
 )
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -268,22 +271,23 @@ public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getBestSellingProd
         )
 })
 public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getNewArrivals(
-        @Parameter(description = "Số lượng sản phẩm") @RequestParam(required = false, defaultValue = "10") Integer limit
+        @Parameter(description = "Số lượng sản phẩm (nếu không chỉ định thì lấy tất cả)") @RequestParam(required = false) Integer limit
 ) {
         log.info("Getting new arrivals with limit: {}", limit);
         
-        List<ProductViewResponse> result = productViewService.getNewArrivals(limit);
+        List<ProductViewResponse> result = productViewService.getNewArrivals(limit != null ? limit : Integer.MAX_VALUE);
         
         return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm mới nhất thành công", result));
 }
 
 /**
  * Lấy sản phẩm nổi bật
+ * Hỗ trợ cả query all (limit=null) hoặc query với limit cụ thể
  */
 @GetMapping("/featured")
 @Operation(
         summary = "Xem sản phẩm nổi bật",
-        description = "Lấy danh sách sản phẩm được đánh dấu nổi bật hoặc đang khuyến mãi"
+        description = "Lấy danh sách sản phẩm được đánh dấu nổi bật hoặc đang khuyến mãi. Nếu không chỉ định limit thì lấy tất cả, nếu chỉ định limit thì giới hạn số lượng"
 )
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -293,12 +297,202 @@ public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getNewArrivals(
         )
 })
 public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getFeaturedProducts(
-        @Parameter(description = "Số lượng sản phẩm") @RequestParam(required = false, defaultValue = "10") Integer limit
+        @Parameter(description = "Số lượng sản phẩm (nếu không chỉ định thì lấy tất cả)") @RequestParam(required = false) Integer limit
 ) {
         log.info("Getting featured products with limit: {}", limit);
         
-        List<ProductViewResponse> result = productViewService.getFeaturedProducts(limit);
+        List<ProductViewResponse> result = productViewService.getFeaturedProducts(limit != null ? limit : Integer.MAX_VALUE);
         
         return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm nổi bật thành công", result));
+}
+
+/**
+ * Lọc sản phẩm theo RAM
+ * Hỗ trợ cả limit (query all/limit) hoặc pagination
+ */
+@GetMapping("/filter/ram")
+@Operation(
+        summary = "Lọc sản phẩm theo RAM",
+        description = "Lọc sản phẩm theo cấu hình RAM. Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
+)
+public ResponseEntity<ApiResponse<?>> filterByRam(
+        @Parameter(description = "Danh sách RAM cần lọc") @RequestParam List<String> ramOptions,
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
+) {
+        log.info("Filtering products by RAM: {} - limit: {}, page: {}, size: {}", ramOptions, limit, page, size);
+        
+        ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                .page(page)
+                .size(size)
+                .build();
+        
+        if (limit != null && limit > 0) {
+                // Query với limit (lấy N sản phẩm đầu tiên)
+                List<ProductViewResponse> result = productViewService.filterByRamWithLimit(ramOptions, request, limit);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo RAM thành công", result));
+        } else {
+                // Query với pagination
+                Page<ProductViewResponse> result = productViewService.filterByRam(ramOptions, request);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo RAM thành công", result));
+        }
+}
+
+/**
+ * Lọc sản phẩm theo dung lượng lưu trữ
+ * Hỗ trợ cả limit (query all/limit) hoặc pagination
+ */
+@GetMapping("/filter/storage")
+@Operation(
+        summary = "Lọc sản phẩm theo lưu trữ",
+        description = "Lọc sản phẩm theo dung lượng lưu trữ (GB). Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
+)
+public ResponseEntity<ApiResponse<?>> filterByStorage(
+        @Parameter(description = "Danh sách dung lượng lưu trữ cần lọc") @RequestParam List<String> storageOptions,
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
+) {
+        log.info("Filtering products by Storage: {} - limit: {}, page: {}, size: {}", storageOptions, limit, page, size);
+        
+        ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                .page(page)
+                .size(size)
+                .build();
+        
+        if (limit != null && limit > 0) {
+                List<ProductViewResponse> result = productViewService.filterByStorageWithLimit(storageOptions, request, limit);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo lưu trữ thành công", result));
+        } else {
+                Page<ProductViewResponse> result = productViewService.filterByStorage(storageOptions, request);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo lưu trữ thành công", result));
+        }
+}
+
+/**
+ * Lọc sản phẩm theo dung lượng pin
+ * Hỗ trợ cả limit (query all/limit) hoặc pagination
+ */
+@GetMapping("/filter/battery")
+@Operation(
+        summary = "Lọc sản phẩm theo pin",
+        description = "Lọc sản phẩm theo dung lượng pin (mAh). Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
+)
+public ResponseEntity<ApiResponse<?>> filterByBattery(
+        @Parameter(description = "Dung lượng pin tối thiểu") @RequestParam(required = false) Integer minBattery,
+        @Parameter(description = "Dung lượng pin tối đa") @RequestParam(required = false) Integer maxBattery,
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
+) {
+        log.info("Filtering products by Battery: {} - {} - limit: {}", minBattery, maxBattery, limit);
+        
+        ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                .page(page)
+                .size(size)
+                .build();
+        
+        if (limit != null && limit > 0) {
+                List<ProductViewResponse> result = productViewService.filterByBatteryWithLimit(minBattery, maxBattery, request, limit);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo pin thành công", result));
+        } else {
+                Page<ProductViewResponse> result = productViewService.filterByBattery(minBattery, maxBattery, request);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo pin thành công", result));
+        }
+}
+
+/**
+ * Lọc sản phẩm theo kích thước màn hình
+ * Hỗ trợ cả limit (query all/limit) hoặc pagination
+ */
+@GetMapping("/filter/screen")
+@Operation(
+        summary = "Lọc sản phẩm theo kích thước màn hình",
+        description = "Lọc sản phẩm theo kích thước màn hình (inch). Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
+)
+public ResponseEntity<ApiResponse<?>> filterByScreenSize(
+        @Parameter(description = "Danh sách kích thước màn hình cần lọc") @RequestParam List<String> screenSizeOptions,
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
+) {
+        log.info("Filtering products by Screen Size: {} - limit: {}", screenSizeOptions, limit);
+        
+        ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                .page(page)
+                .size(size)
+                .build();
+        
+        if (limit != null && limit > 0) {
+                List<ProductViewResponse> result = productViewService.filterByScreenSizeWithLimit(screenSizeOptions, request, limit);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo màn hình thành công", result));
+        } else {
+                Page<ProductViewResponse> result = productViewService.filterByScreenSize(screenSizeOptions, request);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo màn hình thành công", result));
+        }
+}
+
+/**
+ * Lọc sản phẩm theo hệ điều hành
+ * Hỗ trợ cả limit (query all/limit) hoặc pagination
+ */
+@GetMapping("/filter/os")
+@Operation(
+        summary = "Lọc sản phẩm theo hệ điều hành",
+        description = "Lọc sản phẩm theo hệ điều hành (iOS, Android, v.v.). Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
+)
+public ResponseEntity<ApiResponse<?>> filterByOS(
+        @Parameter(description = "Danh sách hệ điều hành cần lọc") @RequestParam List<String> osOptions,
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
+) {
+        log.info("Filtering products by OS: {} - limit: {}", osOptions, limit);
+        
+        ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                .page(page)
+                .size(size)
+                .build();
+        
+        if (limit != null && limit > 0) {
+                List<ProductViewResponse> result = productViewService.filterByOSWithLimit(osOptions, request, limit);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo hệ điều hành thành công", result));
+        } else {
+                Page<ProductViewResponse> result = productViewService.filterByOS(osOptions, request);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo hệ điều hành thành công", result));
+        }
+}
+
+/**
+ * Lọc sản phẩm theo đánh giá sao
+ * Hỗ trợ cả limit (query all/limit) hoặc pagination
+ */
+@GetMapping("/filter/rating")
+@Operation(
+        summary = "Lọc sản phẩm theo đánh giá",
+        description = "Lọc sản phẩm theo đánh giá sao (1-5). Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
+)
+public ResponseEntity<ApiResponse<?>> filterByRating(
+        @Parameter(description = "Đánh giá tối thiểu") @RequestParam(required = false) Double minRating,
+        @Parameter(description = "Đánh giá tối đa") @RequestParam(required = false) Double maxRating,
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
+) {
+        log.info("Filtering products by Rating: {} - {} - limit: {}", minRating, maxRating, limit);
+        
+        ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                .page(page)
+                .size(size)
+                .build();
+        
+        if (limit != null && limit > 0) {
+                List<ProductViewResponse> result = productViewService.filterByRatingWithLimit(minRating, maxRating, request, limit);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo đánh giá thành công", result));
+        } else {
+                Page<ProductViewResponse> result = productViewService.filterByRating(minRating, maxRating, request);
+                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo đánh giá thành công", result));
+        }
 }
 }

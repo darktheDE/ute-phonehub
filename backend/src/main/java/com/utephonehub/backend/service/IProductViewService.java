@@ -72,4 +72,96 @@ public interface IProductViewService {
      * @return Danh sách sản phẩm khuyến mãi
      */
     List<ProductViewResponse> getFeaturedProducts(Integer limit);
+    
+    /**
+     * Lọc sản phẩm theo RAM
+     * @param ramOptions Danh sách RAM cần lọc
+     * @param request Request chứa các tiêu chí lọc khác
+     * @return Page chứa danh sách sản phẩm
+     */
+    Page<ProductViewResponse> filterByRam(List<String> ramOptions, ProductSearchFilterRequest request);
+    
+    /**
+     * Lọc sản phẩm theo dung lượng lưu trữ
+     * @param storageOptions Danh sách storage cần lọc
+     * @param request Request chứa các tiêu chí lọc khác
+     * @return Page chứa danh sách sản phẩm
+     */
+    Page<ProductViewResponse> filterByStorage(List<String> storageOptions, ProductSearchFilterRequest request);
+    
+    /**
+     * Lọc sản phẩm theo dung lượng pin
+     * @param minBattery Dung lượng pin tối thiểu
+     * @param maxBattery Dung lượng pin tối đa
+     * @param request Request chứa các tiêu chí lọc khác
+     * @return Page chứa danh sách sản phẩm
+     */
+    Page<ProductViewResponse> filterByBattery(Integer minBattery, Integer maxBattery, ProductSearchFilterRequest request);
+    
+    /**
+     * Lọc sản phẩm theo kích thước màn hình
+     * @param screenSizeOptions Danh sách kích thước màn hình
+     * @param request Request chứa các tiêu chí lọc khác
+     * @return Page chứa danh sách sản phẩm
+     */
+    Page<ProductViewResponse> filterByScreenSize(List<String> screenSizeOptions, ProductSearchFilterRequest request);
+    
+    /**
+     * Lọc sản phẩm theo hệ điều hành
+     * @param osOptions Danh sách hệ điều hành
+     * @param request Request chứa các tiêu chí lọc khác
+     * @return Page chứa danh sách sản phẩm
+     */
+    Page<ProductViewResponse> filterByOS(List<String> osOptions, ProductSearchFilterRequest request);
+    
+    /**
+     * Lọc sản phẩm theo đánh giá sao
+     * @param minRating Đánh giá tối thiểu
+     * @param maxRating Đánh giá tối đa
+     * @param request Request chứa các tiêu chí lọc khác
+     * @return Page chứa danh sách sản phẩm
+     */
+    Page<ProductViewResponse> filterByRating(Double minRating, Double maxRating, ProductSearchFilterRequest request);
+    
+    // ===== WithLimit Methods =====
+    
+    /**
+     * Tìm kiếm và lọc sản phẩm với giới hạn số lượng
+     */
+    List<ProductViewResponse> searchAndFilterProductsWithLimit(ProductSearchFilterRequest request, Integer limit);
+    
+    /**
+     * Lấy sản phẩm theo danh mục với giới hạn số lượng
+     */
+    List<ProductViewResponse> getProductsByCategoryWithLimit(Long categoryId, ProductSearchFilterRequest request, Integer limit);
+    
+    /**
+     * Lọc sản phẩm theo RAM với giới hạn số lượng
+     */
+    List<ProductViewResponse> filterByRamWithLimit(List<String> ramOptions, ProductSearchFilterRequest request, Integer limit);
+    
+    /**
+     * Lọc sản phẩm theo storage với giới hạn số lượng
+     */
+    List<ProductViewResponse> filterByStorageWithLimit(List<String> storageOptions, ProductSearchFilterRequest request, Integer limit);
+    
+    /**
+     * Lọc sản phẩm theo battery với giới hạn số lượng
+     */
+    List<ProductViewResponse> filterByBatteryWithLimit(Integer minBattery, Integer maxBattery, ProductSearchFilterRequest request, Integer limit);
+    
+    /**
+     * Lọc sản phẩm theo screen size với giới hạn số lượng
+     */
+    List<ProductViewResponse> filterByScreenSizeWithLimit(List<String> screenSizeOptions, ProductSearchFilterRequest request, Integer limit);
+    
+    /**
+     * Lọc sản phẩm theo OS với giới hạn số lượng
+     */
+    List<ProductViewResponse> filterByOSWithLimit(List<String> osOptions, ProductSearchFilterRequest request, Integer limit);
+    
+    /**
+     * Lọc sản phẩm theo rating với giới hạn số lượng
+     */
+    List<ProductViewResponse> filterByRatingWithLimit(Double minRating, Double maxRating, ProductSearchFilterRequest request, Integer limit);
 }

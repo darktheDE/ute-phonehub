@@ -47,6 +47,16 @@ public class ProductViewResponse {
     // Available variants count
     private Integer variantsCount;
     
+    // Technical Specifications (for listing view)
+    private String ram;
+    private String storage;
+    private String battery;
+    private String cpu;
+    private String screen;
+    private String os;
+    private String rearCamera;
+    private String frontCamera;
+    
     // Promotion info (if any)
     private String promotionBadge;
     private BigDecimal discountPercentage;

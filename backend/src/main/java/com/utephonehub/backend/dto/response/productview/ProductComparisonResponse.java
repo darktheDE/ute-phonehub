@@ -62,5 +62,9 @@ public class ProductComparisonResponse {
         private String battery;
         private String charging;
         private String weight;
+        private String dimensions;
+        private String connectivity;
+        private String sim;
+        private String materials;
     }
 }

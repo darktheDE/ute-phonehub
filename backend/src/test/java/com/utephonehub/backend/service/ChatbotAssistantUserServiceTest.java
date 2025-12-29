@@ -27,16 +27,16 @@ import static org.mockito.Mockito.*;
 class ChatbotAssistantUserServiceTest {
 
     @Autowired
-    private ChatbotAssistantUserService chatbotService;
+    private IChatbotAssistantUserService chatbotService;
 
     @MockBean
-    private ProductRecommendationService productRecommendationService;
+    private IProductRecommendationService productRecommendationService;
 
     @MockBean
-    private GeminiFallbackService fallbackService;
+    private IGeminiFallbackService fallbackService;
 
     @MockBean
-    private GeminiEmbeddingService embeddingService;
+    private IGeminiEmbeddingService embeddingService;
 
     @Autowired
     private ObjectMapper objectMapper;

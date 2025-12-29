@@ -2,7 +2,7 @@ package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.AddressProvinceResponse;
 import com.utephonehub.backend.dto.AddressWardResponse;
-import com.utephonehub.backend.service.AddressOpenAPIService;
+import com.utephonehub.backend.service.IAddressOpenAPIService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,7 +22,7 @@ import java.util.List;
 @Tag(name = "Location", description = "API địa chỉ hành chính Việt Nam")
 public class AddressOpenAPIController {
     
-    private final AddressOpenAPIService addressOpenAPIService;
+    private final IAddressOpenAPIService addressOpenAPIService;
     
     /**
      * Liệt kê toàn bộ cấp hành chính (tỉnh/thành, quận/huyện, phường/xã) theo độ sâu

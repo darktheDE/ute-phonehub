@@ -18,11 +18,11 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GeminiEmbeddingService {
+public class IGeminiEmbeddingService {
     
     private final RestTemplate restTemplate;
     private final GeminiConfig geminiConfig;
-    private final GeminiFallbackService fallbackService;
+    private final IGeminiFallbackService fallbackService;
     private final ObjectMapper objectMapper;
     
     // Cache embedding để tối ưu chi phí

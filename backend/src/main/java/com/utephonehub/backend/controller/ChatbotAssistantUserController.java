@@ -3,7 +3,7 @@ package com.utephonehub.backend.controller;
 import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.request.ChatbotAssistantUserRequest;
 import com.utephonehub.backend.dto.response.ChatbotAssistantUserResponse;
-import com.utephonehub.backend.service.ChatbotAssistantUserService;
+import com.utephonehub.backend.service.IChatbotAssistantUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.PermitAll;
@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Chatbot Tư Vấn Sản Phẩm", description = "API cho chatbot AI gợi ý sản phẩm phù hợp")
 public class ChatbotAssistantUserController {
     
-    private final ChatbotAssistantUserService chatbotService;
+    private final IChatbotAssistantUserService chatbotService;
     
     /**
      * Gửi câu hỏi tư vấn sản phẩm
