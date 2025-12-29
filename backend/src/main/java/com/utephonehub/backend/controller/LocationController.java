@@ -15,6 +15,9 @@ import java.util.List;
 /**
  * REST Controller cho Location API
  * Quản lý địa chỉ hành chính Việt Nam (Tỉnh/Thành phố, Phường/Xã)
+ * 
+ * API này cung cấp dữ liệu địa chỉ từ database local, không phụ thuộc external API
+ * Được sử dụng cho form nhập địa chỉ của người dùng (đặt hàng, profile, etc.)
  */
 @RestController
 @RequestMapping("/api/v1/locations")
@@ -26,7 +29,10 @@ public class LocationController {
 
     /**
      * GET /api/v1/locations/provinces
-     * Lấy danh sách tất cả tỉnh/thành phố
+     * Lấy danh sách tất cả tỉnh/thành phố Việt Nam
+     * 
+     * Use case: Load dropdown tỉnh/thành phố trong form địa chỉ
+     * Response: 63 tỉnh/thành phố, sắp xếp A-Z
      */
     @GetMapping("/provinces")
     @Operation(
@@ -40,7 +46,10 @@ public class LocationController {
 
     /**
      * GET /api/v1/locations/provinces/{provinceCode}
-     * Lấy chi tiết một tỉnh/thành phố theo mã
+     * Lấy chi tiết một tỉnh/thành phố theo mã province_code
+     * 
+     * @param provinceCode Mã tỉnh (VD: "01" = Hà Nội, "79" = TP.HCM)
+     * Use case: Hiển thị thông tin chi tiết tỉnh đã chọn
      */
     @GetMapping("/provinces/{provinceCode}")
     @Operation(
@@ -56,7 +65,11 @@ public class LocationController {
 
     /**
      * GET /api/v1/locations/wards
-     * Lấy danh sách tất cả phường/xã
+     * Lấy danh sách TẤT CẢ phường/xã trong cả nước
+     * 
+     * ⚠️ WARNING: Response có thể rất lớn (3000+ records)
+     * Use case: Admin import data, analytics
+     * Không nên dùng cho form người dùng (dùng endpoint /provinces/{code}/wards)
      */
     @GetMapping("/wards")
     @Operation(
@@ -71,6 +84,10 @@ public class LocationController {
     /**
      * GET /api/v1/locations/provinces/{provinceCode}/wards
      * Lấy danh sách phường/xã theo tỉnh/thành phố
+     * 
+     * @param provinceCode Mã tỉnh/thành phố
+     * Use case: Load dropdown phường/xã sau khi user chọn tỉnh
+     * Flow: User chọn tỉnh → Call API này → Hiển thị danh sách phường/xã
      */
     @GetMapping("/provinces/{provinceCode}/wards")
     @Operation(
@@ -86,7 +103,10 @@ public class LocationController {
 
     /**
      * GET /api/v1/locations/wards/{wardCode}
-     * Lấy chi tiết một phường/xã theo mã
+     * Lấy chi tiết một phường/xã theo mã ward_code
+     * 
+     * @param wardCode Mã phường/xã (VD: "00070" = Phường Hoàn Kiếm)
+     * Use case: Hiển thị thông tin chi tiết phường/xã đã lưu
      */
     @GetMapping("/wards/{wardCode}")
     @Operation(
@@ -103,6 +123,10 @@ public class LocationController {
     /**
      * GET /api/v1/locations/provinces/{provinceCode}/validate
      * Kiểm tra mã tỉnh/thành phố có hợp lệ không
+     * 
+     * @param provinceCode Mã tỉnh cần kiểm tra
+     * @return true nếu tồn tại, false nếu không
+     * Use case: Validation form địa chỉ, kiểm tra data integrity
      */
     @GetMapping("/provinces/{provinceCode}/validate")
     @Operation(

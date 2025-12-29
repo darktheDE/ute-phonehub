@@ -41,6 +41,21 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
            "AND o.status = 'DELIVERED'")
     Integer countSoldQuantityByProductId(Long productId);
     
+    /**
+     * Batch query: Đếm số lượng đã bán cho nhiều sản phẩm cùng lúc
+     * Tránh N+1 query problem
+     * 
+     * @param productIds Danh sách ID sản phẩm
+     * @return Map<ProductId, SoldCount>
+     */
+    @Query("SELECT oi.product.id as productId, COALESCE(SUM(oi.quantity), 0) as soldCount " +
+           "FROM OrderItem oi " +
+           "JOIN oi.order o " +
+           "WHERE oi.product.id IN :productIds " +
+           "AND o.status = 'DELIVERED' " +
+           "GROUP BY oi.product.id")
+    List<Object[]> countSoldQuantityByProductIds(List<Long> productIds);
+    
     // Tìm tất cả items của 1 order
     List<OrderItem> findByOrderId(Long orderId);
 }

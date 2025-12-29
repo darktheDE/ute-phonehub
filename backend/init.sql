@@ -135,6 +135,13 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+-- Indexes for ProductView optimization
+CREATE INDEX IF NOT EXISTS idx_products_status_deleted ON products(status, is_deleted);
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id) WHERE is_deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_products_brand_id ON products(brand_id) WHERE is_deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
+
 INSERT INTO products (name, description, thumbnail_url, status, is_deleted, category_id, brand_id, created_by, updated_by, deleted_by) VALUES
 ('iPhone 15 Pro Max', 'iPhone 15 Pro Max - Điện thoại cao cấp với chip A17 Pro, camera 48MP, pin 4422mAh', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/iphone-15-pro-max.jpg', TRUE, FALSE, 1, 1, NULL, NULL, NULL),
 ('iPhone 15 Pro', 'iPhone 15 Pro - Flagship với chip A17 Pro, thiết kế titan cao cấp', 'https://cdn.cellphones.com.vn/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/i/p/iphone-15-pro.jpg', TRUE, FALSE, 1, 1, NULL, NULL, NULL),
