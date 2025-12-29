@@ -19,7 +19,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AddressOpenAPIService {
+public class IAddressOpenAPIService {
     
     private static final String BASE_URL = "https://provinces.open-api.vn/api/v2";
     private final RestTemplate restTemplate;

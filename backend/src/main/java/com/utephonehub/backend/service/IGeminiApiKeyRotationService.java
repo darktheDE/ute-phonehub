@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GeminiApiKeyRotationService {
+public class IGeminiApiKeyRotationService {
     
     @Value("${gemini.api.key}")
     private String primaryKey;

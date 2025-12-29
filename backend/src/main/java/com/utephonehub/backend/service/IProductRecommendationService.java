@@ -19,10 +19,10 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ProductRecommendationService {
+public class IProductRecommendationService {
     
     private final RestTemplate restTemplate;
-    private final GeminiEmbeddingService embeddingService;
+    private final IGeminiEmbeddingService embeddingService;
     private final ObjectMapper objectMapper;
     
     @Value("${api.product.base-url:http://localhost:8081/api/v1/products}")
@@ -95,6 +95,126 @@ public class ProductRecommendationService {
         return getProductsFromCache(cacheKey, () -> {
             log.info("📁 Gọi API /category/{} để lấy sản phẩm", categoryId);
             String url = productApiBaseUrl + "/category/" + categoryId;
+            return fetchProductsFromApi(url);
+        });
+    }
+    
+    /**
+     * Lấy sản phẩm liên quan (recommend tương tự)
+     */
+    public List<ChatbotAssistantUserResponse.RecommendedProductDTO> getRelatedProducts(Long productId) {
+        String cacheKey = "related_" + productId;
+        return getProductsFromCache(cacheKey, () -> {
+            log.info("🔗 Gọi API /{}/related để lấy sản phẩm liên quan", productId);
+            String url = productApiBaseUrl + "/" + productId + "/related";
+            return fetchProductsFromApi(url);
+        });
+    }
+    
+    /**
+     * Lọc sản phẩm theo RAM
+     * Chi phí: 0 token (API trực tiếp)
+     */
+    public List<ChatbotAssistantUserResponse.RecommendedProductDTO> filterByRam(String ramValue) {
+        String cacheKey = "filter_ram_" + ramValue;
+        return getProductsFromCache(cacheKey, () -> {
+            log.info("💾 Gọi API /filter/ram?ramOptions={}", ramValue);
+            String url = UriComponentsBuilder.fromHttpUrl(productApiBaseUrl + "/filter/ram")
+                    .queryParam("ramOptions", ramValue)
+                    .queryParam("page", 0)
+                    .queryParam("size", 10)
+                    .build()
+                    .toUriString();
+            return fetchProductsFromApi(url);
+        });
+    }
+    
+    /**
+     * Lọc sản phẩm theo Storage
+     * Chi phí: 0 token (API trực tiếp)
+     */
+    public List<ChatbotAssistantUserResponse.RecommendedProductDTO> filterByStorage(String storageValue) {
+        String cacheKey = "filter_storage_" + storageValue;
+        return getProductsFromCache(cacheKey, () -> {
+            log.info("💿 Gọi API /filter/storage?storageOptions={}", storageValue);
+            String url = UriComponentsBuilder.fromHttpUrl(productApiBaseUrl + "/filter/storage")
+                    .queryParam("storageOptions", storageValue)
+                    .queryParam("page", 0)
+                    .queryParam("size", 10)
+                    .build()
+                    .toUriString();
+            return fetchProductsFromApi(url);
+        });
+    }
+    
+    /**
+     * Lọc sản phẩm theo Pin (Battery)
+     * Chi phí: 0 token (API trực tiếp)
+     */
+    public List<ChatbotAssistantUserResponse.RecommendedProductDTO> filterByBattery(String batteryRange) {
+        String cacheKey = "filter_battery_" + batteryRange;
+        return getProductsFromCache(cacheKey, () -> {
+            log.info("🔋 Gọi API /filter/battery?minBattery={}", batteryRange);
+            String url = UriComponentsBuilder.fromHttpUrl(productApiBaseUrl + "/filter/battery")
+                    .queryParam("minBattery", batteryRange)
+                    .queryParam("page", 0)
+                    .queryParam("size", 10)
+                    .build()
+                    .toUriString();
+            return fetchProductsFromApi(url);
+        });
+    }
+    
+    /**
+     * Lọc sản phẩm theo Kích thước Màn hình
+     * Chi phí: 0 token (API trực tiếp)
+     */
+    public List<ChatbotAssistantUserResponse.RecommendedProductDTO> filterByScreen(String screenSize) {
+        String cacheKey = "filter_screen_" + screenSize;
+        return getProductsFromCache(cacheKey, () -> {
+            log.info("📱 Gọi API /filter/screen?screenSizeOptions={}", screenSize);
+            String url = UriComponentsBuilder.fromHttpUrl(productApiBaseUrl + "/filter/screen")
+                    .queryParam("screenSizeOptions", screenSize)
+                    .queryParam("page", 0)
+                    .queryParam("size", 10)
+                    .build()
+                    .toUriString();
+            return fetchProductsFromApi(url);
+        });
+    }
+    
+    /**
+     * Lọc sản phẩm theo Hệ Điều Hành
+     * Chi phí: 0 token (API trực tiếp)
+     */
+    public List<ChatbotAssistantUserResponse.RecommendedProductDTO> filterByOS(String osValue) {
+        String cacheKey = "filter_os_" + osValue;
+        return getProductsFromCache(cacheKey, () -> {
+            log.info("🖥️ Gọi API /filter/os?osOptions={}", osValue);
+            String url = UriComponentsBuilder.fromHttpUrl(productApiBaseUrl + "/filter/os")
+                    .queryParam("osOptions", osValue)
+                    .queryParam("page", 0)
+                    .queryParam("size", 10)
+                    .build()
+                    .toUriString();
+            return fetchProductsFromApi(url);
+        });
+    }
+    
+    /**
+     * Lọc sản phẩm theo Đánh Giá (Rating)
+     * Chi phí: 0 token (API trực tiếp)
+     */
+    public List<ChatbotAssistantUserResponse.RecommendedProductDTO> filterByRating(Double minRating) {
+        String cacheKey = "filter_rating_" + minRating;
+        return getProductsFromCache(cacheKey, () -> {
+            log.info("⭐ Gọi API /filter/rating?minRating={}", minRating);
+            String url = UriComponentsBuilder.fromHttpUrl(productApiBaseUrl + "/filter/rating")
+                    .queryParam("minRating", minRating)
+                    .queryParam("page", 0)
+                    .queryParam("size", 10)
+                    .build()
+                    .toUriString();
             return fetchProductsFromApi(url);
         });
     }

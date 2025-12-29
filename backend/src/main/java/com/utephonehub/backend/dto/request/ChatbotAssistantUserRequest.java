@@ -20,6 +20,11 @@ public class ChatbotAssistantUserRequest {
     private String message;
     
     /**
+     * ID sản phẩm (tùy chọn, để lấy sản phẩm liên quan)
+     */
+    private Long productId;
+    
+    /**
      * ID danh mục (tùy chọn, để lọc theo danh mục)
      */
     private Long categoryId;

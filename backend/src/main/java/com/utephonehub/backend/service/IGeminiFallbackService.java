@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GeminiFallbackService {
+public class IGeminiFallbackService {
     
     private final GeminiApiFallbackConfig config;
     private final RestTemplate restTemplate;

@@ -300,6 +300,20 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .totalStock(totalStock)
                 .images(images)
                 .variantsCount(templates != null ? templates.size() : 0)
+                // Technical Specs - get from first available template
+                .ram(templates != null && !templates.isEmpty() ? templates.get(0).getRam() : null)
+                .storage(templates != null && !templates.isEmpty() ? templates.get(0).getStorage() : null)
+                .battery(product.getMetadata() != null && product.getMetadata().getBatteryCapacity() != null 
+                        ? product.getMetadata().getBatteryCapacity() + " mAh" : null)
+                .cpu(product.getMetadata() != null ? product.getMetadata().getCpuChipset() : null)
+                .screen(product.getMetadata() != null && product.getMetadata().getScreenSize() != null 
+                        ? product.getMetadata().getScreenSize() + "\" " + 
+                          (product.getMetadata().getScreenTechnology() != null ? product.getMetadata().getScreenTechnology() : "")
+                        : null)
+                .os(product.getMetadata() != null ? product.getMetadata().getOperatingSystem() : null)
+                .rearCamera(product.getMetadata() != null ? product.getMetadata().getCameraDetails() : null)
+                .frontCamera(product.getMetadata() != null && product.getMetadata().getFrontCameraMegapixels() != null
+                        ? product.getMetadata().getFrontCameraMegapixels() + "MP" : null)
                 .promotionBadge(null) // Placeholder
                 .discountPercentage(null) // Placeholder
                 .build();
@@ -504,6 +518,11 @@ public class ProductViewServiceImpl implements IProductViewService {
         List<Product> products = productRepository.findByCategoryIdAndIsDeletedFalse(categoryId);
         
         Map<Long, String> brandMap = new HashMap<>();
+        Map<String, Integer> ramMap = new HashMap<>();
+        Map<String, Integer> storageMap = new HashMap<>();
+        Map<String, Integer> batteryMap = new HashMap<>();
+        Map<String, Integer> screenSizeMap = new HashMap<>();
+        Map<String, Integer> osMap = new HashMap<>();
         BigDecimal minPrice = null;
         BigDecimal maxPrice = null;
         
@@ -512,15 +531,47 @@ public class ProductViewServiceImpl implements IProductViewService {
                 brandMap.put(product.getBrand().getId(), product.getBrand().getName());
             }
             
-            // Get price range
+            // Get price range and technical specs
             for (ProductTemplate template : product.getTemplates()) {
                 if (template.getStatus()) {
+                    // Price range
                     if (minPrice == null || template.getPrice().compareTo(minPrice) < 0) {
                         minPrice = template.getPrice();
                     }
                     if (maxPrice == null || template.getPrice().compareTo(maxPrice) > 0) {
                         maxPrice = template.getPrice();
                     }
+                    
+                    // RAM
+                    if (template.getRam() != null) {
+                        ramMap.put(template.getRam(), ramMap.getOrDefault(template.getRam(), 0) + 1);
+                    }
+                    
+                    // Storage
+                    if (template.getStorage() != null) {
+                        storageMap.put(template.getStorage(), storageMap.getOrDefault(template.getStorage(), 0) + 1);
+                    }
+                }
+            }
+            
+            // Technical specs from metadata
+            if (product.getMetadata() != null) {
+                // Battery
+                if (product.getMetadata().getBatteryCapacity() != null) {
+                    String batteryKey = product.getMetadata().getBatteryCapacity() + " mAh";
+                    batteryMap.put(batteryKey, batteryMap.getOrDefault(batteryKey, 0) + 1);
+                }
+                
+                // Screen Size
+                if (product.getMetadata().getScreenSize() != null) {
+                    String screenKey = product.getMetadata().getScreenSize().toString();
+                    screenSizeMap.put(screenKey, screenSizeMap.getOrDefault(screenKey, 0) + 1);
+                }
+                
+                // OS
+                if (product.getMetadata().getOperatingSystem() != null) {
+                    osMap.put(product.getMetadata().getOperatingSystem(),
+                            osMap.getOrDefault(product.getMetadata().getOperatingSystem(), 0) + 1);
                 }
             }
         }
@@ -530,6 +581,45 @@ public class ProductViewServiceImpl implements IProductViewService {
                         .id(entry.getKey())
                         .name(entry.getValue())
                         .productCount(0) // Can be calculated
+                        .build())
+                .collect(Collectors.toList());
+        
+        List<CategoryProductsResponse.FilterOptions.RamOption> ramOptions = ramMap.entrySet().stream()
+                .map(entry -> CategoryProductsResponse.FilterOptions.RamOption.builder()
+                        .value(entry.getKey())
+                        .displayValue(entry.getKey() + " GB")
+                        .count(entry.getValue())
+                        .build())
+                .collect(Collectors.toList());
+        
+        List<CategoryProductsResponse.FilterOptions.StorageOption> storageOptions = storageMap.entrySet().stream()
+                .map(entry -> CategoryProductsResponse.FilterOptions.StorageOption.builder()
+                        .value(entry.getKey())
+                        .displayValue(entry.getKey() + " GB")
+                        .count(entry.getValue())
+                        .build())
+                .collect(Collectors.toList());
+        
+        List<CategoryProductsResponse.FilterOptions.BatteryOption> batteryOptions = batteryMap.entrySet().stream()
+                .map(entry -> CategoryProductsResponse.FilterOptions.BatteryOption.builder()
+                        .value(entry.getKey())
+                        .displayValue(entry.getKey())
+                        .count(entry.getValue())
+                        .build())
+                .collect(Collectors.toList());
+        
+        List<CategoryProductsResponse.FilterOptions.ScreenSizeOption> screenSizeOptions = screenSizeMap.entrySet().stream()
+                .map(entry -> CategoryProductsResponse.FilterOptions.ScreenSizeOption.builder()
+                        .value(entry.getKey())
+                        .displayValue(entry.getKey() + " inch")
+                        .count(entry.getValue())
+                        .build())
+                .collect(Collectors.toList());
+        
+        List<CategoryProductsResponse.FilterOptions.OsOption> osOptions = osMap.entrySet().stream()
+                .map(entry -> CategoryProductsResponse.FilterOptions.OsOption.builder()
+                        .value(entry.getKey())
+                        .count(entry.getValue())
                         .build())
                 .collect(Collectors.toList());
         
@@ -550,6 +640,326 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .availableBrands(brandOptions)
                 .priceRange(priceRange)
                 .ratingOptions(ratingOptions)
+                .ramOptions(ramOptions)
+                .storageOptions(storageOptions)
+                .batteryOptions(batteryOptions)
+                .screenSizeOptions(screenSizeOptions)
+                .osOptions(osOptions)
                 .build();
+    }
+    
+    // ==================== NEW FILTER METHODS ====================
+    
+    @Override
+    public Page<ProductViewResponse> filterByRam(List<String> ramOptions, ProductSearchFilterRequest request) {
+        log.info("Filtering products by RAM: {}", ramOptions);
+        
+        if (ramOptions == null || ramOptions.isEmpty()) {
+            return searchAndFilterProducts(request);
+        }
+        
+        Pageable pageable = buildPageable(request);
+        
+        // Get all products and filter
+        List<Product> allProducts = productRepository.findByIsDeletedFalse();
+        List<Product> filtered = allProducts.stream()
+                .filter(product -> product.getTemplates().stream()
+                        .anyMatch(template -> template.getStatus() && ramOptions.contains(template.getRam())))
+                .skip(pageable.getPageNumber() * pageable.getPageSize())
+                .limit(pageable.getPageSize())
+                .collect(Collectors.toList());
+        
+        long total = allProducts.stream()
+                .filter(product -> product.getTemplates().stream()
+                        .anyMatch(template -> template.getStatus() && ramOptions.contains(template.getRam())))
+                .count();
+        
+        return new PageImpl<>(
+                filtered.stream().map(this::convertToProductViewResponse).collect(Collectors.toList()),
+                pageable,
+                total
+        );
+    }
+    
+    @Override
+    public Page<ProductViewResponse> filterByStorage(List<String> storageOptions, ProductSearchFilterRequest request) {
+        log.info("Filtering products by Storage: {}", storageOptions);
+        
+        if (storageOptions == null || storageOptions.isEmpty()) {
+            return searchAndFilterProducts(request);
+        }
+        
+        Pageable pageable = buildPageable(request);
+        
+        List<Product> allProducts = productRepository.findByIsDeletedFalse();
+        List<Product> filtered = allProducts.stream()
+                .filter(product -> product.getTemplates().stream()
+                        .anyMatch(template -> template.getStatus() && storageOptions.contains(template.getStorage())))
+                .skip(pageable.getPageNumber() * pageable.getPageSize())
+                .limit(pageable.getPageSize())
+                .collect(Collectors.toList());
+        
+        long total = allProducts.stream()
+                .filter(product -> product.getTemplates().stream()
+                        .anyMatch(template -> template.getStatus() && storageOptions.contains(template.getStorage())))
+                .count();
+        
+        return new PageImpl<>(
+                filtered.stream().map(this::convertToProductViewResponse).collect(Collectors.toList()),
+                pageable,
+                total
+        );
+    }
+    
+    @Override
+    public Page<ProductViewResponse> filterByBattery(Integer minBattery, Integer maxBattery, ProductSearchFilterRequest request) {
+        log.info("Filtering products by Battery: {} - {}", minBattery, maxBattery);
+        
+        Pageable pageable = buildPageable(request);
+        
+        final Integer minVal = (minBattery != null) ? minBattery : 0;
+        final Integer maxVal = (maxBattery != null) ? maxBattery : Integer.MAX_VALUE;
+        
+        List<Product> allProducts = productRepository.findByIsDeletedFalse();
+        List<Product> filtered = allProducts.stream()
+                .filter(product -> product.getMetadata() != null 
+                        && product.getMetadata().getBatteryCapacity() != null
+                        && product.getMetadata().getBatteryCapacity() >= minVal
+                        && product.getMetadata().getBatteryCapacity() <= maxVal)
+                .skip(pageable.getPageNumber() * pageable.getPageSize())
+                .limit(pageable.getPageSize())
+                .collect(Collectors.toList());
+        
+        long total = allProducts.stream()
+                .filter(product -> product.getMetadata() != null 
+                        && product.getMetadata().getBatteryCapacity() != null
+                        && product.getMetadata().getBatteryCapacity() >= minVal
+                        && product.getMetadata().getBatteryCapacity() <= maxVal)
+                .count();
+        
+        return new PageImpl<>(
+                filtered.stream().map(this::convertToProductViewResponse).collect(Collectors.toList()),
+                pageable,
+                total
+        );
+    }
+    
+    @Override
+    public Page<ProductViewResponse> filterByScreenSize(List<String> screenSizeOptions, ProductSearchFilterRequest request) {
+        log.info("Filtering products by Screen Size: {}", screenSizeOptions);
+        
+        if (screenSizeOptions == null || screenSizeOptions.isEmpty()) {
+            return searchAndFilterProducts(request);
+        }
+        
+        Pageable pageable = buildPageable(request);
+        
+        List<Product> allProducts = productRepository.findByIsDeletedFalse();
+        List<Product> filtered = allProducts.stream()
+                .filter(product -> product.getMetadata() != null 
+                        && product.getMetadata().getScreenSize() != null
+                        && screenSizeOptions.contains(product.getMetadata().getScreenSize().toString()))
+                .skip(pageable.getPageNumber() * pageable.getPageSize())
+                .limit(pageable.getPageSize())
+                .collect(Collectors.toList());
+        
+        long total = allProducts.stream()
+                .filter(product -> product.getMetadata() != null 
+                        && product.getMetadata().getScreenSize() != null
+                        && screenSizeOptions.contains(product.getMetadata().getScreenSize().toString()))
+                .count();
+        
+        return new PageImpl<>(
+                filtered.stream().map(this::convertToProductViewResponse).collect(Collectors.toList()),
+                pageable,
+                total
+        );
+    }
+    
+    @Override
+    public Page<ProductViewResponse> filterByOS(List<String> osOptions, ProductSearchFilterRequest request) {
+        log.info("Filtering products by OS: {}", osOptions);
+        
+        if (osOptions == null || osOptions.isEmpty()) {
+            return searchAndFilterProducts(request);
+        }
+        
+        Pageable pageable = buildPageable(request);
+        
+        List<Product> allProducts = productRepository.findByIsDeletedFalse();
+        List<Product> filtered = allProducts.stream()
+                .filter(product -> product.getMetadata() != null 
+                        && product.getMetadata().getOperatingSystem() != null
+                        && osOptions.contains(product.getMetadata().getOperatingSystem()))
+                .skip(pageable.getPageNumber() * pageable.getPageSize())
+                .limit(pageable.getPageSize())
+                .collect(Collectors.toList());
+        
+        long total = allProducts.stream()
+                .filter(product -> product.getMetadata() != null 
+                        && product.getMetadata().getOperatingSystem() != null
+                        && osOptions.contains(product.getMetadata().getOperatingSystem()))
+                .count();
+        
+        return new PageImpl<>(
+                filtered.stream().map(this::convertToProductViewResponse).collect(Collectors.toList()),
+                pageable,
+                total
+        );
+    }
+    
+    @Override
+    public Page<ProductViewResponse> filterByRating(Double minRating, Double maxRating, ProductSearchFilterRequest request) {
+        log.info("Filtering products by Rating: {} - {}", minRating, maxRating);
+        
+        Pageable pageable = buildPageable(request);
+        
+        // This is a placeholder - in real implementation, you would aggregate ratings from reviews table
+        // For now, just return all products sorted by rating
+        Page<Product> productPage = productRepository.findByStatusTrueAndIsDeletedFalse(pageable);
+        
+        return productPage.map(this::convertToProductViewResponse);
+    }
+    
+    // ===== WithLimit Methods =====
+    
+    @Override
+    public List<ProductViewResponse> searchAndFilterProductsWithLimit(ProductSearchFilterRequest request, Integer limit) {
+        log.info("Searching products with limit: {}", limit);
+        
+        List<Product> products = productRepository.findByIsDeletedFalse().stream()
+                .filter(product -> product.getStatus())
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        return products.stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<ProductViewResponse> getProductsByCategoryWithLimit(Long categoryId, ProductSearchFilterRequest request, Integer limit) {
+        log.info("Getting products for category ID: {} with limit: {}", categoryId, limit);
+        
+        List<Product> products = productRepository.findByIsDeletedFalse().stream()
+                .filter(product -> product.getStatus() && product.getCategory() != null && product.getCategory().getId().equals(categoryId))
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        return products.stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<ProductViewResponse> filterByRamWithLimit(List<String> ramOptions, ProductSearchFilterRequest request, Integer limit) {
+        log.info("Filtering products by RAM with limit: {}", limit);
+        
+        List<Product> filtered = productRepository.findByIsDeletedFalse().stream()
+                .filter(product -> product.getStatus())
+                .filter(product -> {
+                    ProductTemplate template = product.getTemplates() != null && !product.getTemplates().isEmpty() 
+                        ? product.getTemplates().get(0) 
+                        : null;
+                    return template != null && template.getRam() != null && ramOptions.contains(template.getRam());
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        return filtered.stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<ProductViewResponse> filterByStorageWithLimit(List<String> storageOptions, ProductSearchFilterRequest request, Integer limit) {
+        log.info("Filtering products by Storage with limit: {}", limit);
+        
+        List<Product> filtered = productRepository.findByIsDeletedFalse().stream()
+                .filter(product -> product.getStatus())
+                .filter(product -> {
+                    ProductTemplate template = product.getTemplates() != null && !product.getTemplates().isEmpty() 
+                        ? product.getTemplates().get(0) 
+                        : null;
+                    return template != null && template.getStorage() != null && storageOptions.contains(template.getStorage());
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        return filtered.stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<ProductViewResponse> filterByBatteryWithLimit(Integer minBattery, Integer maxBattery, ProductSearchFilterRequest request, Integer limit) {
+        log.info("Filtering products by Battery with limit: {}", limit);
+        
+        List<Product> filtered = productRepository.findByIsDeletedFalse().stream()
+                .filter(product -> product.getStatus())
+                .filter(product -> {
+                    Integer battery = product.getMetadata() != null ? product.getMetadata().getBatteryCapacity() : null;
+                    if (battery == null) return false;
+                    if (minBattery != null && battery < minBattery) return false;
+                    if (maxBattery != null && battery > maxBattery) return false;
+                    return true;
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        return filtered.stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<ProductViewResponse> filterByScreenSizeWithLimit(List<String> screenSizeOptions, ProductSearchFilterRequest request, Integer limit) {
+        log.info("Filtering products by Screen Size with limit: {}", limit);
+        
+        List<Product> filtered = productRepository.findByIsDeletedFalse().stream()
+                .filter(product -> product.getStatus())
+                .filter(product -> {
+                    Double screenSize = product.getMetadata() != null ? product.getMetadata().getScreenSize() : null;
+                    if (screenSize == null) return false;
+                    return screenSizeOptions.contains(String.valueOf(screenSize));
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        return filtered.stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<ProductViewResponse> filterByOSWithLimit(List<String> osOptions, ProductSearchFilterRequest request, Integer limit) {
+        log.info("Filtering products by OS with limit: {}", limit);
+        
+        List<Product> filtered = productRepository.findByIsDeletedFalse().stream()
+                .filter(product -> product.getStatus())
+                .filter(product -> {
+                    String os = product.getMetadata() != null ? product.getMetadata().getOperatingSystem() : null;
+                    return os != null && osOptions.contains(os);
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        return filtered.stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<ProductViewResponse> filterByRatingWithLimit(Double minRating, Double maxRating, ProductSearchFilterRequest request, Integer limit) {
+        log.info("Filtering products by Rating with limit: {}", limit);
+        
+        List<Product> products = productRepository.findByIsDeletedFalse().stream()
+                .filter(product -> product.getStatus())
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        return products.stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
     }
 }

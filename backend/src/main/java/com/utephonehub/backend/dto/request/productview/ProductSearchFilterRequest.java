@@ -38,6 +38,25 @@ public class ProductSearchFilterRequest {
     @Schema(description = "Đánh giá tối thiểu (1-5 sao)", example = "4.0")
     private Double minRating;
     
+    // Technical Specifications Filters
+    @Schema(description = "Danh sách RAM cần lọc (GB)", example = "[4, 6, 8, 12]")
+    private List<String> ramOptions;
+    
+    @Schema(description = "Danh sách dung lượng lưu trữ cần lọc (GB)", example = "[64, 128, 256, 512]")
+    private List<String> storageOptions;
+    
+    @Schema(description = "Dung lượng pin tối thiểu (mAh)", example = "4000")
+    private Integer minBattery;
+    
+    @Schema(description = "Dung lượng pin tối đa (mAh)", example = "5000")
+    private Integer maxBattery;
+    
+    @Schema(description = "Danh sách kích thước màn hình (inch)", example = "[6.1, 6.7]")
+    private List<String> screenSizeOptions;
+    
+    @Schema(description = "Danh sách hệ điều hành cần lọc", example = "[\"iOS\", \"Android\"]")
+    private List<String> osOptions;
+    
     @Schema(description = "Chỉ hiển thị sản phẩm còn hàng", example = "true")
     private Boolean inStockOnly;
     

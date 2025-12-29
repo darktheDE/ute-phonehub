@@ -52,6 +52,11 @@ public class CategoryProductsResponse {
         private List<BrandOption> availableBrands;
         private PriceRange priceRange;
         private List<RatingOption> ratingOptions;
+        private List<StorageOption> storageOptions;
+        private List<RamOption> ramOptions;
+        private List<BatteryOption> batteryOptions;
+        private List<ScreenSizeOption> screenSizeOptions;
+        private List<OsOption> osOptions;
         
         @Data
         @Builder
@@ -78,6 +83,55 @@ public class CategoryProductsResponse {
         @AllArgsConstructor
         public static class RatingOption {
             private Integer stars;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class StorageOption {
+            private String value;
+            private String displayValue;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class RamOption {
+            private String value;
+            private String displayValue;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class BatteryOption {
+            private String value;
+            private String displayValue;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class ScreenSizeOption {
+            private String value;
+            private String displayValue;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class OsOption {
+            private String value;
             private Integer count;
         }
     }
