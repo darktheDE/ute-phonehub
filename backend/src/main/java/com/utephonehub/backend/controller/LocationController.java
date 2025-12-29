@@ -1,0 +1,134 @@
+package com.utephonehub.backend.controller;
+
+import com.utephonehub.backend.dto.response.location.ProvinceResponse;
+import com.utephonehub.backend.dto.response.location.WardResponse;
+import com.utephonehub.backend.service.ILocationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * REST Controller cho Location API
+ * Quản lý địa chỉ hành chính Việt Nam (Tỉnh/Thành phố, Phường/Xã)
+ */
+@RestController
+@RequestMapping("/api/v1/locations")
+@RequiredArgsConstructor
+@Tag(name = "Location", description = "API quản lý địa chỉ hành chính Việt Nam")
+public class LocationController {
+
+    private final ILocationService locationService;
+
+    /**
+     * GET /api/v1/locations/provinces
+     * Lấy danh sách tất cả tỉnh/thành phố
+     */
+    @GetMapping("/provinces")
+    @Operation(
+            summary = "Lấy danh sách tỉnh/thành phố",
+            description = "Trả về danh sách tất cả tỉnh/thành phố Việt Nam, sắp xếp theo tên"
+    )
+    public ResponseEntity<List<ProvinceResponse>> getAllProvinces() {
+        List<ProvinceResponse> provinces = locationService.getAllProvinces();
+        return ResponseEntity.ok(provinces);
+    }
+
+    /**
+     * GET /api/v1/locations/provinces/{provinceCode}
+     * Lấy chi tiết một tỉnh/thành phố theo mã
+     */
+    @GetMapping("/provinces/{provinceCode}")
+    @Operation(
+            summary = "Lấy chi tiết tỉnh/thành phố",
+            description = "Trả về thông tin chi tiết của một tỉnh/thành phố theo mã province_code"
+    )
+    public ResponseEntity<ProvinceResponse> getProvinceByCode(
+            @Parameter(description = "Mã tỉnh/thành phố (VD: 01, 79, 48)")
+            @PathVariable String provinceCode) {
+        ProvinceResponse province = locationService.getProvinceByCode(provinceCode);
+        return ResponseEntity.ok(province);
+    }
+
+    /**
+     * GET /api/v1/locations/wards
+     * Lấy danh sách tất cả phường/xã
+     */
+    @GetMapping("/wards")
+    @Operation(
+            summary = "Lấy danh sách tất cả phường/xã",
+            description = "Trả về danh sách tất cả phường/xã Việt Nam, sắp xếp theo tên"
+    )
+    public ResponseEntity<List<WardResponse>> getAllWards() {
+        List<WardResponse> wards = locationService.getAllWards();
+        return ResponseEntity.ok(wards);
+    }
+
+    /**
+     * GET /api/v1/locations/provinces/{provinceCode}/wards
+     * Lấy danh sách phường/xã theo tỉnh/thành phố
+     */
+    @GetMapping("/provinces/{provinceCode}/wards")
+    @Operation(
+            summary = "Lấy danh sách phường/xã theo tỉnh",
+            description = "Trả về danh sách tất cả phường/xã thuộc một tỉnh/thành phố, sắp xếp theo tên"
+    )
+    public ResponseEntity<List<WardResponse>> getWardsByProvinceCode(
+            @Parameter(description = "Mã tỉnh/thành phố (VD: 01, 79, 48)")
+            @PathVariable String provinceCode) {
+        List<WardResponse> wards = locationService.getWardsByProvinceCode(provinceCode);
+        return ResponseEntity.ok(wards);
+    }
+
+    /**
+     * GET /api/v1/locations/wards/{wardCode}
+     * Lấy chi tiết một phường/xã theo mã
+     */
+    @GetMapping("/wards/{wardCode}")
+    @Operation(
+            summary = "Lấy chi tiết phường/xã",
+            description = "Trả về thông tin chi tiết của một phường/xã theo mã ward_code"
+    )
+    public ResponseEntity<WardResponse> getWardByCode(
+            @Parameter(description = "Mã phường/xã (VD: 00070, 00073)")
+            @PathVariable String wardCode) {
+        WardResponse ward = locationService.getWardByCode(wardCode);
+        return ResponseEntity.ok(ward);
+    }
+
+    /**
+     * GET /api/v1/locations/provinces/{provinceCode}/validate
+     * Kiểm tra mã tỉnh/thành phố có hợp lệ không
+     */
+    @GetMapping("/provinces/{provinceCode}/validate")
+    @Operation(
+            summary = "Kiểm tra mã tỉnh hợp lệ",
+            description = "Kiểm tra xem mã tỉnh/thành phố có tồn tại trong hệ thống hay không"
+    )
+    public ResponseEntity<Boolean> validateProvinceCode(
+            @Parameter(description = "Mã tỉnh/thành phố cần kiểm tra")
+            @PathVariable String provinceCode) {
+        boolean isValid = locationService.isValidProvinceCode(provinceCode);
+        return ResponseEntity.ok(isValid);
+    }
+
+    /**
+     * GET /api/v1/locations/wards/{wardCode}/validate
+     * Kiểm tra mã phường/xã có hợp lệ không
+     */
+    @GetMapping("/wards/{wardCode}/validate")
+    @Operation(
+            summary = "Kiểm tra mã phường/xã hợp lệ",
+            description = "Kiểm tra xem mã phường/xã có tồn tại trong hệ thống hay không"
+    )
+    public ResponseEntity<Boolean> validateWardCode(
+            @Parameter(description = "Mã phường/xã cần kiểm tra")
+            @PathVariable String wardCode) {
+        boolean isValid = locationService.isValidWardCode(wardCode);
+        return ResponseEntity.ok(isValid);
+    }
+}

@@ -637,36 +637,38 @@ INSERT INTO messages (conversation_id, sender_type, content, metadata) VALUES
 -- END OF INITIALIZATION SCRIPT
 -- ============================================
 --- BẢNG PROVINCES ---
-DROP TABLE IF EXISTS provinces;
-CREATE TABLE provinces (
-  id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-  province_code varchar(3) NOT NULL,
-  name varchar(255) NOT NULL,
-  place_type varchar(255) NOT NULL,
-  country varchar(10) NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY provinces_province_code_unique (province_code)
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
-DROP TABLE IF EXISTS `wards`;
+-- ============================================
+-- BẢNG PROVINCES - Tỉnh/Thành phố
+-- ============================================
+DROP TABLE IF EXISTS wards CASCADE;
+DROP TABLE IF EXISTS provinces CASCADE;
 
-CREATE TABLE `wards` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `ward_code` varchar(6) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `province_code` varchar(2) NOT NULL,
-  PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE KEY `wards_ward_code_unique` (`ward_code`) USING BTREE,
-  KEY `wards_province_code_index` (`province_code`) USING BTREE,
-  CONSTRAINT `wards_province_code_foreign`
-    FOREIGN KEY (`province_code`)
-    REFERENCES `provinces` (`province_code`)
+CREATE TABLE provinces (
+  id BIGSERIAL PRIMARY KEY,
+  province_code VARCHAR(3) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  place_type VARCHAR(255) NOT NULL,
+  country VARCHAR(10) NOT NULL
+);
+
+CREATE INDEX idx_provinces_province_code ON provinces(province_code);
+
+-- ============================================
+-- BẢNG WARDS - Phường/Xã
+-- ============================================
+CREATE TABLE wards (
+  id BIGSERIAL PRIMARY KEY,
+  ward_code VARCHAR(6) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  province_code VARCHAR(3) NOT NULL,
+  CONSTRAINT wards_province_code_foreign
+    FOREIGN KEY (province_code)
+    REFERENCES provinces (province_code)
     ON DELETE CASCADE
-) ENGINE=InnoDB
-  AUTO_INCREMENT=3322
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
+);
+
+CREATE INDEX idx_wards_ward_code ON wards(ward_code);
+CREATE INDEX idx_wards_province_code ON wards(province_code);
 -- đổ dữ liệu cho bảng provinces
 INSERT INTO provinces (id, province_code, name, place_type, country) VALUES
 (1, '01', 'Thành phố Hà Nội', 'Thành phố Trung Ương', 'VN'),
@@ -705,8 +707,7 @@ INSERT INTO provinces (id, province_code, name, place_type, country) VALUES
 (34, '96', 'Cà Mau', 'Tỉnh', 'VN');
 
 
-
-INSERT INTO `wards` (`id`, `ward_code`, `name`, `province_code`) VALUES
+INSERT INTO wards (id, ward_code, name, province_code) VALUES
 (1, '00070', 'Phường Hoàn Kiếm', '01'),
 (2, '00073', 'Phường Cửa Nam', '01'),
 (3, '00004', 'Phường Ba Đình', '01'),
@@ -3058,12 +3059,12 @@ INSERT INTO `wards` (`id`, `ward_code`, `name`, `province_code`) VALUES
 (2349, '24823', 'Phường 1 Bảo Lộc', '68'),
 (2350, '24820', 'Phường 2 Bảo Lộc', '68'),
 (2351, '24841', 'Phường 3 Bảo Lộc', '68'),
-(2352, '24829', 'Phường B\'Lao', '68'),
+(2352, '24829', 'Phường B''Lao', '68'),
 (2353, '24848', 'Xã Lạc Dương', '68'),
 (2354, '24931', 'Xã Đơn Dương', '68'),
 (2355, '24943', 'Xã Ka Đô', '68'),
 (2356, '24955', 'Xã Quảng Lập', '68'),
-(2357, '24934', 'Xã D\'Ran', '68'),
+(2357, '24934', 'Xã D''Ran', '68'),
 (2358, '24967', 'Xã Hiệp Thạnh', '68'),
 (2359, '24958', 'Xã Đức Trọng', '68'),
 (2360, '24976', 'Xã Tân Hội', '68'),
@@ -4029,3 +4030,6 @@ INSERT INTO `wards` (`id`, `ward_code`, `name`, `province_code`) VALUES
 (3320, '31906', 'Xã Hưng Hội', '96'),
 (3321, '31894', 'Xã Châu Thới', '96');
 
+-- Reset sequences for PostgreSQL
+SELECT setval('provinces_id_seq', (SELECT MAX(id) FROM provinces));
+SELECT setval('wards_id_seq', (SELECT MAX(id) FROM wards));
