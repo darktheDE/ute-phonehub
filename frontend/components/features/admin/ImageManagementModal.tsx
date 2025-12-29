@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { X, Trash2, Loader2, Star, Upload, Plus, Image as ImageIcon } from 'lucide-react';
 import { Product, ProductImage } from '@/types/product';
 import { productAPI } from '@/lib/api';
+import { toast } from 'sonner';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 interface ImageManagementModalProps {
   product: Product;
@@ -18,6 +20,14 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: '', description: '', onConfirm: () => {} });
   
   // Form state for adding new image
   const [showAddForm, setShowAddForm] = useState(false);
@@ -49,35 +59,44 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
   }, [product]);
 
   const handleDeleteImage = async (imageId: number) => {
-    if (!confirm('Bạn có chắc muốn xóa hình ảnh này?')) return;
-
-    try {
-      setDeleting(imageId);
-      console.log('🗑️ Deleting image:', imageId, 'from product:', product.id);
-      
-      const response = await productAPI.deleteImage(product.id, imageId);
-      console.log('📥 Delete response:', response);
-      
-      if (response.success) {
-        alert('✅ Xóa hình ảnh thành công!');
-        // Remove from local state
-        setImages(images.filter(img => img.id !== imageId));
-      } else {
-        alert('❌ Lỗi: ' + (response.message || 'Không thể xóa hình ảnh'));
-      }
-    } catch (error) {
-      console.error('❌ Error deleting image:', error);
-      alert('Lỗi khi xóa hình ảnh: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    } finally {
-      setDeleting(null);
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Xóa hình ảnh',
+      description: 'Bạn có chắc muốn xóa hình ảnh này?',
+      onConfirm: async () => {
+        try {
+          setDeleting(imageId);
+          console.log('🗑️ Deleting image:', imageId, 'from product:', product.id);
+          
+          const response = await productAPI.deleteImage(product.id, imageId);
+          console.log('📥 Delete response:', response);
+          
+          if (response.success) {
+            toast.success('Xóa hình ảnh thành công');
+            setImages(images.filter(img => img.id !== imageId));
+          } else {
+            toast.error('Không thể xóa hình ảnh', {
+              description: response.message || 'Vui lòng thử lại',
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error deleting image:', error);
+          toast.error('Lỗi khi xóa hình ảnh', {
+            description: error instanceof Error ? error.message : 'Vui lòng thử lại',
+          });
+        } finally {
+          setDeleting(null);
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   const handleAddImage = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newImageUrl.trim()) {
-      alert('Vui lòng nhập URL hình ảnh');
+      toast.error('Vui lòng nhập URL hình ảnh');
       return;
     }
 
@@ -123,16 +142,22 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
       console.log('📥 Response data:', response.data);
       
       if (response.success) {
-        alert('✅ Thêm hình ảnh thành công! Modal sẽ đóng để tải lại dữ liệu.');
+        toast.success('Thêm hình ảnh thành công!', {
+          description: 'Modal sẽ đóng để tải lại dữ liệu.',
+        });
         // Backend không trả data về, cần reload để lấy data mới
         onClose(); // Đóng modal → ProductImagesTable sẽ reload
       } else {
         console.error('❌ Upload failed:', response.message);
-        alert('❌ Lỗi: ' + (response.message || 'Không thể thêm hình ảnh'));
+        toast.error('Không thể thêm hình ảnh', {
+          description: response.message || 'Vui lòng thử lại',
+        });
       }
     } catch (error) {
       console.error('❌ Error adding image:', error);
-      alert('Lỗi khi thêm hình ảnh: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Lỗi khi thêm hình ảnh', {
+        description: error instanceof Error ? error.message : 'Vui lòng thử lại',
+      });
     } finally {
       setUploading(false);
     }
@@ -373,6 +398,17 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
+        intent="danger"
+        confirmLabel="Xác nhận"
+        cancelLabel="Hủy"
+      />
     </div>
   );
 }

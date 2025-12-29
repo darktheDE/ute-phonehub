@@ -10,6 +10,7 @@ import type { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 interface ProductEditFormProps {
   product: Product;
@@ -55,13 +56,17 @@ export function ProductEditForm({ product, onSuccess, onCancel }: ProductEditFor
       const response = await productAPI.update(product.id, formData);
       
       if (response.success) {
-        alert('Cập nhật sản phẩm thành công!');
+        toast.success('Cập nhật sản phẩm thành công!', {
+          description: `Sản phẩm "${formData.name}" đã được cập nhật`,
+        });
         onSuccess?.();
       } else {
         throw new Error(response.message || 'Lỗi khi cập nhật sản phẩm');
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi khi cập nhật sản phẩm');
+      toast.error('Lỗi khi cập nhật sản phẩm', {
+        description: err instanceof Error ? err.message : 'Vui lòng thử lại',
+      });
     } finally {
       setLoading(false);
     }

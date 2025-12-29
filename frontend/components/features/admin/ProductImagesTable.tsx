@@ -7,6 +7,7 @@ import { Product } from '@/types/product';
 import { getAllProductsAdmin } from '@/services/product.service';
 import { productAPI } from '@/lib/api';
 import { ImageManagementModal } from './ImageManagementModal';
+import { toast } from 'sonner';
 
 export function ProductImagesTable() {
   const [products, setProducts] = useState<any[]>([]);
@@ -33,11 +34,15 @@ export function ProductImagesTable() {
         setSelectedProduct(response.data);
         setShowImageModal(true); // Open modal
       } else {
-        alert('❌ Không thể tải thông tin sản phẩm');
+        toast.error('Không thể tải thông tin sản phẩm', {
+          description: 'Vui lòng thử lại sau',
+        });
       }
     } catch (error) {
       console.error('❌ Error loading product detail:', error);
-      alert('Lỗi khi tải thông tin sản phẩm');
+      toast.error('Lỗi khi tải thông tin sản phẩm', {
+        description: error instanceof Error ? error.message : 'Vui lòng thử lại',
+      });
     } finally {
       setLoadingDetail(false);
     }
@@ -74,7 +79,9 @@ export function ProductImagesTable() {
       }
     } catch (error) {
       console.error('❌ Error loading products:', error);
-      alert('Lỗi khi tải danh sách sản phẩm');
+      toast.error('Lỗi khi tải danh sách sản phẩm', {
+        description: 'Vui lòng thử lại sau',
+      });
     } finally {
       setLoading(false);
     }
