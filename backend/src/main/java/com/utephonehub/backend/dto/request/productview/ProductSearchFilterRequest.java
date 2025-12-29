@@ -63,7 +63,10 @@ public class ProductSearchFilterRequest {
     @Schema(description = "Chỉ hiển thị sản phẩm đang khuyến mãi", example = "false")
     private Boolean onSaleOnly;
     
-    @Schema(description = "Sắp xếp theo (name, price, rating, created_date)", example = "price")
+    @Schema(description = "Số lượng bán tối thiểu", example = "100")
+    private Integer minSoldCount;
+    
+    @Schema(description = "Sắp xếp theo (name, price, rating, created_date, sold_count)", example = "price")
     private String sortBy;
     
     @Schema(description = "Hướng sắp xếp (asc, desc)", example = "asc")

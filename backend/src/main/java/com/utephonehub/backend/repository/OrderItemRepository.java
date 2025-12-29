@@ -28,6 +28,19 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
            "ORDER BY totalQuantity DESC")
     List<Object[]> findTopSellingProducts(Pageable pageable);
     
+    /**
+     * Đếm tổng số lượng đã bán của 1 sản phẩm (chỉ đơn hàng DELIVERED)
+     * 
+     * @param productId ID của sản phẩm
+     * @return Tổng số lượng đã bán
+     */
+    @Query("SELECT COALESCE(SUM(oi.quantity), 0) " +
+           "FROM OrderItem oi " +
+           "JOIN oi.order o " +
+           "WHERE oi.product.id = :productId " +
+           "AND o.status = 'DELIVERED'")
+    Integer countSoldQuantityByProductId(Long productId);
+    
     // Tìm tất cả items của 1 order
     List<OrderItem> findByOrderId(Long orderId);
 }

@@ -43,6 +43,9 @@ public class ProductDetailViewResponse {
     // Stock availability
     private Boolean inStock;
     
+    // Sold count (số lượng đã bán)
+    private Integer soldCount;
+    
     @Data
     @Builder
     @NoArgsConstructor
