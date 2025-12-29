@@ -1,7 +1,11 @@
 'use client';
 
-import { Heart, Star } from 'lucide-react';
+import { Heart, Star, ShoppingCart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { useAuth } from '@/hooks';
+import { useCartStore } from '@/store';
+import { cartAPI } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   id: number;
@@ -16,6 +20,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({
+  id,
   name,
   image,
   originalPrice,
@@ -25,8 +30,79 @@ export function ProductCard({
   discount,
   isNew = false,
 }: ProductCardProps) {
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
+  const { addItem, setItems } = useCartStore();
+
+  const isValidImage = (src: unknown) => {
+    if (!src || typeof src !== 'string') return false;
+    return /^(https?:\/\/|\/|data:|blob:)/i.test(src);
+  };
+
+  const handleBuyNow = async (e?: any) => {
+    e?.stopPropagation?.();
+    await handleAddToCart();
+    try {
+      window.location.href = '/checkout';
+    } catch {
+      // noop
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      // Add to local cart store for guest
+      // compute applied price when discount present
+      const appliedPrice = discount && discount > 0 ? Math.round(salePrice * (100 - discount) / 100) : salePrice;
+      addItem({
+        productId: id,
+        productName: name,
+        productImage: isValidImage(image) ? image : '',
+        price: salePrice,
+        discountPercent: discount > 0 ? discount : undefined,
+        appliedPrice: appliedPrice,
+        quantity: 1,
+      } as any);
+      toast.success('Đã thêm vào giỏ (khách) — đăng nhập để đồng bộ');
+      return;
+    }
+
+    try {
+      const resp = await cartAPI.addToCart({ productId: id, quantity: 1 });
+      if (resp && resp.success) {
+        // After adding to backend, refresh local cart from backend to get server IDs
+        try {
+          const cartResp = await cartAPI.getCurrentCart();
+          if (cartResp && cartResp.success && cartResp.data) {
+            const backendItems = Array.isArray(cartResp.data.items) ? cartResp.data.items : [];
+            const mappedItems = backendItems.map((obj: any) => ({
+              id: Number(obj.id ?? 0),
+              productId: Number(obj.productId ?? 0),
+              productName: typeof obj.productName === 'string' ? obj.productName : (obj.product?.name ?? 'Unknown Product'),
+              productImage: typeof obj.productImage === 'string' ? obj.productImage : (obj.productThumbnailUrl ?? obj.product?.thumbnailUrl ?? ''),
+              price: typeof obj.price === 'number' ? obj.price : (obj.unitPrice ?? obj.product?.salePrice ?? 0),
+              quantity: Number(obj.quantity ?? 0),
+              color: obj.color,
+              storage: obj.storage,
+            }));
+
+            setItems(mappedItems as any);
+          }
+        } catch (syncErr) {
+          console.warn('ProductCard: failed to refresh cart after addToCart', syncErr);
+        }
+
+        toast.success('Đã thêm vào giỏ hàng');
+      } else {
+        throw new Error(resp?.message || 'Không thể thêm vào giỏ');
+      }
+    } catch (e: any) {
+      console.error('Add to cart failed:', e);
+      toast.error(e?.message || 'Lỗi khi thêm vào giỏ');
+    }
+  };
   return (
-    <div className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+    <div className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all group relative">
       <div className="relative">
         <div className="h-40 md:h-52 bg-gradient-to-br from-[#fdf7e3] to-[#f8f1d6] flex items-center justify-center text-6xl md:text-7xl group-hover:scale-105 transition-transform">
           {image}
@@ -41,26 +117,43 @@ export function ProductCard({
             -{discount}%
           </span>
         )}
+
+        {/* Action Buttons Overlay */}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+          <button
+            onClick={handleAddToCart}
+            className="bg-white text-primary hover:bg-primary hover:text-white px-3 py-2 rounded-full text-sm font-semibold shadow-lg transition-colors flex items-center gap-1"
+            title="Thêm vào giỏ"
+          >
+            <ShoppingCart className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleBuyNow}
+            className="bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-colors"
+          >
+            Mua ngay
+          </button>
+        </div>
+
         <button
-          className="absolute bottom-2 right-2 rounded-full bg-white p-2 shadow-md opacity-0 transition-all group-hover:opacity-100 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute bottom-2 right-2 rounded-full bg-white p-2 shadow-md opacity-0 transition-all group-hover:opacity-100 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring z-10"
           aria-label="Thêm vào yêu thích"
         >
           <Heart className="w-5 h-5 text-muted-foreground hover:text-primary" />
         </button>
       </div>
       <div className="p-3 md:p-4">
-        <h3 className="font-medium text-foreground mb-2 line-clamp-2 min-h-[2.5rem] text-sm md:text-base">
+        <h3 className="font-medium text-foreground mb-2 line-clamp-2 min-h-[2.5rem] text-sm md:text-base cursor-pointer hover:text-primary">
           {name}
         </h3>
         <div className="flex items-center gap-1 mb-2">
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
-              className={`w-3 h-3 ${
-                i < Math.floor(rating)
-                  ? 'fill-primary text-primary'
-                  : 'fill-gray-200 text-gray-200'
-              }`}
+              className={`w-3 h-3 ${i < Math.floor(rating)
+                ? 'fill-primary text-primary'
+                : 'fill-gray-200 text-gray-200'
+                }`}
             />
           ))}
           <span className="text-xs text-muted-foreground ml-1">
@@ -74,6 +167,15 @@ export function ProductCard({
           <span className="text-xs md:text-sm text-muted-foreground line-through">
             {formatPrice(originalPrice)}
           </span>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            onClick={handleAddToCart}
+            className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm text-white hover:opacity-95"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Thêm vào giỏ
+          </button>
         </div>
       </div>
     </div>

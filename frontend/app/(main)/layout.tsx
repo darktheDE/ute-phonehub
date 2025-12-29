@@ -1,4 +1,5 @@
 import { Header, Footer } from '@/components/common';
+import ScrollToTopButton from '@/components/common/ScrollToTopButton';
 
 /**
  * Layout for main public pages (homepage, products, cart, etc.)
@@ -15,6 +16,7 @@ export default function MainLayout({
       <main className="min-h-screen">
         {children}
       </main>
+      <ScrollToTopButton />
       <Footer />
     </>
   );

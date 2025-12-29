@@ -6,7 +6,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   BarChart3,
@@ -18,6 +17,8 @@ import {
   Heart,
   MapPin,
   Bell,
+  FolderTree,
+  Tag,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -27,16 +28,16 @@ import {
   CustomerAddresses,
   CustomerWishlist,
   OrdersTable,
-  ProductsTable,
-  UsersTable,
   UsersManagement,
+  CategoryManagement,
+  BrandManagement,
 } from '@/components/features/dashboard';
+import { ProductsManagement } from '@/components/features/admin/ProductsManagement';
 import { Sidebar } from '@/components/features/layout/Sidebar';
-import { useOrders, useUsers } from '@/hooks';
-import { adminAPI } from '@/lib/api';
-import { MOCK_PRODUCTS, MOCK_ORDERS } from '@/lib/mockData';
+import { useOrders } from '@/hooks';
+import { MOCK_ORDERS } from '@/lib/mockData';
 
-type TabType = 'dashboard' | 'orders' | 'products' | 'users' | 'profile' | 'addresses' | 'wishlist';
+type TabType = 'dashboard' | 'orders' | 'products' | 'categories' | 'brands' | 'users' | 'profile' | 'addresses' | 'wishlist';
 
 export default function ManagePage() {
   const router = useRouter();
@@ -47,23 +48,15 @@ export default function ManagePage() {
 
   const isAdmin = user?.role === 'ADMIN';
   
-  // Using real API for endpoints that exist:
-  // - GET /api/v1/admin/dashboard/recent-orders (for admin)
-  // - GET /api/v1/admin/users
-  // Using mock data for endpoints that don't exist:
-  // - GET /api/v1/admin/products (doesn't exist)
-  // - GET /api/v1/orders (for customer list - doesn't exist)
   const { orders, loading: ordersLoading } = useOrders(isAdmin);
-  // Only fetch users if user is admin to avoid unnecessary API calls
-  const { users, loading: usersLoading } = useUsers(
-    isAdmin ? { page: 0, size: 100 } : null
-  );
 
   // Admin menu items
   const adminMenuItems = [
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: BarChart3 },
     { id: 'orders' as TabType, label: 'Đơn hàng', icon: ShoppingCart },
     { id: 'products' as TabType, label: 'Sản phẩm', icon: Package },
+    { id: 'categories' as TabType, label: 'Danh mục', icon: FolderTree },
+    { id: 'brands' as TabType, label: 'Thương hiệu', icon: Tag },
     { id: 'users' as TabType, label: 'Người dùng', icon: Users },
   ];
 
@@ -151,6 +144,8 @@ export default function ManagePage() {
               {activeTab === 'products' && 'Quản lý sản phẩm'}
               {activeTab === 'orders' && (isAdmin ? 'Quản lý đơn hàng' : 'Đơn hàng của tôi')}
               {activeTab === 'users' && 'Quản lý người dùng'}
+              {activeTab === 'categories' && 'Quản lý danh mục'}
+              {activeTab === 'brands' && 'Quản lý thương hiệu'}
               {activeTab === 'profile' && 'Thông tin cá nhân'}
               {activeTab === 'addresses' && 'Địa chỉ của tôi'}
               {activeTab === 'wishlist' && 'Sản phẩm yêu thích'}
@@ -174,10 +169,15 @@ export default function ManagePage() {
           {activeTab === 'dashboard' && isAdmin && <AdminDashboard />}
 
           {/* Products Management (Admin Only) */}
-          {/* Using mock data - GET /api/v1/admin/products doesn't exist */}
           {activeTab === 'products' && isAdmin && (
-            <ProductsTable products={MOCK_PRODUCTS} />
+            <ProductsManagement />
           )}
+
+          {/* Categories Management (Admin Only) */}
+          {activeTab === 'categories' && isAdmin && <CategoryManagement />}
+
+          {/* Brands Management (Admin Only) */}
+          {activeTab === 'brands' && isAdmin && <BrandManagement />}
 
           {/* Orders */}
           {activeTab === 'orders' && (
@@ -194,19 +194,30 @@ export default function ManagePage() {
             ) : (
               // Customer: Use mock data - GET /api/v1/orders (list) doesn't exist
               <OrdersTable 
-                orders={MOCK_ORDERS.map(mockOrder => ({
-                  id: mockOrder.id,
-                  orderCode: `ORD-${mockOrder.id}`,
-                  email: user?.email || '',
-                  recipientName: mockOrder.customer,
-                  phoneNumber: '',
-                  shippingAddress: '',
-                  status: mockOrder.status.toUpperCase() as any,
-                  paymentMethod: 'COD',
-                  totalAmount: mockOrder.total,
-                  createdAt: new Date(mockOrder.date).toISOString(),
-                  updatedAt: new Date(mockOrder.date).toISOString(),
-                }))} 
+                orders={MOCK_ORDERS.map(mockOrder => {
+                  // Map mock status to OrderStatus from @/types
+                  const statusMap: Record<string, 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED'> = {
+                    'pending': 'PENDING',
+                    'processing': 'CONFIRMED',
+                    'shipped': 'SHIPPING',
+                    'delivered': 'DELIVERED',
+                    'cancelled': 'CANCELLED',
+                  };
+                  
+                  return {
+                    id: mockOrder.id,
+                    orderCode: `ORD-${mockOrder.id}`,
+                    email: user?.email || '',
+                    recipientName: mockOrder.customer,
+                    phoneNumber: '',
+                    shippingAddress: '',
+                    status: statusMap[mockOrder.status] || 'PENDING',
+                    paymentMethod: 'COD',
+                    totalAmount: mockOrder.total,
+                    createdAt: new Date(mockOrder.date).toISOString(),
+                    updatedAt: new Date(mockOrder.date).toISOString(),
+                  };
+                })} 
                 isAdmin={isAdmin} 
               />
             )

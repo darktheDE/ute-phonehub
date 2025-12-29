@@ -4,6 +4,10 @@ import com.utephonehub.backend.dto.request.order.CreateOrderRequest;
 import com.utephonehub.backend.dto.request.order.OrderItemRequest;
 import com.utephonehub.backend.dto.response.order.CreateOrderResponse;
 import com.utephonehub.backend.dto.response.order.OrderResponse;
+import com.utephonehub.backend.dto.request.payment.CreatePaymentRequest;
+import com.utephonehub.backend.dto.response.payment.VNPayPaymentResponse;
+import com.utephonehub.backend.entity.Cart;
+import com.utephonehub.backend.entity.CartItem;
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.entity.OrderItem;
 import com.utephonehub.backend.entity.Payment;
@@ -11,7 +15,6 @@ import com.utephonehub.backend.entity.Product;
 import com.utephonehub.backend.entity.ProductTemplate;
 import com.utephonehub.backend.entity.Promotion;
 import com.utephonehub.backend.entity.User;
-import java.util.Comparator;
 import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.enums.PaymentMethod;
 import com.utephonehub.backend.enums.PaymentStatus;
@@ -19,8 +22,6 @@ import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ForbiddenException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.mapper.OrderMapper;
-import com.utephonehub.backend.entity.CartItem;
-import com.utephonehub.backend.entity.Cart;
 import com.utephonehub.backend.repository.CartItemRepository;
 import com.utephonehub.backend.repository.CartRepository;
 import com.utephonehub.backend.repository.OrderItemRepository;
@@ -30,8 +31,12 @@ import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.repository.PromotionRepository;
 import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.service.IOrderService;
+import com.utephonehub.backend.service.IVNPayService;
+import com.utephonehub.backend.util.SecurityUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,9 +44,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,6 +63,8 @@ public class OrderServiceImpl implements IOrderService {
     private final OrderMapper orderMapper;
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
+    private final IVNPayService vnPayService;
+    private final SecurityUtils securityUtils;
     
     @Override
     @Transactional(readOnly = true)
@@ -84,7 +91,8 @@ public class OrderServiceImpl implements IOrderService {
     
     @Override
     @Transactional
-    public CreateOrderResponse createOrder(CreateOrderRequest request, Long userId) {
+    @CacheEvict(value = "cart", key = "#userId")
+    public CreateOrderResponse createOrder(CreateOrderRequest request, Long userId, HttpServletRequest servletRequest) {
         log.info("Creating order for user: {}", userId);
         
         // 1. Validate user tồn tại
@@ -290,9 +298,25 @@ public class OrderServiceImpl implements IOrderService {
         
         // 13. If payment method is VNPay, add instruction message
         if (request.getPaymentMethod() == PaymentMethod.VNPAY) {
-            response.setMessage("Đơn hàng đã tạo. Vui lòng thanh toán qua VNPay.");
-            // TODO: Tích hợp VNPay payment URL (sẽ làm sau)
-            response.setPaymentUrl(null);
+            response.setMessage("Đơn hàng đã tạo. Đang chuyển hướng thanh toán VNPay...");
+            
+            // Tích hợp VNPay payment URL
+            try {
+                CreatePaymentRequest paymentRequest = CreatePaymentRequest.builder()
+                        .orderId(order.getId())
+                        .amount(totalAmount.longValue())
+                        .orderInfo("Thanh toan don hang " + orderCode)
+                        .locale("vn")
+                        .build();
+                
+                String ipAddress = securityUtils.getClientIp(servletRequest);
+                VNPayPaymentResponse paymentResponse = vnPayService.createPaymentUrl(paymentRequest, ipAddress);
+                response.setPaymentUrl(paymentResponse.getPaymentUrl());
+                log.info("Generated VNPay URL for order {}: {}", orderCode, paymentResponse.getPaymentUrl());
+            } catch (Exception e) {
+                log.error("Failed to generate VNPay URL for order {}", orderCode, e);
+                response.setMessage("Đơn hàng đã tạo nhưng lỗi tạo link thanh toán. Vui lòng thử lại trong lịch sử đơn hàng.");
+            }
         } else {
             response.setMessage("Đơn hàng đã được tạo thành công!");
         }

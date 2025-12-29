@@ -33,7 +33,7 @@ public class CategoryServiceImpl implements ICategoryService {
             log.info("Getting root categories");
             List<Category> rootCategories = categoryRepository.findByParentIdIsNull();
             return rootCategories.stream()
-                    .map(CategoryResponse::fromEntity)
+                    .map(this::toCategoryResponseWithCounts)
                     .collect(Collectors.toList());
         } else {
             // Get children of specific parent
@@ -46,9 +46,33 @@ public class CategoryServiceImpl implements ICategoryService {
 
             List<Category> childCategories = categoryRepository.findByParentId(parentId);
             return childCategories.stream()
-                    .map(CategoryResponse::fromEntity)
+                    .map(this::toCategoryResponseWithCounts)
                     .collect(Collectors.toList());
         }
+    }
+
+    /**
+     * Helper method to convert Category entity to CategoryResponse with counts
+     */
+    private CategoryResponse toCategoryResponseWithCounts(Category category) {
+        // Count children
+        long childrenCount = categoryRepository.countByParentId(category.getId());
+
+        // Count products (only non-deleted products)
+        long productCount = productRepository.countByCategoryIdAndIsDeletedFalse(category.getId());
+
+        return CategoryResponse.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .description(category.getDescription())
+                .parentId(category.getParent() != null ? category.getParent().getId() : null)
+                .parentName(category.getParent() != null ? category.getParent().getName() : null)
+                .hasChildren(childrenCount > 0)
+                .childrenCount((int) childrenCount)
+                .productCount((int) productCount)
+                .createdAt(category.getCreatedAt())
+                .updatedAt(category.getUpdatedAt())
+                .build();
     }
 
     @Override
@@ -81,7 +105,7 @@ public class CategoryServiceImpl implements ICategoryService {
 
         category = categoryRepository.save(category);
         log.info("Created category successfully with id: {}", category.getId());
-        return CategoryResponse.fromEntity(category);
+        return toCategoryResponseWithCounts(category);
     }
 
     @Override
@@ -124,7 +148,7 @@ public class CategoryServiceImpl implements ICategoryService {
         category = categoryRepository.save(category);
         log.info("Updated category successfully with id: {}", category.getId());
 
-        return CategoryResponse.fromEntity(category);
+        return toCategoryResponseWithCounts(category);
     }
 
     @Override

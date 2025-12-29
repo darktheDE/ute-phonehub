@@ -1,6 +1,5 @@
 package com.utephonehub.backend.dto.request.cart;
 
-import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,8 +13,13 @@ import java.util.List;
 @Builder
 public class MergeGuestCartRequest {
 
-    @NotEmpty(message = "Giỏ hàng tạm không được để trống")
     private List<GuestCartItem> guestCartItems;
+
+    /**
+     * Optional guestCartId lưu trong Redis. Nếu có, backend sẽ load items từ Redis để merge.
+     * Giữ backward-compatible: nếu không có guestCartId thì dùng guestCartItems như trước.
+     */
+    private String guestCartId;
 
     @Data
     @NoArgsConstructor

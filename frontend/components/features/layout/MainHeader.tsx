@@ -5,6 +5,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useCartStore } from '@/store';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +26,7 @@ interface MainHeaderProps {
 
 export function MainHeader({ user, onLogout }: MainHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const totalItems = useCartStore((s) => s.totalItems);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-primary shadow-md">
@@ -63,7 +65,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             </button>
 
             <Link
-              href="#"
+              href={ROUTES.WISHLIST}
               className="hidden items-center gap-1 text-primary-foreground transition-colors hover:text-primary-foreground/80 sm:flex"
             >
               <Heart className="w-5 h-5" />
@@ -71,14 +73,18 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             </Link>
 
             <Link
-              href="#"
-              className="relative flex items-center gap-1 text-primary-foreground transition-colors hover:text-primary-foreground/80"
+              href={ROUTES.CART}
+              className="flex items-center gap-2 text-primary-foreground transition-colors hover:text-primary-foreground/80"
             >
-              <ShoppingCart className="w-5 h-5" />
+              <div className="relative flex-shrink-0">
+                <ShoppingCart className="w-5 h-5" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-4 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-white">
+                    {totalItems}
+                  </span>
+                )}
+              </div>
               <span className="hidden lg:inline text-sm">Giỏ hàng</span>
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-white lg:-top-1 lg:right-8">
-                0
-              </span>
             </Link>
 
             {user ? (

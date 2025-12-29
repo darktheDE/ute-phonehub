@@ -83,6 +83,24 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            countQuery = "SELECT COUNT(p) FROM Product p")
     Page<Product> findAllIncludingDeleted(Pageable pageable);
     
+    // Query for deleted products only (isDeleted=true)
+    @Query("""
+           SELECT p FROM Product p 
+           LEFT JOIN FETCH p.category 
+           LEFT JOIN FETCH p.brand 
+           WHERE p.isDeleted = true
+           AND (:keyword IS NULL OR :keyword = '' OR 
+                LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR 
+                LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
+           AND (:categoryId IS NULL OR p.category.id = :categoryId)
+           AND (:brandId IS NULL OR p.brand.id = :brandId)
+           """)
+    Page<Product> findDeletedProducts(
+            @Param("keyword") String keyword,
+            @Param("categoryId") Long categoryId,
+            @Param("brandId") Long brandId,
+            Pageable pageable);
+    
     // Count queries
     long countByIsDeletedFalse();
     

@@ -49,9 +49,9 @@
           "raw": "{\n  \"orderId\": 1,\n  \"amount\": 32990000,\n  \"orderInfo\": \"Thanh toan don hang test\",\n  \"locale\": \"vn\"\n}"
         },
         "url": {
-          "raw": "{{base_url}}/api/payments/vnpay/create",
+          "raw": "{{base_url}}/api/v1/payments/vnpay/create",
           "host": ["{{base_url}}"],
-          "path": ["api", "payments", "vnpay", "create"]
+          "path": ["api", "v1", "payments", "vnpay", "create"]
         }
       }
     },
@@ -66,9 +66,9 @@
           }
         ],
         "url": {
-          "raw": "{{base_url}}/api/payments/order/1",
+          "raw": "{{base_url}}/api/v1/payments/order/1",
           "host": ["{{base_url}}"],
-          "path": ["api", "payments", "order", "1"]
+          "path": ["api", "v1", "payments", "order", "1"]
         }
       }
     },
@@ -83,9 +83,9 @@
           }
         ],
         "url": {
-          "raw": "{{base_url}}/api/payments/1",
+          "raw": "{{base_url}}/api/v1/payments/1",
           "host": ["{{base_url}}"],
-          "path": ["api", "payments", "1"]
+          "path": ["api", "v1", "payments", "1"]
         }
       }
     },
@@ -95,9 +95,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/payments/vnpay/callback?vnp_Amount=3299000000&vnp_BankCode=NCB&vnp_ResponseCode=00&vnp_TransactionStatus=00&vnp_TxnRef=ORD_251207093853&vnp_TransactionNo=14337701&vnp_SecureHash=GENERATED_HASH",
+          "raw": "{{base_url}}/api/v1/payments/vnpay/callback?vnp_Amount=3299000000&vnp_BankCode=NCB&vnp_ResponseCode=00&vnp_TransactionStatus=00&vnp_TxnRef=ORD_251207093853&vnp_TransactionNo=14337701&vnp_SecureHash=GENERATED_HASH",
           "host": ["{{base_url}}"],
-          "path": ["api", "payments", "vnpay", "callback"],
+          "path": ["api", "v1", "payments", "vnpay", "callback"],
           "query": [
             {
               "key": "vnp_Amount",

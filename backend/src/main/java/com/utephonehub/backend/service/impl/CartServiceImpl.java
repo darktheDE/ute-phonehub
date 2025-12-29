@@ -16,6 +16,7 @@ import com.utephonehub.backend.repository.CartRepository;
 import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.service.ICartService;
+import com.utephonehub.backend.service.IGuestCartService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.StaleObjectStateException;
@@ -48,6 +49,7 @@ public class CartServiceImpl implements ICartService {
     private final ApplicationEventPublisher eventPublisher;
     private final com.utephonehub.backend.repository.OrderRepository orderRepository;
     private final com.utephonehub.backend.mapper.CartMapper cartMapper;
+    private final IGuestCartService guestCartService;
 
     private static final int MAX_QUANTITY_PER_PRODUCT = 10;
     private static final int BATCH_DELETE_SIZE = 50;
@@ -360,6 +362,20 @@ public class CartServiceImpl implements ICartService {
     public MergeCartResponse mergeGuestCart(Long userId, MergeGuestCartRequest request) {
         log.info("Merging guest cart for user: {}", userId);
 
+        if (request == null) {
+            throw new BadRequestException("Dữ liệu đồng bộ giỏ hàng không hợp lệ");
+        }
+
+        // If guestCartId is provided, prefer loading items from Redis guest cart.
+        // Backward-compatible: if no guestCartId, use guestCartItems payload as before.
+        if (request.getGuestCartId() != null && !request.getGuestCartId().isBlank()) {
+            request.setGuestCartItems(guestCartService.getItemsForMerge(request.getGuestCartId()));
+        }
+
+        if (request.getGuestCartItems() == null || request.getGuestCartItems().isEmpty()) {
+            throw new BadRequestException("Giỏ hàng tạm không được để trống");
+        }
+
         // Validate user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
@@ -437,6 +453,15 @@ public class CartServiceImpl implements ICartService {
 
         // Save cart
         cartRepository.save(cart);
+
+        // Cleanup guest cart in Redis after merge (best-effort)
+        try {
+            if (request.getGuestCartId() != null && !request.getGuestCartId().isBlank()) {
+                guestCartService.deleteGuestCart(request.getGuestCartId());
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to delete guest cart {} after merge", request.getGuestCartId(), ex);
+        }
         
         String message = String.format("Đã đồng bộ %d sản phẩm từ giỏ hàng khách", mergedCount);
         if (skippedCount > 0) {

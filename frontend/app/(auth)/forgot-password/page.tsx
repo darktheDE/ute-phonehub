@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-secondary p-4">
       <div className="relative w-full max-w-md">
         {/* Logo */}
-        <div className="mb-8 text-center">
+        <div className="mb-8 text-cent  er">
           <Link href="/" className="inline-flex items-center gap-2">
             <Smartphone className="w-10 h-10 text-primary" />
             <span className="text-2xl font-bold">UTE Phone Hub</span>

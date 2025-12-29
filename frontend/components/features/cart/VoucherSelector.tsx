@@ -1,0 +1,286 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Tag, X, ChevronRight, Ticket, Check, Sparkles } from 'lucide-react';
+import { promotionAPI } from '@/lib/api';
+import { formatPrice } from '@/lib/utils';
+import type { Promotion } from '@/types/api-cart';
+import { toast } from 'sonner';
+
+interface VoucherSelectorProps {
+  orderTotal: number;
+  onApplyVoucher: (voucher: Promotion | null, discount: number) => void;
+  currentVoucher: Promotion | null;
+  disabled?: boolean;
+}
+
+export function VoucherSelector({ orderTotal, onApplyVoucher, currentVoucher, disabled }: VoucherSelectorProps) {
+  const [showVoucherList, setShowVoucherList] = useState(false);
+  const [availableVouchers, setAvailableVouchers] = useState<Promotion[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [voucherCode, setVoucherCode] = useState('');
+
+  useEffect(() => {
+    if (showVoucherList && availableVouchers.length === 0) {
+      loadAvailableVouchers();
+    }
+  }, [showVoucherList]);
+
+  const loadAvailableVouchers = async () => {
+    setIsLoading(true);
+    try {
+      const resp = await promotionAPI.getAvailablePromotions(orderTotal);
+      if (resp.success && Array.isArray(resp.data)) {
+        setAvailableVouchers(resp.data);
+      }
+    } catch (error) {
+      console.error('Failed to load vouchers:', error);
+      toast.error('Không thể tải danh sách voucher');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const calculateDiscount = async (voucher: Promotion): Promise<number> => {
+    try {
+      const promotionId = String(voucher.id || voucher.code || voucher.templateCode || '');
+      const resp = await promotionAPI.calculateDiscount(promotionId, orderTotal);
+      if (resp.success && typeof resp.data === 'number') {
+        return resp.data;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Failed to calculate discount:', error);
+      return 0;
+    }
+  };
+
+  const canApplyVoucher = (voucher: Promotion): boolean => {
+    const minValue = voucher.min_value_to_be_applied ?? voucher.minValueToBeApplied ?? 0;
+    return orderTotal >= minValue;
+  };
+
+  const handleApplyVoucher = async (voucher: Promotion) => {
+    if (!canApplyVoucher(voucher)) {
+      const minValue = voucher.min_value_to_be_applied ?? voucher.minValueToBeApplied ?? 0;
+      toast.error(`Đơn hàng tối thiểu ${formatPrice(minValue)} để áp dụng voucher này`);
+      return;
+    }
+
+    const discount = await calculateDiscount(voucher);
+    if (discount > 0) {
+      onApplyVoucher(voucher, discount);
+      setShowVoucherList(false);
+      toast.success(`Đã áp dụng mã giảm giá: ${voucher.code || voucher.templateCode || voucher.id}`);
+    } else {
+      toast.error('Không thể tính giảm giá cho voucher này');
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    onApplyVoucher(null, 0);
+    toast.info('Đã hủy mã giảm giá');
+  };
+
+  const handleCodeSubmit = async () => {
+    const trimmed = voucherCode.trim().toUpperCase();
+    if (!trimmed) {
+      toast.error('Vui lòng nhập mã giảm giá');
+      return;
+    }
+
+    // Find voucher by code
+    let found = availableVouchers.find(v => 
+      String(v.code || '').toUpperCase() === trimmed ||
+      String(v.templateCode || '').toUpperCase() === trimmed ||
+      String(v.id).toUpperCase() === trimmed
+    );
+
+    // If not in list, try to fetch available vouchers first
+    if (!found && availableVouchers.length === 0) {
+      await loadAvailableVouchers();
+      found = availableVouchers.find(v => 
+        String(v.code || '').toUpperCase() === trimmed ||
+        String(v.templateCode || '').toUpperCase() === trimmed ||
+        String(v.id).toUpperCase() === trimmed
+      );
+    }
+
+    if (found) {
+      await handleApplyVoucher(found);
+      setVoucherCode('');
+    } else {
+      toast.error('Mã giảm giá không hợp lệ hoặc không khả dụng');
+    }
+  };
+
+  if (currentVoucher) {
+    return (
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-lg shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-yellow-100 rounded-lg">
+            <Ticket className="h-5 w-5 text-yellow-600" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-yellow-800">
+              {currentVoucher.code || currentVoucher.templateCode || currentVoucher.id}
+            </p>
+            <p className="text-xs text-yellow-600">
+              {currentVoucher.title || currentVoucher.name || 'Mã giảm giá'}
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRemoveVoucher}
+          className="text-yellow-700 hover:text-yellow-900 hover:bg-yellow-100"
+          disabled={disabled}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        className="w-full justify-center border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-colors group relative"
+        onClick={() => setShowVoucherList(!showVoucherList)}
+        disabled={disabled}
+      >
+        <span className="font-medium">Chọn hoặc nhập mã giảm giá</span>
+        <ChevronRight className={`h-4 w-4 transition-transform absolute right-4 ${showVoucherList ? 'rotate-90' : ''}`} />
+      </Button>
+
+      {showVoucherList && (
+        <div className="mt-3 border-2 border-border rounded-lg overflow-hidden shadow-lg animate-in slide-in-from-top-2 duration-200">
+          {/* Voucher Input */}
+          <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Nhập mã giảm giá..."
+                value={voucherCode}
+                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && handleCodeSubmit()}
+                className="flex-1 px-4 py-2.5 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm font-medium"
+                disabled={disabled}
+              />
+              <Button
+                onClick={handleCodeSubmit}
+                disabled={!voucherCode.trim() || disabled}
+                className="px-6"
+              >
+                Áp dụng
+              </Button>
+            </div>
+          </div>
+
+          {/* Available Vouchers */}
+          <div className="max-h-96 overflow-y-auto bg-white">
+            {isLoading ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                Đang tải voucher...
+              </div>
+            ) : availableVouchers.length === 0 ? (
+              <div className="p-8 text-center">
+                <Ticket className="h-12 w-12 text-muted-foreground mx-auto mb-2 opacity-50" />
+                <p className="text-sm text-muted-foreground">Không có mã giảm giá khả dụng</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {availableVouchers.map((voucher) => {
+                  const applicable = canApplyVoucher(voucher);
+
+                  return (
+                    <div
+                      key={String(voucher.id)}
+                      className={`p-4 hover:bg-muted/50 transition-colors ${
+                        !applicable ? 'opacity-50' : ''
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="px-3 py-1.5 bg-gradient-to-r from-primary/10 to-primary/20 rounded-md">
+                              <span className="text-xs font-mono font-bold text-primary">
+                                {voucher.code || voucher.templateCode || voucher.id}
+                              </span>
+                            </div>
+                            {voucher.status === 'ACTIVE' && (
+                              <div className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                Khả dụng
+                              </div>
+                            )}
+                          </div>
+
+                          <p className="text-sm font-semibold mb-1">
+                            {voucher.title || voucher.name || 'Mã giảm giá'}
+                          </p>
+
+                          {voucher.description && (
+                            <p className="text-xs text-muted-foreground mb-2">
+                              {voucher.description}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {(voucher.percent_discount ?? voucher.percentDiscount) && (
+                              <span className="font-semibold text-orange-600">
+                                Giảm {voucher.percent_discount ?? voucher.percentDiscount}%
+                                {(() => {
+                                  const maxDiscount = voucher.max_discount ?? voucher.maxDiscount;
+                                  return typeof maxDiscount === 'number' && maxDiscount > 0
+                                    ? ` (tối đa ${formatPrice(maxDiscount)})`
+                                    : null;
+                                })()}
+                              </span>
+                            )}
+                            {(() => {
+                              const fixedAmount = voucher.fixed_amount ?? voucher.fixedAmount;
+                              return typeof fixedAmount === 'number' && fixedAmount > 0 ? (
+                                <span className="font-semibold text-orange-600">
+                                  Giảm {formatPrice(fixedAmount)}
+                                </span>
+                              ) : null;
+                            })()}
+                            {(() => {
+                              const minValue = voucher.min_value_to_be_applied ?? voucher.minValueToBeApplied;
+                              return typeof minValue === 'number' && minValue > 0 ? (
+                                <span>• Đơn tối thiểu {formatPrice(minValue)}</span>
+                              ) : null;
+                            })()}
+                          </div>
+
+                          {!applicable && (
+                            <p className="text-xs text-red-500 mt-2 font-medium">
+                              Đơn hàng chưa đủ điều kiện áp dụng
+                            </p>
+                          )}
+                        </div>
+
+                        <Button
+                          size="sm"
+                          onClick={() => handleApplyVoucher(voucher)}
+                          disabled={!applicable || disabled}
+                          className="shrink-0 min-w-[80px]"
+                        >
+                          {applicable ? 'Áp dụng' : 'Không đủ'}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
