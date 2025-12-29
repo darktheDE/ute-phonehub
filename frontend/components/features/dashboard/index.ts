@@ -16,3 +16,4 @@ export { AdminDashboard } from './AdminDashboard';
 export { CustomerProfile } from './CustomerProfile';
 export { CustomerAddresses } from './CustomerAddresses';
 export { CustomerWishlist } from './CustomerWishlist';
+export { UsersManagement } from './UsersManagement';

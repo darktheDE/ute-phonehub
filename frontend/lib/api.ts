@@ -376,3 +376,83 @@ export const dashboardAPI = {
     });
   },
 };
+
+// ============================================
+// ADMIN - USER MANAGEMENT API
+// ============================================
+export const adminUserAPI = {
+  /**
+   * GET /api/v1/admin/users
+   * Lấy danh sách users với pagination và filters
+   */
+  getUsers: async (params: {
+    page?: number;
+    size?: number;
+    role?: string;
+    status?: string;
+  }): Promise<ApiResponse<import('@/types').UsersPageResponse>> => {
+    const queryParams = new URLSearchParams();
+    if (params.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params.size !== undefined) queryParams.append('size', params.size.toString());
+    if (params.role && params.role !== 'ALL') queryParams.append('role', params.role);
+    if (params.status && params.status !== 'ALL') queryParams.append('status', params.status);
+
+    const response = await fetchAPI<any>(`/admin/users?${queryParams.toString()}`);
+    
+    // Transform backend response to match frontend type
+    if (response.success && response.data) {
+      return {
+        ...response,
+        data: {
+          users: response.data.content || [],
+          totalPages: response.data.totalPages || 0,
+          totalElements: response.data.totalElements || 0,
+          currentPage: response.data.number || 0,
+          pageSize: response.data.size || 10,
+        }
+      };
+    }
+    
+    return response;
+  },
+
+  /**
+   * PUT /api/v1/admin/users/{userId}/lock
+   * Khóa tài khoản user
+   */
+  lockUser: async (userId: number): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>(`/admin/users/${userId}/lock`, {
+      method: 'PUT',
+    });
+  },
+
+  /**
+   * PUT /api/v1/admin/users/{userId}/unlock
+   * Mở khóa tài khoản user
+   */
+  unlockUser: async (userId: number): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>(`/admin/users/${userId}/unlock`, {
+      method: 'PUT',
+    });
+  },
+
+  /**
+   * POST /api/v1/admin/users
+   * Tạo tài khoản mới
+   */
+  createUser: async (data: import('@/types').CreateUserRequest): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/users/{userId}
+   * Lấy chi tiết user
+   */
+  getUserById: async (userId: number): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>(`/admin/users/${userId}`);
+  },
+};
+

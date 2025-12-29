@@ -7,7 +7,14 @@
 export type { ApiResponse, ApiError } from './api';
 
 // User types
-export type { User, UpdateProfileRequest, ChangePasswordRequest } from './user';
+export type { 
+  User, 
+  UpdateProfileRequest, 
+  ChangePasswordRequest,
+  UsersPageResponse,
+  CreateUserRequest,
+  UserFilters
+} from './user';
 
 // Auth types
 export type {

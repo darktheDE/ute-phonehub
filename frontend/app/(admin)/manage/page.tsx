@@ -29,6 +29,7 @@ import {
   OrdersTable,
   ProductsTable,
   UsersTable,
+  UsersManagement,
 } from '@/components/features/dashboard';
 import { Sidebar } from '@/components/features/layout/Sidebar';
 import { useOrders, useUsers } from '@/hooks';
@@ -192,59 +193,27 @@ export default function ManagePage() {
               )
             ) : (
               // Customer: Use mock data - GET /api/v1/orders (list) doesn't exist
-              // Need to transform MOCK_ORDERS to Order type from @/types
               <OrdersTable 
-                orders={MOCK_ORDERS.map(mockOrder => {
-                  // Map mock status to OrderStatus from @/types
-                  const statusMap: Record<string, 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED'> = {
-                    'pending': 'PENDING',
-                    'processing': 'CONFIRMED',
-                    'shipped': 'SHIPPING',
-                    'delivered': 'DELIVERED',
-                    'cancelled': 'CANCELLED',
-                  };
-                  
-                  return {
-                    id: mockOrder.id,
-                    orderCode: `ORD-${mockOrder.id}`,
-                    email: '',
-                    recipientName: mockOrder.customer,
-                    phoneNumber: '',
-                    shippingAddress: '',
-                    status: statusMap[mockOrder.status] || 'PENDING',
-                    paymentMethod: '',
-                    totalAmount: mockOrder.total,
-                    createdAt: new Date(mockOrder.date).toISOString(),
-                    updatedAt: new Date(mockOrder.date).toISOString(),
-                    customer: mockOrder.customer,
-                    total: mockOrder.total,
-                    date: mockOrder.date,
-                    items: mockOrder.items,
-                  };
-                })} 
+                orders={MOCK_ORDERS.map(mockOrder => ({
+                  id: mockOrder.id,
+                  orderCode: `ORD-${mockOrder.id}`,
+                  email: user?.email || '',
+                  recipientName: mockOrder.customer,
+                  phoneNumber: '',
+                  shippingAddress: '',
+                  status: mockOrder.status.toUpperCase() as any,
+                  paymentMethod: 'COD',
+                  totalAmount: mockOrder.total,
+                  createdAt: new Date(mockOrder.date).toISOString(),
+                  updatedAt: new Date(mockOrder.date).toISOString(),
+                }))} 
                 isAdmin={isAdmin} 
               />
             )
           )}
 
           {/* Users Management (Admin Only) */}
-          {/* Using real API - GET /api/v1/admin/users exists */}
-          {activeTab === 'users' && isAdmin && (
-            usersLoading ? (
-              <div className="bg-card rounded-xl border border-border p-6 animate-pulse h-64" />
-            ) : (
-              <UsersTable 
-                users={users.map(u => ({
-                  id: u.id,
-                  name: u.name,
-                  email: u.email,
-                  role: u.role,
-                  status: (u.status === 'LOCKED' ? 'BANNED' : u.status) as 'ACTIVE' | 'INACTIVE' | 'BANNED',
-                  joinDate: u.joinDate,
-                }))} 
-              />
-            )
-          )}
+          {activeTab === 'users' && isAdmin && <UsersManagement />}
 
           {/* Customer Profile */}
           {activeTab === 'profile' && !isAdmin && <CustomerProfile user={user} />}
