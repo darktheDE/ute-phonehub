@@ -41,6 +41,9 @@ public class ProductViewResponse {
     private Boolean inStock;
     private Integer totalStock;
     
+    // Sold count (số lượng đã bán từ order_items)
+    private Integer soldCount;
+    
     // Images
     private List<ProductImageInfo> images;
     

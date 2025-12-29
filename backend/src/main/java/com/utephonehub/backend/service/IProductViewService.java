@@ -164,4 +164,36 @@ public interface IProductViewService {
      * Lọc sản phẩm theo rating với giới hạn số lượng
      */
     List<ProductViewResponse> filterByRatingWithLimit(Double minRating, Double maxRating, ProductSearchFilterRequest request, Integer limit);
+    
+    // ===== NEW ENHANCED METHODS =====
+    
+    /**
+     * Lấy danh sách sản phẩm nổi bật theo nhiều tiêu chí
+     * Tiêu chí: Giá >= 5 triệu, Hàng mới (60 ngày), Đánh giá >= 4.8, Số đánh giá >= 10, Có giảm giá
+     * @param limit Số lượng sản phẩm
+     * @return Danh sách sản phẩm nổi bật
+     */
+    List<ProductViewResponse> getFeaturedProductsByCriteria(Integer limit);
+    
+    /**
+     * Lọc sản phẩm theo số lượng đã bán
+     * @param minSoldCount Số lượng bán tối thiểu
+     * @param request Request chứa các tiêu chí lọc khác
+     * @return Page chứa danh sách sản phẩm
+     */
+    Page<ProductViewResponse> filterBySoldCount(Integer minSoldCount, ProductSearchFilterRequest request);
+    
+    /**
+     * Lấy tất cả sản phẩm (bao gồm cả hết hàng và còn hàng)
+     * @param request Request chứa các tiêu chí lọc/sắp xếp
+     * @return Page chứa danh sách tất cả sản phẩm
+     */
+    Page<ProductViewResponse> getAllProducts(ProductSearchFilterRequest request);
+    
+    /**
+     * Lấy chi tiết sản phẩm kèm số lượng đã bán từ order_items
+     * @param productId ID sản phẩm
+     * @return Chi tiết sản phẩm với thông tin số lượng đã bán
+     */
+    ProductDetailViewResponse getProductDetailWithSoldCount(Long productId);
 }

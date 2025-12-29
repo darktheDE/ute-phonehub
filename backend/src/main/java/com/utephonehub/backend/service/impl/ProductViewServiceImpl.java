@@ -32,6 +32,10 @@ public class ProductViewServiceImpl implements IProductViewService {
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
     private final ProductImageRepository productImageRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ReviewRepository reviewRepository;
+    private final PromotionTargetRepository promotionTargetRepository;
+    private final ProductMetadataRepository productMetadataRepository;
     
     @Override
     public Page<ProductViewResponse> searchAndFilterProducts(ProductSearchFilterRequest request) {
@@ -316,6 +320,7 @@ public class ProductViewServiceImpl implements IProductViewService {
                         ? product.getMetadata().getFrontCameraMegapixels() + "MP" : null)
                 .promotionBadge(null) // Placeholder
                 .discountPercentage(null) // Placeholder
+                .soldCount(orderItemRepository.countSoldQuantityByProductId(product.getId()))
                 .build();
     }
     
@@ -411,6 +416,7 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .averageRating(0.0) // Placeholder
                 .totalReviews(0) // Placeholder
                 .inStock(totalStock > 0)
+                .soldCount(orderItemRepository.countSoldQuantityByProductId(product.getId()))
                 .build();
     }
     
@@ -961,5 +967,139 @@ public class ProductViewServiceImpl implements IProductViewService {
         return products.stream()
                 .map(this::convertToProductViewResponse)
                 .collect(Collectors.toList());
+    }
+    
+    // ==================== NEW ENHANCED METHODS IMPLEMENTATION ====================
+    
+    /**
+     * Lấy danh sách sản phẩm nổi bật theo nhiều tiêu chí
+     * Tiêu chí: Giá >= 5 triệu, Hàng mới (60 ngày), Đánh giá >= 4.8, Số đánh giá >= 10, Có giảm giá
+     */
+    @Override
+    public List<ProductViewResponse> getFeaturedProductsByCriteria(Integer limit) {
+        log.info("Getting featured products with criteria, limit: {}", limit);
+        
+        // Lấy danh sách product IDs có khuyến mãi đang active
+        List<Long> promotionProductIds = promotionTargetRepository.findActivePromotionProductIds();
+        
+        // Lấy tất cả sản phẩm active và chưa bị xóa
+        List<Product> allProducts = productRepository.findByStatusTrueAndIsDeletedFalse();
+        
+        // Lọc theo tiêu chí
+        List<Product> featuredProducts = allProducts.stream()
+                .filter(product -> {
+                    // 1. Giá >= 5 triệu (5,000,000 VND)
+                    BigDecimal minProductPrice = product.getTemplates().stream()
+                            .filter(t -> t.getStatus())
+                            .map(ProductTemplate::getPrice)
+                            .min(BigDecimal::compareTo)
+                            .orElse(BigDecimal.ZERO);
+                    
+                    if (minProductPrice.compareTo(new BigDecimal("5000000")) < 0) {
+                        return false;
+                    }
+                    
+                    // 2. Hàng mới trong vòng 60 ngày
+                    java.time.LocalDateTime sixtyDaysAgo = java.time.LocalDateTime.now().minusDays(60);
+                    if (product.getCreatedAt().isBefore(sixtyDaysAgo)) {
+                        return false;
+                    }
+                    
+                    // 3. Đánh giá >= 4.8
+                    Double avgRating = reviewRepository.calculateAverageRatingByProductId(product.getId());
+                    if (avgRating == null || avgRating < 4.8) {
+                        return false;
+                    }
+                    
+                    // 4. Số lượng đánh giá >= 10
+                    Long reviewCount = reviewRepository.countReviewsByProductId(product.getId());
+                    if (reviewCount == null || reviewCount < 10) {
+                        return false;
+                    }
+                    
+                    // 5. Có giảm giá (có trong danh sách khuyến mãi)
+                    if (!promotionProductIds.contains(product.getId())) {
+                        return false;
+                    }
+                    
+                    return true;
+                })
+                .limit(limit != null ? limit : 10)
+                .collect(Collectors.toList());
+        
+        log.info("Found {} featured products matching all criteria", featuredProducts.size());
+        
+        return featuredProducts.stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Lọc sản phẩm theo số lượng đã bán
+     */
+    @Override
+    public Page<ProductViewResponse> filterBySoldCount(Integer minSoldCount, ProductSearchFilterRequest request) {
+        log.info("Filtering products by sold count: minSoldCount={}", minSoldCount);
+        
+        if (minSoldCount == null) {
+            minSoldCount = 0;
+        }
+        
+        Pageable pageable = buildPageable(request);
+        
+        // Lấy tất cả sản phẩm active
+        List<Product> allProducts = productRepository.findByStatusTrueAndIsDeletedFalse();
+        
+        // Lọc theo số lượng bán
+        final Integer finalMinSoldCount = minSoldCount;
+        List<Product> filteredProducts = allProducts.stream()
+                .filter(product -> {
+                    Integer soldCount = orderItemRepository.countSoldQuantityByProductId(product.getId());
+                    return soldCount >= finalMinSoldCount;
+                })
+                .collect(Collectors.toList());
+        
+        // Phân trang
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), filteredProducts.size());
+        
+        List<ProductViewResponse> pageContent = filteredProducts.subList(start, end).stream()
+                .map(this::convertToProductViewResponse)
+                .collect(Collectors.toList());
+        
+        return new PageImpl<>(pageContent, pageable, filteredProducts.size());
+    }
+    
+    /**
+     * Lấy tất cả sản phẩm (bao gồm cả hết hàng và còn hàng)
+     */
+    @Override
+    public Page<ProductViewResponse> getAllProducts(ProductSearchFilterRequest request) {
+        log.info("Getting all products (including out of stock)");
+        
+        validateSearchRequest(request);
+        Pageable pageable = buildPageable(request);
+        
+        // Lấy tất cả sản phẩm active và chưa bị xóa (không quan tâm tồn kho)
+        Page<Product> productPage = productRepository.findByStatusTrueAndIsDeletedFalse(pageable);
+        
+        return productPage.map(this::convertToProductViewResponse);
+    }
+    
+    /**
+     * Lấy chi tiết sản phẩm kèm số lượng đã bán (đã implement trong convertToProductDetailViewResponse)
+     */
+    @Override
+    public ProductDetailViewResponse getProductDetailWithSoldCount(Long productId) {
+        log.info("Getting product detail with sold count for productId: {}", productId);
+        
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
+        
+        if (!product.getStatus() || product.getIsDeleted()) {
+            throw new ResourceNotFoundException("Product is not available");
+        }
+        
+        return convertToProductDetailViewResponse(product);
     }
 }
