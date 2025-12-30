@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks';
 import { useCartStore } from '@/store';
 import { cartAPI } from '@/lib/api';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface ProductCardProps {
   id: number;
@@ -30,6 +31,7 @@ export function ProductCard({
   discount,
   isNew = false,
 }: ProductCardProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const { addItem, setItems } = useCartStore();
@@ -43,7 +45,7 @@ export function ProductCard({
     e?.stopPropagation?.();
     await handleAddToCart();
     try {
-      window.location.href = '/checkout';
+      router.push('/checkout');
     } catch {
       // noop
     }
