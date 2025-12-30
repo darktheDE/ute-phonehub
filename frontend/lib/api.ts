@@ -364,6 +364,16 @@ export const adminAPI = {
 
 // Promotion API
 export const promotionAPI = {
+  // Customer: Get ALL active promotions (for /promotions page)
+  // GET /api/v1/promotions
+  getAllActivePromotions: async (): Promise<
+    ApiResponse<PromotionResponse[]>
+  > => {
+    return fetchAPI<PromotionResponse[]>("/promotions", {
+      method: "GET",
+    });
+  },
+
   // Customer: Get available promotions based on order total
   getAvailablePromotions: async (
     orderTotal: number

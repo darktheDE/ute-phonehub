@@ -83,7 +83,7 @@ export interface CreateOrderRequest {
   shippingUnit?: string;
   note?: string;
   paymentMethod: 'COD' | 'BANK_TRANSFER' | 'VNPAY';
-  promotionId?: number;
+  promotionId?: string; // UUID from backend Promotion entity
   items: OrderItemRequest[];
 }
 
