@@ -4040,3 +4040,4 @@ INSERT INTO wards (id, ward_code, name, province_code) VALUES
 -- Reset sequences for PostgreSQL
 SELECT setval('provinces_id_seq', (SELECT MAX(id) FROM provinces));
 SELECT setval('wards_id_seq', (SELECT MAX(id) FROM wards));
+-- 
