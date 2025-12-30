@@ -80,21 +80,25 @@ export function PromotionFormModal({
   const loadProductsAndCategories = async () => {
     setLoadingOptions(true);
     try {
-      // Load products
-      const productsResponse = await productAPI.getAllProducts({
-        page: 0,
-        size: 1000,
-      });
-      if (productsResponse.success && productsResponse.data?.content) {
-        const options: SelectOption[] = productsResponse.data.content.map(
-          (product: any) => ({
-            value: String(product.id),
-            label: product.productName,
-            description: `ID: ${product.id} | ${product.brand}`,
-          })
-        );
-        setProductOptions(options);
-      }
+      // TODO: Backend endpoint /products/admin/all doesn't exist yet
+      // Load products - temporarily disabled until backend implements the endpoint
+      // const productsResponse = await productAPI.getAllProducts({
+      //   page: 0,
+      //   size: 1000,
+      // });
+      // if (productsResponse.success && productsResponse.data?.content) {
+      //   const options: SelectOption[] = productsResponse.data.content.map(
+      //     (product: any) => ({
+      //       value: String(product.id),
+      //       label: product.productName,
+      //       description: `ID: ${product.id} | ${product.brand}`,
+      //     })
+      //   );
+      //   setProductOptions(options);
+      // }
+      
+      // Set empty products for now
+      setProductOptions([]);
 
       // Load categories
       const categoriesResponse = await categoryAPI.getRootCategories();
