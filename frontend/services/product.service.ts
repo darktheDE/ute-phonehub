@@ -1,4 +1,5 @@
 import { getAuthToken } from '@/lib/api';
+import type { Product } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
 
@@ -48,13 +49,13 @@ interface ApiResponse<T> {
 class ProductService {
   private getAuthHeaders() {
     const token = getAuthToken();
-    console.log('🔐 Token from getAuthToken():', token ? `${token.substring(0, 20)}...` : 'NULL');
-    const headers = {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔐 Token exists:', !!token);
+    }
+    return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
-    console.log('📤 Request headers:', headers);
-    return headers;
   }
 
   /**
@@ -125,7 +126,7 @@ class ProductService {
    * Get product by ID
    * GET /api/v1/admin/products/{id}
    */
-  async getProductById(id: number): Promise<any> {
+  async getProductById(id: number): Promise<Product> {
     const response = await fetch(`${API_BASE_URL}/admin/products/${id}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
@@ -135,7 +136,7 @@ class ProductService {
       throw new Error(`Failed to fetch product: ${response.statusText}`);
     }
 
-    const result: ApiResponse<any> = await response.json();
+    const result: ApiResponse<Product> = await response.json();
     return result.data;
   }
 
@@ -143,7 +144,7 @@ class ProductService {
    * Create new product
    * POST /api/v1/admin/products
    */
-  async createProduct(data: any): Promise<any> {
+  async createProduct(data: Partial<Product>): Promise<Product> {
     const response = await fetch(`${API_BASE_URL}/admin/products`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -155,7 +156,7 @@ class ProductService {
       throw new Error(error.message || 'Failed to create product');
     }
 
-    const result: ApiResponse<any> = await response.json();
+    const result: ApiResponse<Product> = await response.json();
     return result.data;
   }
 
@@ -163,7 +164,7 @@ class ProductService {
    * Update product
    * PUT /api/v1/admin/products/{id}
    */
-  async updateProduct(id: number, data: any): Promise<any> {
+  async updateProduct(id: number, data: Partial<Product>): Promise<Product> {
     const response = await fetch(`${API_BASE_URL}/admin/products/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -175,7 +176,7 @@ class ProductService {
       throw new Error(error.message || 'Failed to update product');
     }
 
-    const result: ApiResponse<any> = await response.json();
+    const result: ApiResponse<Product> = await response.json();
     return result.data;
   }
 

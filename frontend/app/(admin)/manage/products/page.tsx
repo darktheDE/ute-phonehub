@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import { ProductTable, ProductEditForm } from '@/components/features/admin';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import type { Product } from '@/types';
 
 export default function ProductsPage() {
+  const router = useRouter();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const handleEdit = (product: Product) => {
@@ -28,6 +32,10 @@ export default function ProductsPage() {
             Manage your product inventory
           </p>
         </div>
+        <Button onClick={() => router.push('/manage/products/new')}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Product
+        </Button>
       </div>
 
       <ProductTable onEdit={handleEdit} />

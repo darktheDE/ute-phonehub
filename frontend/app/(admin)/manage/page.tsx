@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   BarChart3,
   Users,
@@ -41,6 +41,7 @@ type TabType = 'dashboard' | 'orders' | 'products' | 'categories' | 'brands' | '
 
 export default function ManagePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, logout, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -75,11 +76,16 @@ export default function ManagePage() {
     if (!isLoading && !user) {
       router.push('/login');
     }
-    // Set default tab based on role
+    // Set active tab from URL or default based on role
     if (user) {
-      setActiveTab(isAdmin ? 'dashboard' : 'profile');
+      const tabParam = searchParams.get('tab') as TabType | null;
+      if (tabParam && (isAdmin ? adminMenuItems : customerMenuItems).some(item => item.id === tabParam)) {
+        setActiveTab(tabParam);
+      } else {
+        setActiveTab(isAdmin ? 'dashboard' : 'profile');
+      }
     }
-  }, [user, isLoading, router, isAdmin]);
+  }, [user, isLoading, router, isAdmin, searchParams]);
 
   const handleLogout = () => {
     logout();

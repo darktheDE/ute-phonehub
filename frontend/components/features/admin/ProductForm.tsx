@@ -10,6 +10,7 @@ import type { CreateProductRequest, ProductMetadata } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import { getMetadataFields, groupMetadataFields, type MetadataField } from '@/lib/constants/categoryMetadata';
 
 interface ProductFormProps {
@@ -197,7 +198,9 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
     }
 
     setMetadata(newMetadata);
-    alert('✅ Đã điền dữ liệu random thành công!');
+    toast.success('Đã điền dữ liệu random thành công!', {
+      description: 'Kiểm tra lại thông tin trước khi lưu',
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -205,12 +208,12 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
     
     // Validation
     if (!formData.name || formData.name.length < 5) {
-      alert('Tên sản phẩm phải có ít nhất 5 ký tự');
+      toast.error('Tên sản phẩm phải có ít nhất 5 ký tự');
       return;
     }
 
     if (!formData.templates[0].sku || !formData.templates[0].price || formData.templates[0].stockQuantity === undefined) {
-      alert('Vui lòng điền đầy đủ SKU, Giá và Tồn kho cho biến thể sản phẩm');
+      toast.error('Vui lòng điền đầy đủ SKU, Giá và Tồn kho cho biến thể sản phẩm');
       return;
     }
 
@@ -236,7 +239,12 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
       const response = await productAPI.create(submitData);
       
       console.log('✅ Product created successfully:', response);
-      alert('Tạo sản phẩm thành công!');
+      
+      // Show success message
+      toast.success('Tạo sản phẩm thành công!', {
+        description: `Sản phẩm "${formData.name}" đã được thêm vào danh sách.`,
+        duration: 5000,
+      });
       
       // Reset form
       setFormData({
@@ -261,6 +269,7 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
         images: [],
       });
       setMetadata({});
+      setValidationErrors({});
       
       onSuccess?.();
     } catch (err) {
@@ -269,7 +278,8 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
       console.error('🔍 Error details:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
       
       // Try to extract validation errors from response
-      let errorMessage = 'Lỗi khi tạo sản phẩm';
+      let errorMessage = 'Không thể tạo sản phẩm';
+      let errorDescription = '';
       const validationErrs: Record<string, string> = {};
       
       if (err instanceof Error) {
@@ -285,11 +295,15 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
             });
             setValidationErrors(validationErrs);
             
-            // Show validation errors in alert
+            // Build error list for description
             const errorList = Object.entries(validationErrs)
               .map(([field, msg]) => `• ${field}: ${msg}`)
               .join('\n');
-            errorMessage = `Lỗi validation:\n\n${errorList}`;
+            
+            if (errorList) {
+              errorMessage = 'Lỗi validation';
+              errorDescription = errorList;
+            }
           }
         } catch (parseErr) {
           console.error('Failed to parse validation errors:', parseErr);
@@ -297,12 +311,21 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
         
         // If it's a generic validation error, add helpful hints
         if (errorMessage.includes('Validation failed') && Object.keys(validationErrs).length === 0) {
-          errorMessage = 'Lỗi validation: ' + errorMessage + 
-            '\n\nVui lòng kiểm tra:\n- Tên sản phẩm (5-200 ký tự)\n- SKU, giá, tồn kho cho biến thể\n- Các trường metadata (screenSize 1-50, batteryCapacity 100-100000, chargingPower ≤200, refreshRate ≥30...)';
+          errorDescription = 'Vui lòng kiểm tra:\n• Tên sản phẩm (5-200 ký tự)\n• SKU, giá, tồn kho cho biến thể\n• Các trường metadata (screenSize 1-50, batteryCapacity 100-100000, chargingPower ≤200, refreshRate ≥30...)';
+        }
+        
+        // Network or server errors
+        if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+          errorMessage = 'Lỗi kết nối';
+          errorDescription = 'Không thể kết nối tới server. Vui lòng kiểm tra kết nối mạng.';
         }
       }
       
-      alert(errorMessage);
+      // Show error toast
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 7000,
+      });
     } finally {
       setLoading(false);
     }
