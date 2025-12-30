@@ -22,7 +22,17 @@ import type {
   PromotionTemplateResponse,
   CreateTemplateRequest,
   UpdateTemplateRequest,
+  CreateOrderRequest,
+  CreateOrderResponse,
+  PaymentMethod,
+  PaymentResponse,
+  VNPayPaymentResponse,
+  CreatePaymentRequest,
+  PaymentHistoryResponse,
 } from "@/types";
+
+// Cart & Promotion API response types
+import type { CartResponseData, CartItemResponse, Promotion } from '@/types/api-cart';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
@@ -495,6 +505,138 @@ export const templateAPI = {
   deleteTemplate: async (id: string): Promise<ApiResponse<void>> => {
     return fetchAPI<void>(`/admin/promotion-templates/${id}`, {
       method: "DELETE",
+    });
+  },
+};
+
+// Cart API
+export const cartAPI = {
+  /**
+   * GET /api/v1/cart/me
+   */
+  getCurrentCart: async (): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>('/cart/me', { method: 'GET' });
+  },
+
+  /**
+   * POST /api/v1/cart/items
+   */
+  addToCart: async (data: { productId: number; quantity: number; color?: string; storage?: string }): Promise<ApiResponse<CartItemResponse>> => {
+    return fetchAPI<CartItemResponse>('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * PUT /api/v1/cart/items/{itemId}
+   */
+  updateCartItem: async (itemId: number, data: number | { quantity?: number }): Promise<ApiResponse<CartItemResponse>> => {
+    const payload = typeof data === 'number' ? { quantity: data } : data;
+    return fetchAPI<CartItemResponse>(`/cart/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/cart/items/{itemId}
+   */
+  removeCartItem: async (itemId: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/cart/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Remove multiple cart items by ids.
+   * Backend does not expose a bulk delete, so perform parallel deletes and aggregate.
+   */
+  removeCartItems: async (itemIds: number[]): Promise<ApiResponse<null[]>> => {
+    try {
+      const results = await Promise.all(
+        itemIds.map((id) => fetchAPI<null>(`/cart/items/${id}`, { method: 'DELETE' }))
+      );
+      return { success: true, data: results.map((r) => r.data ?? null) } as ApiResponse<null[]>;
+    } catch (error) {
+      console.error('Failed to remove multiple cart items:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * DELETE /api/v1/cart/clear
+   */
+  clearCart: async (): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>('/cart/clear', { method: 'DELETE' });
+  },
+
+  /**
+   * POST /api/v1/cart/merge
+   */
+  mergeGuestCart: async (data: { guestCartItems?: { productId: number; quantity: number }[]; guestCartId?: string }): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>('/cart/merge', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Guest Cart API (Redis-backed)
+export const guestCartAPI = {
+  /**
+   * POST /api/v1/guest-cart
+   */
+  createGuestCart: async (): Promise<ApiResponse<{ guestCartId: string }>> => {
+    return fetchAPI<{ guestCartId: string }>('/guest-cart', { method: 'POST' });
+  },
+
+  /**
+   * PUT /api/v1/guest-cart/{guestCartId}
+   */
+  replaceGuestCart: async (
+    guestCartId: string,
+    data: { items: { productId: number; quantity: number }[] }
+  ): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/guest-cart/{guestCartId}
+   */
+  deleteGuestCart: async (guestCartId: string): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Payment API
+export const paymentAPI = {
+  // GET /api/v1/payments/history?page={page}&size={size}
+  getPaymentHistory: async (page: number = 0, size: number = 10): Promise<ApiResponse<PaymentHistoryResponse>> => {
+    return fetchAPI<PaymentHistoryResponse>(`/payments/history?page=${page}&size=${size}`, {
+      method: 'GET',
+    });
+  },
+
+  // GET /api/v1/payments/vnpay/callback?{params}
+  // Used by the frontend return page to verify/process VNPay result
+  handleVNPayCallback: async (params: Record<string, string>): Promise<ApiResponse<PaymentResponse>> => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchAPI<PaymentResponse>(`/payments/vnpay/callback?${qs}`, {
+      method: 'GET',
+    });
+  },
+
+  // POST /api/v1/payments/vnpay/create
+  createVNPayPayment: async (data: CreatePaymentRequest): Promise<ApiResponse<VNPayPaymentResponse>> => {
+    return fetchAPI<VNPayPaymentResponse>('/payments/vnpay/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };

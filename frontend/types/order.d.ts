@@ -2,7 +2,12 @@
  * Order types matching backend DTOs
  */
 
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED';
+export type OrderStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "SHIPPING"
+  | "DELIVERED"
+  | "CANCELLED";
 
 export interface OrderItem {
   id: number;
@@ -82,7 +87,7 @@ export interface CreateOrderRequest {
   shippingFee?: number;
   shippingUnit?: string;
   note?: string;
-  paymentMethod: 'COD' | 'BANK_TRANSFER' | 'VNPAY';
+  paymentMethod: "COD" | "BANK_TRANSFER" | "VNPAY";
   promotionId?: string; // UUID from backend Promotion entity
   items: OrderItemRequest[];
 }
@@ -91,7 +96,7 @@ export interface CreateOrderResponse {
   orderId: number;
   orderCode: string;
   status: OrderStatus;
-  paymentMethod: 'COD' | 'BANK_TRANSFER' | 'VNPAY';
+  paymentMethod: "COD" | "BANK_TRANSFER" | "VNPAY";
   totalAmount: number;
   createdAt: string;
   message?: string;
