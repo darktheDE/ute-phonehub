@@ -6,8 +6,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart3,
   Users,
@@ -28,17 +27,18 @@ import {
   CustomerAddresses,
   CustomerWishlist,
   OrdersTable,
-  ProductsTable,
-  UsersTable,
+  UsersManagement,
+  CategoryManagement,
+  BrandManagement,
 } from "@/components/features/dashboard";
+import { ProductsManagement } from "@/components/features/admin/ProductsManagement";
 import {
   PromotionsTable,
   TemplatesTable,
 } from "@/components/features/promotion";
 import { Sidebar } from "@/components/features/layout/Sidebar";
-import { useOrders, useUsers } from "@/hooks";
-import { adminAPI } from "@/lib/api";
-import { MOCK_PRODUCTS, MOCK_ORDERS } from "@/lib/mockData";
+import { useOrders } from "@/hooks";
+import { MOCK_ORDERS } from "@/lib/mockData";
 
 type TabType =
   | "dashboard"
@@ -53,6 +53,7 @@ type TabType =
 
 export default function ManagePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, logout, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
@@ -60,17 +61,7 @@ export default function ManagePage() {
 
   const isAdmin = user?.role === "ADMIN";
 
-  // Using real API for endpoints that exist:
-  // - GET /api/v1/admin/dashboard/recent-orders (for admin)
-  // - GET /api/v1/admin/users
-  // Using mock data for endpoints that don't exist:
-  // - GET /api/v1/admin/products (doesn't exist)
-  // - GET /api/v1/orders (for customer list - doesn't exist)
   const { orders, loading: ordersLoading } = useOrders(isAdmin);
-  // Only fetch users if user is admin to avoid unnecessary API calls
-  const { users, loading: usersLoading } = useUsers(
-    isAdmin ? { page: 0, size: 100 } : null
-  );
 
   // Admin menu items
   const adminMenuItems = [
@@ -97,11 +88,21 @@ export default function ManagePage() {
     if (!isLoading && !user) {
       router.push("/login");
     }
-    // Set default tab based on role
+    // Set active tab from URL or default based on role
     if (user) {
-      setActiveTab(isAdmin ? "dashboard" : "profile");
+      const tabParam = searchParams.get("tab") as TabType | null;
+      if (
+        tabParam &&
+        (isAdmin ? adminMenuItems : customerMenuItems).some(
+          (item) => item.id === tabParam
+        )
+      ) {
+        setActiveTab(tabParam);
+      } else {
+        setActiveTab(isAdmin ? "dashboard" : "profile");
+      }
     }
-  }, [user, isLoading, router, isAdmin]);
+  }, [user, isLoading, router, isAdmin, searchParams]);
 
   const handleLogout = () => {
     logout();
@@ -169,6 +170,10 @@ export default function ManagePage() {
               {activeTab === "orders" &&
                 (isAdmin ? "Quản lý đơn hàng" : "Đơn hàng của tôi")}
               {activeTab === "users" && "Quản lý người dùng"}
+              {activeTab === "categories" && "Quản lý danh mục"}
+              {activeTab === "brands" && "Quản lý thương hiệu"}
+              {activeTab === "promotions" && "Quản lý khuyến mãi"}
+              {activeTab === "templates" && "Quản lý Templates"}
               {activeTab === "profile" && "Thông tin cá nhân"}
               {activeTab === "addresses" && "Địa chỉ của tôi"}
               {activeTab === "wishlist" && "Sản phẩm yêu thích"}
@@ -194,10 +199,7 @@ export default function ManagePage() {
           {activeTab === "dashboard" && isAdmin && <AdminDashboard />}
 
           {/* Products Management (Admin Only) */}
-          {/* Using mock data - GET /api/v1/admin/products doesn't exist */}
-          {activeTab === "products" && isAdmin && (
-            <ProductsTable products={MOCK_PRODUCTS} />
-          )}
+          {activeTab === "products" && isAdmin && <ProductsManagement />}
 
           {/* Orders */}
           {activeTab === "orders" &&
@@ -210,7 +212,6 @@ export default function ManagePage() {
               )
             ) : (
               // Customer: Use mock data - GET /api/v1/orders (list) doesn't exist
-              // Need to transform MOCK_ORDERS to Order type from @/types
               <OrdersTable
                 orders={MOCK_ORDERS.map((mockOrder) => {
                   // Map mock status to OrderStatus from @/types
@@ -232,12 +233,12 @@ export default function ManagePage() {
                   return {
                     id: mockOrder.id,
                     orderCode: `ORD-${mockOrder.id}`,
-                    email: "",
+                    email: user?.email || "",
                     recipientName: mockOrder.customer,
                     phoneNumber: "",
                     shippingAddress: "",
                     status: statusMap[mockOrder.status] || "PENDING",
-                    paymentMethod: "",
+                    paymentMethod: "COD",
                     totalAmount: mockOrder.total,
                     createdAt: new Date(mockOrder.date).toISOString(),
                     updatedAt: new Date(mockOrder.date).toISOString(),
@@ -252,26 +253,7 @@ export default function ManagePage() {
             ))}
 
           {/* Users Management (Admin Only) */}
-          {/* Using real API - GET /api/v1/admin/users exists */}
-          {activeTab === "users" &&
-            isAdmin &&
-            (usersLoading ? (
-              <div className="bg-card rounded-xl border border-border p-6 animate-pulse h-64" />
-            ) : (
-              <UsersTable
-                users={users.map((u) => ({
-                  id: u.id,
-                  name: u.name,
-                  email: u.email,
-                  role: u.role,
-                  status: (u.status === "LOCKED" ? "BANNED" : u.status) as
-                    | "ACTIVE"
-                    | "INACTIVE"
-                    | "BANNED",
-                  joinDate: u.joinDate,
-                }))}
-              />
-            ))}
+          {activeTab === "users" && isAdmin && <UsersManagement />}
 
           {/* Promotions Management (Admin Only) */}
           {activeTab === "promotions" && isAdmin && <PromotionsTable />}

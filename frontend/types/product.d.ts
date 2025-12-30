@@ -36,6 +36,7 @@ export interface Product {
   id: number;
   name: string;
   description?: string;
+  thumbnailUrl?: string;
   categoryId: number;
   brandId: number;
   isDeleted: boolean;
@@ -45,7 +46,9 @@ export interface Product {
   metadata?: ProductMetadata;
   images?: ProductImage[];
   
-  // Optional computed fields
+  // Optional computed fields (from API)
+  price?: number;
+  stockQuantity?: number;
   categoryName?: string;
   brandName?: string;
   minPrice?: number;

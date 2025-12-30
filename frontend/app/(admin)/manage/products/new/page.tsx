@@ -9,7 +9,7 @@ export default function NewProductPage() {
   const router = useRouter();
 
   const handleSuccess = () => {
-    router.push('/manage');
+    router.push('/manage?tab=products');
   };
 
   return (

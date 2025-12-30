@@ -14,6 +14,8 @@ import {
 } from '@/services/product.service';
 import { adminAPI, productAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 interface ProductTableProps {
   filters?: {
@@ -33,6 +35,14 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: '', description: '', onConfirm: () => {} });
+  
   // State cho inline editing
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({
@@ -41,7 +51,8 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
     categoryId: 0,
     brandId: 0,
     price: 0,
-    stockQuantity: 0
+    stockQuantity: 0,
+    thumbnailUrl: ''
   });
   
   // Local filter states for UI
@@ -128,7 +139,7 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
       }
       
       if (response.success && response.data) {
-        setProducts(response.data);
+        setProducts(response.data as unknown as Product[]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi khi tải danh sách sản phẩm');
@@ -141,7 +152,7 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
     loadProducts();
   }, [loadProducts]);
 
-  // Helper functions - MUST be defined before filteredProducts
+  // Helper functions
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -149,60 +160,69 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
     }).format(price);
   };
 
-  const getPriceRange = (product: Product) => {
-    if (!product.templates || product.templates.length === 0) {
-      return '—';
-    }
-    const prices = product.templates.map(t => t.price);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    
-    if (minPrice === maxPrice) {
-      return formatPrice(minPrice);
-    }
-    return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
-  };
-
-  const getTotalStock = (product: Product) => {
-    if (!product.templates || product.templates.length === 0) return 0;
-    return product.templates.reduce((sum, t) => sum + t.stockQuantity, 0);
-  };
-
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Ngưng bán sản phẩm "${name}"? (Có thể khôi phục sau)`)) return;
-
-    try {
-      await deleteProduct(id);
-      // Reload products để lấy data mới từ API
-      await loadProducts();
-      if (onRefresh) onRefresh();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi khi xóa sản phẩm');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Ngưng bán sản phẩm',
+      description: `Bạn có chắc muốn ngưng bán sản phẩm "${name}"? (Có thể khôi phục sau)`,
+      onConfirm: async () => {
+        try {
+          await deleteProduct(id);
+          toast.success('Ngưng bán sản phẩm thành công', {
+            description: `Sản phẩm "${name}" đã được chuyển vào thùng rác`,
+          });
+          await loadProducts();
+          if (onRefresh) onRefresh();
+        } catch (err) {
+          toast.error('Lỗi khi ngưng bán sản phẩm', {
+            description: err instanceof Error ? err.message : 'Vui lòng thử lại',
+          });
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   const handleRestore = async (id: number, name: string) => {
-    if (!confirm(`Khôi phục sản phẩm "${name}"?`)) return;
-
-    try {
-      await restoreProduct(id);
-      // Reload products để lấy data mới từ API
-      await loadProducts();
-      if (onRefresh) onRefresh();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi khi khôi phục sản phẩm');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Khôi phục sản phẩm',
+      description: `Bạn có chắc muốn khôi phục sản phẩm "${name}"?`,
+      onConfirm: async () => {
+        try {
+          await restoreProduct(id);
+          toast.success('Khôi phục sản phẩm thành công', {
+            description: `Sản phẩm "${name}" đã được khôi phục`,
+          });
+          await loadProducts();
+          if (onRefresh) onRefresh();
+        } catch (err) {
+          toast.error('Lỗi khi khôi phục sản phẩm', {
+            description: err instanceof Error ? err.message : 'Vui lòng thử lại',
+          });
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   const handleEditClick = (product: Product) => {
     setEditingProductId(product.id);
+    
+    // Use direct properties if available, otherwise use first template
+    const price = product.price ?? product.templates?.[0]?.price ?? 0;
+    const stockQuantity = product.stockQuantity ?? product.templates?.reduce((sum, t) => sum + t.stockQuantity, 0) ?? 0;
+    
     setEditForm({
       name: product.name,
       description: product.description || '',
       categoryId: product.categoryId || categories[0]?.id || 1,
       brandId: product.brandId || brands[0]?.id || 1,
-      price: (product as any).price || 0,
-      stockQuantity: (product as any).stockQuantity || 0,
+      price,
+      stockQuantity,
+      thumbnailUrl: product.thumbnailUrl || ''
     });
   };
 
@@ -215,7 +235,9 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
       const response = await productAPI.update(productId, editForm);
       
       if (response.success) {
-        alert('Cập nhật sản phẩm thành công!');
+        toast.success('Cập nhật sản phẩm thành công!', {
+          description: `Thay đổi đã được lưu`,
+        });
         setEditingProductId(null);
         await loadProducts();
         if (onRefresh) onRefresh();
@@ -223,7 +245,9 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
         throw new Error(response.message || 'Lỗi khi cập nhật');
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi khi cập nhật sản phẩm');
+      toast.error('Lỗi khi cập nhật sản phẩm', {
+        description: err instanceof Error ? err.message : 'Vui lòng thử lại',
+      });
     }
   };
 
@@ -389,7 +413,16 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
                         rows={2}
                       />
                     </div>
-                    {/* Thumbnail URL removed from inline edit */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Thumbnail URL</label>
+                      <input
+                        type="text"
+                        value={editForm.thumbnailUrl || ''}
+                        onChange={(e) => setEditForm({...editForm, thumbnailUrl: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-md"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium mb-1">Danh mục</label>
@@ -468,9 +501,11 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
               <td className="px-4 py-3 text-sm">{product.categoryName || '—'}</td>
               <td className="px-4 py-3 text-sm">{product.brandName || '—'}</td>
               <td className="px-4 py-3 text-sm">
-                {(product as any).price ? formatPrice((product as any).price) : '—'}
+                {(product.price ?? product.templates?.[0]?.price) ? formatPrice(product.price ?? product.templates![0].price) : '—'}
               </td>
-              <td className="px-4 py-3 text-sm">{(product as any).stockQuantity || 0}</td>
+              <td className="px-4 py-3 text-sm">
+                {product.stockQuantity ?? product.templates?.reduce((sum: number, t: any) => sum + t.stockQuantity, 0) ?? 0}
+              </td>
               <td className="px-4 py-3 text-sm">
                 {product.isDeleted || filters?.deletedStatus === 'deleted' ? (
                   <span className="text-orange-600 font-medium">Ngưng bán</span>
@@ -514,6 +549,17 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
         </tbody>
       </table>
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
+        intent="danger"
+        confirmLabel="Xác nhận"
+        cancelLabel="Hủy"
+      />
     </div>
   );
 }

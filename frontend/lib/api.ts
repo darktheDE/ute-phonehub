@@ -790,14 +790,242 @@ export const dashboardAPI = {
    * Lấy danh sách sản phẩm sắp hết hàng
    * @param threshold - Ngưỡng tồn kho cảnh báo (mặc định: 10)
    */
-  getLowStockProducts: async (
-    threshold: number = 10
-  ): Promise<ApiResponse<LowStockProduct[]>> => {
-    return fetchAPI<LowStockProduct[]>(
-      `/admin/dashboard/low-stock-products?threshold=${threshold}`,
-      {
-        method: "GET",
-      }
-    );
+  getLowStockProducts: async (threshold: number = 10): Promise<ApiResponse<LowStockProduct[]>> => {
+    return fetchAPI<LowStockProduct[]>(`/admin/dashboard/low-stock-products?threshold=${threshold}`, {
+      method: 'GET',
+    });
+  },
+};
+
+// ============================================
+// ADMIN - USER MANAGEMENT API
+// ============================================
+export const adminUserAPI = {
+  /**
+   * GET /api/v1/admin/users
+   * Lấy danh sách users với pagination và filters
+   */
+  getUsers: async (params: {
+    page?: number;
+    size?: number;
+    role?: string;
+    status?: string;
+  }): Promise<ApiResponse<import('@/types').UsersPageResponse>> => {
+    const queryParams = new URLSearchParams();
+    if (params.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params.size !== undefined) queryParams.append('size', params.size.toString());
+    if (params.role && params.role !== 'ALL') queryParams.append('role', params.role);
+    if (params.status && params.status !== 'ALL') queryParams.append('status', params.status);
+
+    const response = await fetchAPI<any>(`/admin/users?${queryParams.toString()}`);
+    
+    // Transform backend response to match frontend type
+    if (response.success && response.data) {
+      return {
+        ...response,
+        data: {
+          users: response.data.content || [],
+          totalPages: response.data.totalPages || 0,
+          totalElements: response.data.totalElements || 0,
+          currentPage: response.data.number || 0,
+          pageSize: response.data.size || 10,
+        }
+      };
+    }
+    
+    return response;
+  },
+
+  /**
+   * PUT /api/v1/admin/users/{userId}/lock
+   * Khóa tài khoản user
+   */
+  lockUser: async (userId: number): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>(`/admin/users/${userId}/lock`, {
+      method: 'PUT',
+    });
+  },
+
+  /**
+   * PUT /api/v1/admin/users/{userId}/unlock
+   * Mở khóa tài khoản user
+   */
+  unlockUser: async (userId: number): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>(`/admin/users/${userId}/unlock`, {
+      method: 'PUT',
+    });
+  },
+
+  /**
+   * POST /api/v1/admin/users
+   * Tạo tài khoản mới
+   */
+  createUser: async (data: import('@/types').CreateUserRequest): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/users/{userId}
+   * Lấy chi tiết user
+   */
+  getUserById: async (userId: number): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>(`/admin/users/${userId}`);
+  },
+};
+
+// Cart API
+export const cartAPI = {
+  /**
+   * GET /api/v1/cart/me
+   */
+  getCurrentCart: async (): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>('/cart/me', { method: 'GET' });
+  },
+
+  /**
+   * POST /api/v1/cart/items
+   */
+  addToCart: async (data: { productId: number; quantity: number; color?: string; storage?: string }): Promise<ApiResponse<CartItemResponse>> => {
+    return fetchAPI<CartItemResponse>('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * PUT /api/v1/cart/items/{itemId}
+   */
+  updateCartItem: async (itemId: number, data: number | { quantity?: number }): Promise<ApiResponse<CartItemResponse>> => {
+    const payload = typeof data === 'number' ? { quantity: data } : data;
+    return fetchAPI<CartItemResponse>(`/cart/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/cart/items/{itemId}
+   */
+  removeCartItem: async (itemId: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/cart/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Remove multiple cart items by ids.
+   * Backend does not expose a bulk delete, so perform parallel deletes and aggregate.
+   */
+  removeCartItems: async (itemIds: number[]): Promise<ApiResponse<null[]>> => {
+    try {
+      const results = await Promise.all(
+        itemIds.map((id) => fetchAPI<null>(`/cart/items/${id}`, { method: 'DELETE' }))
+      );
+      return { success: true, data: results.map((r) => r.data ?? null) } as ApiResponse<null[]>;
+    } catch (error) {
+      console.error('Failed to remove multiple cart items:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * DELETE /api/v1/cart/clear
+   */
+  clearCart: async (): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>('/cart/clear', { method: 'DELETE' });
+  },
+
+  /**
+   * POST /api/v1/cart/merge
+   */
+  mergeGuestCart: async (data: { guestCartItems?: { productId: number; quantity: number }[]; guestCartId?: string }): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>('/cart/merge', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Guest Cart API (Redis-backed)
+export const guestCartAPI = {
+  /**
+   * POST /api/v1/guest-cart
+   */
+  createGuestCart: async (): Promise<ApiResponse<{ guestCartId: string }>> => {
+    return fetchAPI<{ guestCartId: string }>('/guest-cart', { method: 'POST' });
+  },
+
+  /**
+   * PUT /api/v1/guest-cart/{guestCartId}
+   */
+  replaceGuestCart: async (
+    guestCartId: string,
+    data: { items: { productId: number; quantity: number }[] }
+  ): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/guest-cart/{guestCartId}
+   */
+  deleteGuestCart: async (guestCartId: string): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Promotion API (frontend helpers)
+export const promotionAPI = {
+  /**
+   * GET /api/v1/promotions/available?orderTotal={orderTotal}
+   */
+  getAvailablePromotions: async (orderTotal: number): Promise<ApiResponse<Promotion[]>> => {
+    return fetchAPI<Promotion[]>(`/promotions/available?orderTotal=${orderTotal}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * GET /api/v1/promotions/calculate?promotionId={id}&orderTotal={orderTotal}
+   */
+  calculateDiscount: async (promotionId: string, orderTotal: number): Promise<ApiResponse<number>> => {
+    return fetchAPI<number>(`/promotions/calculate?promotionId=${encodeURIComponent(promotionId)}&orderTotal=${orderTotal}`, {
+      method: 'GET',
+    });
+  },
+};
+
+// Payment API
+export const paymentAPI = {
+  // GET /api/v1/payments/history?page={page}&size={size}
+  getPaymentHistory: async (page: number = 0, size: number = 10): Promise<ApiResponse<PaymentHistoryResponse>> => {
+    return fetchAPI<PaymentHistoryResponse>(`/payments/history?page=${page}&size=${size}`, {
+      method: 'GET',
+    });
+  },
+
+  // GET /api/v1/payments/vnpay/callback?{params}
+  // Used by the frontend return page to verify/process VNPay result
+  handleVNPayCallback: async (params: Record<string, string>): Promise<ApiResponse<PaymentResponse>> => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchAPI<PaymentResponse>(`/payments/vnpay/callback?${qs}`, {
+      method: 'GET',
+    });
+  },
+
+  // POST /api/v1/payments/vnpay/create
+  createVNPayPayment: async (data: CreatePaymentRequest): Promise<ApiResponse<VNPayPaymentResponse>> => {
+    return fetchAPI<VNPayPaymentResponse>('/payments/vnpay/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+>>>>>>> origin/develop
   },
 };
