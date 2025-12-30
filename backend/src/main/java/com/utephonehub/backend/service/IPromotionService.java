@@ -30,6 +30,9 @@ public interface IPromotionService {
 
     // --- CUSTOMER: APPLY PROMOTION ---
 
+    // Public: Get all active promotions (for homepage/promotions page)
+    List<PromotionResponse> getAllActivePromotions();
+
     // SD: Access Promotion List -> checkAndGetAvailablePromotions()
     // This method filters out promotions that the user can use
     List<PromotionResponse> checkAndGetAvailablePromotions(Double orderTotal);

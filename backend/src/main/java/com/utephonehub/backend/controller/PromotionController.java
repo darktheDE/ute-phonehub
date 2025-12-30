@@ -81,6 +81,13 @@ public class PromotionController {
     // ACTOR: CUSTOMER (Path: /api/v1/promotions)
     // ==========================================
 
+    @GetMapping("/promotions")
+    @Operation(summary = "[Public] Get All Active Promotions - Xem tất cả khuyến mãi đang hoạt động")
+    public ResponseEntity<ApiResponse<List<PromotionResponse>>> getAllActivePromotions() {
+        List<PromotionResponse> response = promotionService.getAllActivePromotions();
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/promotions/available")
     @Operation(summary = "[Customer] Check & Get Available - Lấy DS khuyến mãi hợp lệ")
     public ResponseEntity<ApiResponse<List<PromotionResponse>>> checkAndGetAvailablePromotions(

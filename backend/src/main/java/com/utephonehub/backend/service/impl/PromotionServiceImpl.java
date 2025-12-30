@@ -95,6 +95,18 @@ public class PromotionServiceImpl implements IPromotionService {
         return promotionMapper.toResponseList(promotions);
     }
 
+    // --- PUBLIC: GET ALL ACTIVE ---
+    @Override
+    public List<PromotionResponse> getAllActivePromotions() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Promotion> promotions = promotionRepository.findByEffectiveDateBeforeAndExpirationDateAfter(now, now);
+        
+        return promotions.stream()
+                .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                .map(promotionMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
     // --- 6. CHECK AVAILABLE ---
     @Override
     public List<PromotionResponse> checkAndGetAvailablePromotions(Double orderTotal) {
