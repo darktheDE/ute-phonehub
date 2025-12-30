@@ -18,7 +18,6 @@ import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.enums.OrderStatus;
 import com.utephonehub.backend.enums.PaymentMethod;
 import com.utephonehub.backend.enums.PaymentStatus;
-import com.utephonehub.backend.enums.EPromotionStatus;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ForbiddenException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
@@ -152,51 +151,15 @@ public class OrderServiceImpl implements IOrderService {
         
         // 5. Áp dụng promotion nếu có
         Promotion promotion = null;
-        if (request.getPromotionId() != null && !request.getPromotionId().isEmpty()) {
+        if (request.getPromotionId() != null) {
             try {
-                promotion = promotionRepository.findById(request.getPromotionId())
+                promotion = promotionRepository.findById(String.valueOf(request.getPromotionId()))
                         .orElseThrow(() -> new ResourceNotFoundException("Promotion không tồn tại"));
                 
-                // Validate promotion
-                if (promotion.getStatus() != EPromotionStatus.ACTIVE) {
-                    throw new BadRequestException("Mã giảm giá không hoạt động");
-                }
-                
-                LocalDateTime now = LocalDateTime.now();
-                if (now.isBefore(promotion.getEffectiveDate()) || now.isAfter(promotion.getExpirationDate())) {
-                    throw new BadRequestException("Mã giảm giá chưa có hiệu lực hoặc đã hết hạn");
-                }
-                
-                BigDecimal minOrderValue = BigDecimal.valueOf(promotion.getMinValueToBeApplied() != null ? promotion.getMinValueToBeApplied() : 0);
-                if (totalAmount.compareTo(minOrderValue) < 0) {
-                    throw new BadRequestException("Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã giảm giá");
-                }
-
-                // Calculate discount
-                BigDecimal discountAmount = BigDecimal.ZERO;
-                
-                if (promotion.getPercentDiscount() != null && promotion.getPercentDiscount() > 0) {
-                    BigDecimal percent = BigDecimal.valueOf(promotion.getPercentDiscount());
-                    discountAmount = totalAmount.multiply(percent).divide(BigDecimal.valueOf(100));
-                    
-                    if (promotion.getMaxDiscount() != null && promotion.getMaxDiscount() > 0) {
-                        BigDecimal maxDiscount = BigDecimal.valueOf(promotion.getMaxDiscount());
-                        if (discountAmount.compareTo(maxDiscount) > 0) {
-                            discountAmount = maxDiscount;
-                        }
-                    }
-                } else if (promotion.getFixedAmount() != null && promotion.getFixedAmount() > 0) {
-                    discountAmount = BigDecimal.valueOf(promotion.getFixedAmount());
-                }
-                
-                // Ensure discount doesn't exceed total amount
-                if (discountAmount.compareTo(totalAmount) > 0) {
-                    discountAmount = totalAmount;
-                }
-                
-                totalAmount = totalAmount.subtract(discountAmount);
-                
+                // TODO: Validate promotion còn hiệu lực, đủ điều kiện áp dụng
+                // Tính discount và trừ vào totalAmount (sẽ implement sau)
             } catch (ResourceNotFoundException e) {
+                // Nếu promotion không hợp lệ, bỏ qua và tiếp tục
                 log.warn("Invalid promotionId: {}, error: {}", request.getPromotionId(), e.getMessage());
                 promotion = null;
             }

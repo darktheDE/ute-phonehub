@@ -83,7 +83,7 @@ export interface CreateOrderRequest {
   shippingUnit?: string;
   note?: string;
   paymentMethod: 'COD' | 'BANK_TRANSFER' | 'VNPAY';
-  promotionId?: string;
+  promotionId?: number;
   items: OrderItemRequest[];
 }
 
