@@ -1026,6 +1026,5 @@ export const paymentAPI = {
       method: 'POST',
       body: JSON.stringify(data),
     });
->>>>>>> origin/develop
   },
 };
