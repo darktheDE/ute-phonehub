@@ -266,6 +266,9 @@ function CheckoutContent() {
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(
     null
   );
+  const [selectedFreeshippingId, setSelectedFreeshippingId] = useState<
+    string | null
+  >(null);
   const [promotionDiscount, setPromotionDiscount] = useState(0);
   const [promotionTitle, setPromotionTitle] = useState<string | null>(null);
 
@@ -275,10 +278,20 @@ function CheckoutContent() {
     if (voucherParam) {
       try {
         const voucher = JSON.parse(decodeURIComponent(voucherParam));
-        if (voucher && voucher.id) {
-          setSelectedPromotionId(String(voucher.id));
-          setPromotionDiscount(Number(voucher.discount) || 0);
-          setPromotionTitle(voucher.code || null);
+        // New format: { discountId, discountCode, freeshipId, freeshipCode, totalDiscount }
+        if (voucher) {
+          if (voucher.discountId) {
+            setSelectedPromotionId(String(voucher.discountId));
+          }
+          if (voucher.freeshipId) {
+            setSelectedFreeshippingId(String(voucher.freeshipId));
+          }
+          setPromotionDiscount(Number(voucher.totalDiscount) || 0);
+          // Display both codes if available
+          const codes = [voucher.discountCode, voucher.freeshipCode]
+            .filter(Boolean)
+            .join(" + ");
+          setPromotionTitle(codes || null);
         }
       } catch (e) {
         console.warn("Failed to parse voucher param:", e);
@@ -396,6 +409,7 @@ function CheckoutContent() {
         note: note.trim() || undefined,
         paymentMethod,
         promotionId: selectedPromotionId || undefined,
+        freeshippingPromotionId: selectedFreeshippingId || undefined,
         items: itemsForOrder.map((item: any) => ({
           productId: item.productId,
           quantity: item.quantity,

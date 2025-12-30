@@ -34,6 +34,10 @@ export type {
   OrderResponse,
   OrderStatus,
   OrderItem,
+  OrderItemRequest,
+  CreateOrderRequest,
+  CreateOrderResponse,
+  PaymentMethod,
   RecentOrderResponse,
 } from "./order";
 

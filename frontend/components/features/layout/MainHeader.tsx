@@ -68,7 +68,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             </Link>
 
             <Link
-              href="/checkout"
+              href="/cart"
               className="flex items-center gap-1 text-primary-foreground hover:opacity-80 transition-opacity relative"
             >
               <ShoppingCart className="w-5 h-5" />

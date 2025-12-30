@@ -146,12 +146,15 @@ async function fetchAPI<T>(
         url,
         status: response.status,
         statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        contentType,
         data,
       });
 
       const errorMessage =
         data?.message ||
         data?.error ||
+        (typeof data === "string" ? data : null) ||
         `HTTP error! status: ${response.status}`;
       throw new Error(errorMessage);
     }
@@ -308,6 +311,16 @@ export const categoryAPI = {
 
 // Order API endpoints
 export const orderAPI = {
+  // Create new order
+  createOrder: async (
+    orderData: CreateOrderRequest
+  ): Promise<ApiResponse<CreateOrderResponse>> => {
+    return fetchAPI<CreateOrderResponse>("/orders", {
+      method: "POST",
+      body: JSON.stringify(orderData),
+    });
+  },
+
   // Get order by ID
   getById: async (orderId: number): Promise<ApiResponse<OrderResponse>> => {
     return fetchAPI<OrderResponse>(`/orders/${orderId}`, {
@@ -715,9 +728,7 @@ export const dashboardAPI = {
    * Lấy dữ liệu biểu đồ tròn về trạng thái đơn hàng
    * Trả về labels, values, percentages, totalOrders
    */
-  getOrderStatusChart: async (): Promise<
-    ApiResponse<OrderStatusChartData>
-  > => {
+  getOrderStatusChart: async (): Promise<ApiResponse<OrderStatusChartData>> => {
     return fetchAPI<OrderStatusChartData>(
       "/admin/dashboard/order-status-chart",
       {
@@ -747,10 +758,15 @@ export const dashboardAPI = {
    * Lấy danh sách Top sản phẩm bán chạy nhất
    * @param limit - Số lượng sản phẩm cần lấy (mặc định: 5)
    */
-  getTopProducts: async (limit: number = 5): Promise<ApiResponse<TopProduct[]>> => {
-    return fetchAPI<TopProduct[]>(`/admin/dashboard/top-products?limit=${limit}`, {
-      method: "GET",
-    });
+  getTopProducts: async (
+    limit: number = 5
+  ): Promise<ApiResponse<TopProduct[]>> => {
+    return fetchAPI<TopProduct[]>(
+      `/admin/dashboard/top-products?limit=${limit}`,
+      {
+        method: "GET",
+      }
+    );
   },
 
   /**
@@ -758,10 +774,15 @@ export const dashboardAPI = {
    * Lấy danh sách đơn hàng gần đây
    * @param limit - Số lượng đơn hàng cần lấy (mặc định: 10)
    */
-  getRecentOrders: async (limit: number = 10): Promise<ApiResponse<RecentOrder[]>> => {
-    return fetchAPI<RecentOrder[]>(`/admin/dashboard/recent-orders?limit=${limit}`, {
-      method: "GET",
-    });
+  getRecentOrders: async (
+    limit: number = 10
+  ): Promise<ApiResponse<RecentOrder[]>> => {
+    return fetchAPI<RecentOrder[]>(
+      `/admin/dashboard/recent-orders?limit=${limit}`,
+      {
+        method: "GET",
+      }
+    );
   },
 
   /**

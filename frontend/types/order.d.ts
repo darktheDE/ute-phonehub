@@ -74,6 +74,8 @@ export interface RecentOrderResponse {
 /**
  * Create Order Request & Response types
  */
+export type PaymentMethod = "COD" | "BANK_TRANSFER" | "VNPAY";
+
 export interface OrderItemRequest {
   productId: number;
   quantity: number;
@@ -87,8 +89,9 @@ export interface CreateOrderRequest {
   shippingFee?: number;
   shippingUnit?: string;
   note?: string;
-  paymentMethod: "COD" | "BANK_TRANSFER" | "VNPAY";
-  promotionId?: string; // UUID from backend Promotion entity
+  paymentMethod: PaymentMethod;
+  promotionId?: string; // UUID cho DISCOUNT/VOUCHER promotion
+  freeshippingPromotionId?: string; // UUID cho FREESHIP promotion
   items: OrderItemRequest[];
 }
 
@@ -96,7 +99,7 @@ export interface CreateOrderResponse {
   orderId: number;
   orderCode: string;
   status: OrderStatus;
-  paymentMethod: "COD" | "BANK_TRANSFER" | "VNPAY";
+  paymentMethod: PaymentMethod;
   totalAmount: number;
   createdAt: string;
   message?: string;
