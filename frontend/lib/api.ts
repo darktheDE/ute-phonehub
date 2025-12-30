@@ -29,10 +29,23 @@ import type {
   VNPayPaymentResponse,
   CreatePaymentRequest,
   PaymentHistoryResponse,
+  DashboardOverview,
+  RevenueChartData,
+  OrderStatusChartData,
+  UserRegistrationChartData,
+  TopProduct,
+  RecentOrder,
+  LowStockProduct,
+  DashboardPeriod,
+  RegistrationPeriod,
 } from "@/types";
 
 // Cart & Promotion API response types
-import type { CartResponseData, CartItemResponse, Promotion } from '@/types/api-cart';
+import type {
+  CartResponseData,
+  CartItemResponse,
+  Promotion,
+} from "@/types/api-cart";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
@@ -515,15 +528,20 @@ export const cartAPI = {
    * GET /api/v1/cart/me
    */
   getCurrentCart: async (): Promise<ApiResponse<CartResponseData>> => {
-    return fetchAPI<CartResponseData>('/cart/me', { method: 'GET' });
+    return fetchAPI<CartResponseData>("/cart/me", { method: "GET" });
   },
 
   /**
    * POST /api/v1/cart/items
    */
-  addToCart: async (data: { productId: number; quantity: number; color?: string; storage?: string }): Promise<ApiResponse<CartItemResponse>> => {
-    return fetchAPI<CartItemResponse>('/cart/items', {
-      method: 'POST',
+  addToCart: async (data: {
+    productId: number;
+    quantity: number;
+    color?: string;
+    storage?: string;
+  }): Promise<ApiResponse<CartItemResponse>> => {
+    return fetchAPI<CartItemResponse>("/cart/items", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
@@ -531,10 +549,13 @@ export const cartAPI = {
   /**
    * PUT /api/v1/cart/items/{itemId}
    */
-  updateCartItem: async (itemId: number, data: number | { quantity?: number }): Promise<ApiResponse<CartItemResponse>> => {
-    const payload = typeof data === 'number' ? { quantity: data } : data;
+  updateCartItem: async (
+    itemId: number,
+    data: number | { quantity?: number }
+  ): Promise<ApiResponse<CartItemResponse>> => {
+    const payload = typeof data === "number" ? { quantity: data } : data;
     return fetchAPI<CartItemResponse>(`/cart/items/${itemId}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(payload),
     });
   },
@@ -544,7 +565,7 @@ export const cartAPI = {
    */
   removeCartItem: async (itemId: number): Promise<ApiResponse<null>> => {
     return fetchAPI<null>(`/cart/items/${itemId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   },
 
@@ -555,11 +576,16 @@ export const cartAPI = {
   removeCartItems: async (itemIds: number[]): Promise<ApiResponse<null[]>> => {
     try {
       const results = await Promise.all(
-        itemIds.map((id) => fetchAPI<null>(`/cart/items/${id}`, { method: 'DELETE' }))
+        itemIds.map((id) =>
+          fetchAPI<null>(`/cart/items/${id}`, { method: "DELETE" })
+        )
       );
-      return { success: true, data: results.map((r) => r.data ?? null) } as ApiResponse<null[]>;
+      return {
+        success: true,
+        data: results.map((r) => r.data ?? null),
+      } as ApiResponse<null[]>;
     } catch (error) {
-      console.error('Failed to remove multiple cart items:', error);
+      console.error("Failed to remove multiple cart items:", error);
       throw error;
     }
   },
@@ -568,15 +594,18 @@ export const cartAPI = {
    * DELETE /api/v1/cart/clear
    */
   clearCart: async (): Promise<ApiResponse<null>> => {
-    return fetchAPI<null>('/cart/clear', { method: 'DELETE' });
+    return fetchAPI<null>("/cart/clear", { method: "DELETE" });
   },
 
   /**
    * POST /api/v1/cart/merge
    */
-  mergeGuestCart: async (data: { guestCartItems?: { productId: number; quantity: number }[]; guestCartId?: string }): Promise<ApiResponse<CartResponseData>> => {
-    return fetchAPI<CartResponseData>('/cart/merge', {
-      method: 'POST',
+  mergeGuestCart: async (data: {
+    guestCartItems?: { productId: number; quantity: number }[];
+    guestCartId?: string;
+  }): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>("/cart/merge", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
@@ -588,7 +617,7 @@ export const guestCartAPI = {
    * POST /api/v1/guest-cart
    */
   createGuestCart: async (): Promise<ApiResponse<{ guestCartId: string }>> => {
-    return fetchAPI<{ guestCartId: string }>('/guest-cart', { method: 'POST' });
+    return fetchAPI<{ guestCartId: string }>("/guest-cart", { method: "POST" });
   },
 
   /**
@@ -599,7 +628,7 @@ export const guestCartAPI = {
     data: { items: { productId: number; quantity: number }[] }
   ): Promise<ApiResponse<null>> => {
     return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     });
   },
@@ -609,7 +638,7 @@ export const guestCartAPI = {
    */
   deleteGuestCart: async (guestCartId: string): Promise<ApiResponse<null>> => {
     return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   },
 };
@@ -617,26 +646,137 @@ export const guestCartAPI = {
 // Payment API
 export const paymentAPI = {
   // GET /api/v1/payments/history?page={page}&size={size}
-  getPaymentHistory: async (page: number = 0, size: number = 10): Promise<ApiResponse<PaymentHistoryResponse>> => {
-    return fetchAPI<PaymentHistoryResponse>(`/payments/history?page=${page}&size=${size}`, {
-      method: 'GET',
-    });
+  getPaymentHistory: async (
+    page: number = 0,
+    size: number = 10
+  ): Promise<ApiResponse<PaymentHistoryResponse>> => {
+    return fetchAPI<PaymentHistoryResponse>(
+      `/payments/history?page=${page}&size=${size}`,
+      {
+        method: "GET",
+      }
+    );
   },
 
   // GET /api/v1/payments/vnpay/callback?{params}
   // Used by the frontend return page to verify/process VNPay result
-  handleVNPayCallback: async (params: Record<string, string>): Promise<ApiResponse<PaymentResponse>> => {
+  handleVNPayCallback: async (
+    params: Record<string, string>
+  ): Promise<ApiResponse<PaymentResponse>> => {
     const qs = new URLSearchParams(params).toString();
     return fetchAPI<PaymentResponse>(`/payments/vnpay/callback?${qs}`, {
-      method: 'GET',
+      method: "GET",
     });
   },
 
   // POST /api/v1/payments/vnpay/create
-  createVNPayPayment: async (data: CreatePaymentRequest): Promise<ApiResponse<VNPayPaymentResponse>> => {
-    return fetchAPI<VNPayPaymentResponse>('/payments/vnpay/create', {
-      method: 'POST',
+  createVNPayPayment: async (
+    data: CreatePaymentRequest
+  ): Promise<ApiResponse<VNPayPaymentResponse>> => {
+    return fetchAPI<VNPayPaymentResponse>("/payments/vnpay/create", {
+      method: "POST",
       body: JSON.stringify(data),
     });
+  },
+};
+
+// ==================== DASHBOARD API ====================
+// Module M10.2 - View Dashboard
+// Comprehensive Dashboard endpoints for admin analytics
+export const dashboardAPI = {
+  /**
+   * GET /api/v1/admin/dashboard/overview
+   * Lấy 4 chỉ số tổng quan: Tổng doanh thu, Tổng đơn hàng, Tổng sản phẩm, Tổng người dùng
+   */
+  getOverview: async (): Promise<ApiResponse<DashboardOverview>> => {
+    return fetchAPI<DashboardOverview>("/admin/dashboard/overview", {
+      method: "GET",
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/revenue-chart?period=THIRTY_DAYS
+   * Lấy dữ liệu biểu đồ doanh thu theo khoảng thời gian
+   * @param period - 'SEVEN_DAYS' | 'THIRTY_DAYS' | 'THREE_MONTHS'
+   */
+  getRevenueChart: async (
+    period: DashboardPeriod = "THIRTY_DAYS"
+  ): Promise<ApiResponse<RevenueChartData>> => {
+    return fetchAPI<RevenueChartData>(
+      `/admin/dashboard/revenue-chart?period=${period}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/order-status-chart
+   * Lấy dữ liệu biểu đồ tròn về trạng thái đơn hàng
+   * Trả về labels, values, percentages, totalOrders
+   */
+  getOrderStatusChart: async (): Promise<
+    ApiResponse<OrderStatusChartData>
+  > => {
+    return fetchAPI<OrderStatusChartData>(
+      "/admin/dashboard/order-status-chart",
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/user-registration-chart?period=MONTHLY
+   * Lấy dữ liệu biểu đồ cột về người dùng đăng ký mới
+   * @param period - 'WEEKLY' | 'MONTHLY'
+   */
+  getUserRegistrationChart: async (
+    period: RegistrationPeriod = "WEEKLY"
+  ): Promise<ApiResponse<UserRegistrationChartData>> => {
+    return fetchAPI<UserRegistrationChartData>(
+      `/admin/dashboard/user-registration-chart?period=${period}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/top-products?limit=5
+   * Lấy danh sách Top sản phẩm bán chạy nhất
+   * @param limit - Số lượng sản phẩm cần lấy (mặc định: 5)
+   */
+  getTopProducts: async (limit: number = 5): Promise<ApiResponse<TopProduct[]>> => {
+    return fetchAPI<TopProduct[]>(`/admin/dashboard/top-products?limit=${limit}`, {
+      method: "GET",
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/recent-orders?limit=10
+   * Lấy danh sách đơn hàng gần đây
+   * @param limit - Số lượng đơn hàng cần lấy (mặc định: 10)
+   */
+  getRecentOrders: async (limit: number = 10): Promise<ApiResponse<RecentOrder[]>> => {
+    return fetchAPI<RecentOrder[]>(`/admin/dashboard/recent-orders?limit=${limit}`, {
+      method: "GET",
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/low-stock-products?threshold=10
+   * Lấy danh sách sản phẩm sắp hết hàng
+   * @param threshold - Ngưỡng tồn kho cảnh báo (mặc định: 10)
+   */
+  getLowStockProducts: async (
+    threshold: number = 10
+  ): Promise<ApiResponse<LowStockProduct[]>> => {
+    return fetchAPI<LowStockProduct[]>(
+      `/admin/dashboard/low-stock-products?threshold=${threshold}`,
+      {
+        method: "GET",
+      }
+    );
   },
 };
