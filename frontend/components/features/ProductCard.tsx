@@ -44,11 +44,7 @@ export function ProductCard({
   const handleBuyNow = async (e?: any) => {
     e?.stopPropagation?.();
     await handleAddToCart();
-    try {
-      router.push('/checkout');
-    } catch {
-      // noop
-    }
+    router.push('/checkout');
   };
 
   const handleAddToCart = async () => {
