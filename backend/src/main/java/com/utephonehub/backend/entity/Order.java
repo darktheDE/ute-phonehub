@@ -67,6 +67,10 @@ public class Order {
     @JoinColumn(name = "promotion_id")
     private Promotion promotion;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "freeshipping_promotion_id")
+    private Promotion freeshippingPromotion;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

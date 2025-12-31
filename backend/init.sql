@@ -297,17 +297,19 @@ CREATE TABLE IF NOT EXISTS promotions (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     percent_discount DOUBLE PRECISION,
+    fixed_amount DOUBLE PRECISION,
+    max_discount DOUBLE PRECISION,
     min_value_to_be_applied DOUBLE PRECISION,
     status VARCHAR(20) NOT NULL,
     template_id VARCHAR(255) NOT NULL REFERENCES promotion_templates(id) ON DELETE RESTRICT
 );
 
 -- Sample data: promotions
-INSERT INTO promotions (id, effective_date, expiration_date, title, description, percent_discount, min_value_to_be_applied, status, template_id) VALUES
-('promo-001', NOW() - INTERVAL '10 days', NOW() + INTERVAL '20 days', 'Giảm 10% cho khách hàng mới', 'Áp dụng cho đơn hàng đầu tiên', 10.0, 5000000.0, 'ACTIVE', 'template-001'),
-('promo-002', NOW() - INTERVAL '5 days', NOW() + INTERVAL '25 days', 'Miễn phí vận chuyển', 'Miễn phí ship cho đơn từ 500K', NULL, 500000.0, 'ACTIVE', 'template-002'),
-('promo-003', NOW() - INTERVAL '1 day', NOW() + INTERVAL '29 days', 'Voucher 500K', 'Giảm 500K cho đơn từ 10 triệu', NULL, 10000000.0, 'ACTIVE', 'template-001'),
-('promo-004', NOW() - INTERVAL '30 days', NOW() - INTERVAL '1 day', 'Khuyến mãi đã hết hạn', 'Mã đã hết hạn', 5.0, 1000000.0, 'EXPIRED', 'template-001');
+INSERT INTO promotions (id, effective_date, expiration_date, title, description, percent_discount, fixed_amount, max_discount, min_value_to_be_applied, status, template_id) VALUES
+('promo-001', NOW() - INTERVAL '10 days', NOW() + INTERVAL '20 days', 'Giảm 10% cho khách hàng mới', 'Áp dụng cho đơn hàng đầu tiên', 10.0, NULL, 1000000.0, 5000000.0, 'ACTIVE', 'template-001'),
+('promo-002', NOW() - INTERVAL '5 days', NOW() + INTERVAL '25 days', 'Miễn phí vận chuyển', 'Miễn phí ship cho đơn từ 500K', NULL, 30000.0, NULL, 500000.0, 'ACTIVE', 'template-002'),
+('promo-003', NOW() - INTERVAL '1 day', NOW() + INTERVAL '29 days', 'Voucher 500K', 'Giảm 500K cho đơn từ 10 triệu', NULL, 500000.0, NULL, 10000000.0, 'ACTIVE', 'template-003'),
+('promo-004', NOW() - INTERVAL '30 days', NOW() - INTERVAL '1 day', 'Khuyến mãi đã hết hạn', 'Mã đã hết hạn', 5.0, NULL, NULL, 1000000.0, 'EXPIRED', 'template-001');
 
 -- Table: promotion_targets
 CREATE TABLE IF NOT EXISTS promotion_targets (
@@ -345,40 +347,41 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method VARCHAR(20) NOT NULL,
     total_amount DECIMAL(15,2) NOT NULL,
     promotion_id VARCHAR(255) REFERENCES promotions(id) ON DELETE SET NULL,
+    freeshipping_promotion_id VARCHAR(255) REFERENCES promotions(id) ON DELETE SET NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Sample data: orders (20 đơn hàng phân bố 7 ngày - có created_at và updated_at động)
-INSERT INTO orders (order_code, user_id, email, recipient_name, phone_number, shipping_address, shipping_fee, shipping_unit, note, status, payment_method, total_amount, promotion_id, created_at, updated_at) VALUES
+INSERT INTO orders (order_code, user_id, email, recipient_name, phone_number, shipping_address, shipping_fee, shipping_unit, note, status, payment_method, total_amount, promotion_id, freeshipping_promotion_id, created_at, updated_at) VALUES
 -- 7 ngày trước (3 orders - 2 DELIVERED, 1 CANCELLED)
-('ORD-001', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', 30000.00, 'GHN', NULL, 'DELIVERED', 'COD', 32990000.00, NULL, NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days'),
-('ORD-002', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', 25000.00, 'GHTK', NULL, 'DELIVERED', 'VNPAY', 29990000.00, 'promo-001', NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days'),
-('ORD-003', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', 30000.00, 'GHN', NULL, 'CANCELLED', 'COD', 17990000.00, NULL, NOW() - INTERVAL '7 days', NOW() - INTERVAL '7 days'),
+('ORD-001', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', 30000.00, 'GHN', NULL, 'DELIVERED', 'COD', 32990000.00, NULL, NULL, NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days'),
+('ORD-002', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', 25000.00, 'GHTK', NULL, 'DELIVERED', 'VNPAY', 29990000.00, 'promo-001', NULL, NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days'),
+('ORD-003', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', 30000.00, 'GHN', NULL, 'CANCELLED', 'COD', 17990000.00, NULL, NULL, NOW() - INTERVAL '7 days', NOW() - INTERVAL '7 days'),
 -- 6 ngày trước (3 orders - all DELIVERED)
-('ORD-004', 5, 'duc.hoang@gmail.com', 'Hoàng Văn Đức', '0945678901', '654 Đinh Tiên Hoàng, TP.HCM', 35000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 42990000.00, NULL, NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days'),
-('ORD-005', 6, 'lan.nguyen@gmail.com', 'Nguyễn Thị Lan', '0956789012', '111 Nguyễn Trãi, TP.HCM', 30000.00, 'GHTK', NULL, 'DELIVERED', 'COD', 35990000.00, 'promo-002', NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days'),
-('ORD-006', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', 25000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 18000000.00, NULL, NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days'),
+('ORD-004', 5, 'duc.hoang@gmail.com', 'Hoàng Văn Đức', '0945678901', '654 Đinh Tiên Hoàng, TP.HCM', 35000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 42990000.00, NULL, NULL, NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days'),
+('ORD-005', 6, 'lan.nguyen@gmail.com', 'Nguyễn Thị Lan', '0956789012', '111 Nguyễn Trãi, TP.HCM', 30000.00, 'GHTK', NULL, 'DELIVERED', 'COD', 35990000.00, 'promo-002', NULL, NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days'),
+('ORD-006', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', 25000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 18000000.00, NULL, NULL, NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days'),
 -- 5 ngày trước (3 orders - all DELIVERED)
-('ORD-007', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', 30000.00, 'GHN', NULL, 'DELIVERED', 'COD', 32990000.00, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days'),
-('ORD-008', 7, 'hung.vo@gmail.com', 'Võ Văn Hùng', '0967890123', '222 Lý Thường Kiệt, TP.HCM', 25000.00, 'GHTK', NULL, 'DELIVERED', 'VNPAY', 25000000.00, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days'),
-('ORD-009', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', 30000.00, 'GHN', NULL, 'DELIVERED', 'COD', 29990000.00, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days'),
+('ORD-007', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', 30000.00, 'GHN', NULL, 'DELIVERED', 'COD', 32990000.00, NULL, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days'),
+('ORD-008', 7, 'hung.vo@gmail.com', 'Võ Văn Hùng', '0967890123', '222 Lý Thường Kiệt, TP.HCM', 25000.00, 'GHTK', NULL, 'DELIVERED', 'VNPAY', 25000000.00, NULL, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days'),
+('ORD-009', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', 30000.00, 'GHN', NULL, 'DELIVERED', 'COD', 29990000.00, NULL, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days'),
 -- 4 ngày trước (3 orders - all DELIVERED)
-('ORD-010', 8, 'hoa.bui@gmail.com', 'Bùi Thị Hoa', '0978901234', '333 Hai Bà Trưng, TP.HCM', 25000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 17990000.00, NULL, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
-('ORD-011', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', 35000.00, 'GHTK', NULL, 'DELIVERED', 'COD', 42990000.00, NULL, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
-('ORD-012', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', 30000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 35990000.00, NULL, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
+('ORD-010', 8, 'hoa.bui@gmail.com', 'Bùi Thị Hoa', '0978901234', '333 Hai Bà Trưng, TP.HCM', 25000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 17990000.00, NULL, NULL, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
+('ORD-011', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', 35000.00, 'GHTK', NULL, 'DELIVERED', 'COD', 42990000.00, NULL, NULL, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
+('ORD-012', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', 30000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 35990000.00, NULL, NULL, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
 -- 3 ngày trước (3 orders - 2 DELIVERED, 1 SHIPPING)
-('ORD-013', 9, 'tai.dang@gmail.com', 'Đặng Văn Tài', '0989012345', '444 Điện Biên Phủ, TP.HCM', 25000.00, 'GHN', NULL, 'DELIVERED', 'COD', 25000000.00, NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '1 day'),
-('ORD-014', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', 30000.00, 'GHTK', NULL, 'DELIVERED', 'VNPAY', 18000000.00, NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '1 day'),
-('ORD-015', 10, 'kim.ly@gmail.com', 'Lý Thị Kim', '0990123456', '555 Cách Mạng Tháng 8, TP.HCM', 30000.00, 'GHN', NULL, 'SHIPPING', 'COD', 32990000.00, NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days'),
+('ORD-013', 9, 'tai.dang@gmail.com', 'Đặng Văn Tài', '0989012345', '444 Điện Biên Phủ, TP.HCM', 25000.00, 'GHN', NULL, 'DELIVERED', 'COD', 25000000.00, NULL, NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '1 day'),
+('ORD-014', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', 30000.00, 'GHTK', NULL, 'DELIVERED', 'VNPAY', 18000000.00, NULL, NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '1 day'),
+('ORD-015', 10, 'kim.ly@gmail.com', 'Lý Thị Kim', '0990123456', '555 Cách Mạng Tháng 8, TP.HCM', 30000.00, 'GHN', NULL, 'SHIPPING', 'COD', 32990000.00, NULL, NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days'),
 -- 2 ngày trước (2 orders - 1 DELIVERED, 1 CONFIRMED)
-('ORD-016', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', 25000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 29990000.00, NULL, NOW() - INTERVAL '2 days', NOW()),
-('ORD-017', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', 30000.00, 'GHTK', NULL, 'CONFIRMED', 'COD', 17990000.00, NULL, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+('ORD-016', 2, 'huong.tran@gmail.com', 'Trần Thị Hương', '0912345678', '123 Lê Lợi, TP.HCM', 25000.00, 'GHN', NULL, 'DELIVERED', 'VNPAY', 29990000.00, NULL, NULL, NOW() - INTERVAL '2 days', NOW()),
+('ORD-017', 3, 'nam.le@gmail.com', 'Lê Văn Nam', '0923456789', '789 Trần Hưng Đạo, TP.HCM', 30000.00, 'GHTK', NULL, 'CONFIRMED', 'COD', 17990000.00, NULL, NULL, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
 -- 1 ngày trước (2 orders - 1 PENDING, 1 CONFIRMED)
-('ORD-018', 11, 'long.truong@gmail.com', 'Trương Văn Long', '0901234568', '666 Võ Thị Sáu, TP.HCM', 35000.00, 'GHN', NULL, 'PENDING', 'VNPAY', 42990000.00, NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
-('ORD-019', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', 30000.00, 'GHN', NULL, 'CONFIRMED', 'COD', 35990000.00, NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+('ORD-018', 11, 'long.truong@gmail.com', 'Trương Văn Long', '0901234568', '666 Võ Thị Sáu, TP.HCM', 35000.00, 'GHN', NULL, 'PENDING', 'VNPAY', 42990000.00, NULL, NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+('ORD-019', 4, 'mai.pham@gmail.com', 'Phạm Thị Mai', '0934567890', '321 Võ Văn Tần, TP.HCM', 30000.00, 'GHN', NULL, 'CONFIRMED', 'COD', 35990000.00, NULL, NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
 -- Hôm nay (1 order - PENDING)
-('ORD-020', 12, 'nga.phan@gmail.com', 'Phan Thị Nga', '0912345679', '777 Phan Xích Long, TP.HCM', 25000.00, 'GHTK', NULL, 'PENDING', 'VNPAY', 25000000.00, NULL, NOW(), NOW());
+('ORD-020', 12, 'nga.phan@gmail.com', 'Phan Thị Nga', '0912345679', '777 Phan Xích Long, TP.HCM', 25000.00, 'GHTK', NULL, 'PENDING', 'VNPAY', 25000000.00, NULL, NULL, NOW(), NOW());
 
 -- Table: order_items
 CREATE TABLE IF NOT EXISTS order_items (

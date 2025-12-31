@@ -1,17 +1,19 @@
-'use client';
+"use client";
 
 import {
   HeroBanner,
   FeaturesSection,
   FlashSaleSection,
   FeaturedProducts,
-} from '@/components/features';
+  PromotionsSection,
+} from "@/components/features";
 
 export default function HomePage() {
   return (
     <>
       <HeroBanner />
       <FeaturesSection />
+      <PromotionsSection />
       <FlashSaleSection />
       <FeaturedProducts />
     </>
