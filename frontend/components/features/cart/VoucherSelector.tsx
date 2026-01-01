@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Tag, X, ChevronRight, Ticket, Check, Sparkles } from "lucide-react";
-import { promotionAPI } from "@/lib/api";
-import { formatPrice } from "@/lib/utils";
-import type { Promotion } from "@/types/api-cart";
-import { toast } from "sonner";
+import { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Tag, X, ChevronRight, Ticket, Check, Sparkles } from 'lucide-react';
+import { promotionAPI } from '@/lib/api';
+import { formatPrice } from '@/lib/utils';
+import type { Promotion } from '@/types/api-cart';
+import { toast } from 'sonner';
 
 interface VoucherSelectorProps {
   orderTotal: number;
@@ -48,6 +48,8 @@ export function VoucherSelector({
     return type === "FREESHIP" || type === "FREE_SHIPPING";
   });
 
+  const lastCalculatedKeyRef = useRef<string>('');
+
   useEffect(() => {
     if (showVoucherList && availableVouchers.length === 0) {
       loadAvailableVouchers();
@@ -87,6 +89,48 @@ export function VoucherSelector({
       return 0;
     }
   };
+
+  // Auto re-calculate discount when order total changes while a voucher is applied.
+  // This prevents the user from having to remove + re-apply the voucher when they add/remove selected items.
+  useEffect(() => {
+    if (!currentVoucher) return;
+
+    const promotionId = String(currentVoucher.id || currentVoucher.code || currentVoucher.templateCode || '');
+    if (!promotionId) return;
+
+    // If there's nothing selected, keep voucher but discount becomes 0.
+    if (!Number.isFinite(orderTotal) || orderTotal <= 0) {
+      const key = `${promotionId}:0`;
+      if (lastCalculatedKeyRef.current !== key) {
+        lastCalculatedKeyRef.current = key;
+        onApplyVoucher(currentVoucher, 0);
+      }
+      return;
+    }
+
+    const key = `${promotionId}:${orderTotal}`;
+    if (lastCalculatedKeyRef.current === key) return;
+
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const resp = await promotionAPI.calculateDiscount(promotionId, orderTotal);
+        if (cancelled) return;
+
+        const nextDiscount = resp.success && typeof resp.data === 'number' ? resp.data : 0;
+        lastCalculatedKeyRef.current = key;
+        onApplyVoucher(currentVoucher, nextDiscount);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Failed to auto-recalculate discount:', error);
+      }
+    }, 200);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [currentVoucher, orderTotal, onApplyVoucher]);
 
   const canApplyVoucher = (voucher: Promotion): boolean => {
     const minValue =

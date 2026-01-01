@@ -115,6 +115,7 @@ export function ProductTable({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(() => new Set());
 
   // Debounce search
   const handleSearchChange = (value: string) => {
@@ -275,12 +276,21 @@ export function ProductTable({
                 <TableRow key={product.id}>
                   <TableCell>
                     <div className="relative h-12 w-12 overflow-hidden rounded-md border">
-                      {product.thumbnailUrl ? (
+                      {product.thumbnailUrl && !brokenImageIds.has(product.id) ? (
                         <Image
                           src={product.thumbnailUrl}
                           alt={product.name}
                           fill
                           className="object-cover"
+                          sizes="48px"
+                          unoptimized={/^https?:\/\//i.test(product.thumbnailUrl)}
+                          onError={() => {
+                            setBrokenImageIds((prev) => {
+                              const next = new Set(prev);
+                              next.add(product.id);
+                              return next;
+                            });
+                          }}
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-muted text-xs text-muted-foreground">

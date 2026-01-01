@@ -79,8 +79,8 @@ export function CartSummary({
   const finalTotal = hasSelection ? Math.max(0, subtotal - voucherDiscount) : 0;
 
   const mainButtonLabel = hasSelection
-    ? `Mua ngay (${selectedIds.length})`
-    : "Mua ngay";
+    ? `Mua đã chọn (${selectedIds.length})`
+    : 'Mua đã chọn';
 
   const mainButtonOnClick = onBuySelected ?? onCheckout;
   const mainButtonDisabled = !hasSelection;
@@ -200,14 +200,26 @@ export function CartSummary({
             </div>
           </div>
 
-          <Button
-            onClick={mainButtonOnClick}
-            disabled={mainButtonDisabled}
-            className="w-full"
-            size="lg"
-          >
-            {mainButtonLabel}
-          </Button>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Button
+              onClick={mainButtonOnClick}
+              disabled={mainButtonDisabled}
+              className="w-full"
+              size="lg"
+            >
+              {mainButtonLabel}
+            </Button>
+
+            <Button
+              onClick={onCheckout}
+              disabled={!Array.isArray(items) || items.length === 0}
+              className="w-full"
+              size="lg"
+              variant="outline"
+            >
+              Mua tất cả
+            </Button>
+          </div>
 
           {hasSelection && (
             <p className="text-xs text-center text-muted-foreground"></p>

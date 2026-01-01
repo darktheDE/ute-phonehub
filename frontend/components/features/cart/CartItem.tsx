@@ -27,6 +27,9 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
   const [imageError, setImageError] = useState(false);
   const { isAuthenticated } = useAuth();
 
+  const isRemoteImage =
+    typeof item.productImage === 'string' && /^(https?:)?\/\//i.test(item.productImage.trim());
+
   const isValidImageSrc = (src: unknown) => {
     if (!src || typeof src !== 'string') return false;
     const s = src.trim();
@@ -200,25 +203,29 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
   return (
     <Card className="mb-4 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-transparent hover:border-l-primary">
       <CardContent className="p-6 bg-gradient-to-r from-white to-gray-50/30">
-        <div className="flex items-center space-x-6">
-          <div>
-            <input
-              type="checkbox"
-              checked={!!(typeof selected !== 'undefined' ? selected : false)}
-              onChange={(e) => onSelectChange && onSelectChange(item.id, e.target.checked)}
-              className="h-4 w-4 text-primary border-gray-300 rounded"
-              aria-label={`Chọn sản phẩm ${item.productName}`}
-            />
-          </div>
-          <div className="relative w-28 h-28 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 flex items-center justify-center shadow-sm border border-gray-200">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div>
+              <input
+                type="checkbox"
+                checked={!!(typeof selected !== 'undefined' ? selected : false)}
+                onChange={(e) => onSelectChange && onSelectChange(item.id, e.target.checked)}
+                className="h-4 w-4 text-primary border-gray-300 rounded"
+                aria-label={`Chọn sản phẩm ${item.productName}`}
+              />
+            </div>
+
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 flex items-center justify-center shadow-sm border border-gray-200 p-2">
             {isValidImageSrc(item.productImage) && !imageError ? (
               <Image
                 src={item.productImage}
                 alt={item.productName}
                 fill
-                className="object-cover transition-transform hover:scale-105 duration-200"
+                className="object-contain transition-transform hover:scale-105 duration-200"
                 onError={() => setImageError(true)}
                 loading="lazy"
+                sizes="(max-width: 640px) 96px, 112px"
+                unoptimized={isRemoteImage}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
@@ -227,6 +234,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
                 </svg>
               </div>
             )}
+            </div>
           </div>
 
           <div className="flex-1 min-w-0">
@@ -251,8 +259,8 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
               )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center justify-between sm:justify-start sm:gap-3">
                 <div className="flex items-center border-2 border-gray-200 rounded-lg shadow-sm hover:border-primary transition-colors">
                   <Button
                     variant="ghost"
@@ -304,7 +312,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
                 </Button>
               </div>
 
-              <div className="text-right">
+              <div className="text-right self-end sm:self-auto">
                 <div className="text-xl font-bold text-primary">
                   {getItemSubtotal(item).toLocaleString('vi-VN')}₫
                 </div>

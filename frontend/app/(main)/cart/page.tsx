@@ -287,10 +287,10 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 pt-8 pb-24 sm:pb-8 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 Giỏ hàng của bạn
@@ -300,7 +300,7 @@ export default function CartPage() {
                 {totalPrice.toLocaleString("vi-VN")}₫
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button
                 variant="outline"
                 onClick={() => setShowDeleteSelectedConfirm(true)}
@@ -363,7 +363,7 @@ export default function CartPage() {
 
           {/* Cart Summary */}
           <div className="xl:col-span-1">
-            <div className="sticky top-8">
+            <div className="xl:sticky xl:top-8">
               <CartSummary
                 items={items}
                 onCheckout={handleCheckout}
