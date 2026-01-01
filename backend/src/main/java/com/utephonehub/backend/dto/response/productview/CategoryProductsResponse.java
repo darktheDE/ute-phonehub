@@ -29,7 +29,6 @@ public class CategoryProductsResponse {
     public static class CategoryInfo {
         private Long id;
         private String name;
-        private String slug;
         private String description;
         private Integer productCount;
     }
@@ -41,7 +40,6 @@ public class CategoryProductsResponse {
     public static class BreadcrumbItem {
         private Long id;
         private String name;
-        private String slug;
     }
     
     @Data

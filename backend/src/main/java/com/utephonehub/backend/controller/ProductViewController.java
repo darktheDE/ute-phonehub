@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -91,7 +90,6 @@ public ResponseEntity<ApiResponse<Page<ProductViewResponse>>> searchProducts(
         @Parameter(description = "Giá tối đa") @RequestParam(required = false) java.math.BigDecimal maxPrice,
         @Parameter(description = "Đánh giá tối thiểu (1-5)") @RequestParam(required = false) Double minRating,
         @Parameter(description = "Chỉ sản phẩm còn hàng") @RequestParam(required = false, defaultValue = "false") Boolean inStockOnly,
-        @Parameter(description = "Chỉ sản phẩm khuyến mãi") @RequestParam(required = false, defaultValue = "false") Boolean onSaleOnly,
         @Parameter(description = "Sắp xếp theo (name, price, rating, created_date)") @RequestParam(required = false, defaultValue = "created_date") String sortBy,
         @Parameter(description = "Hướng sắp xếp (asc, desc)") @RequestParam(required = false, defaultValue = "desc") String sortDirection,
         @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
@@ -107,7 +105,6 @@ public ResponseEntity<ApiResponse<Page<ProductViewResponse>>> searchProducts(
                 .maxPrice(maxPrice)
                 .minRating(minRating)
                 .inStockOnly(inStockOnly)
-                .onSaleOnly(onSaleOnly)
                 .sortBy(sortBy)
                 .sortDirection(sortDirection)
                 .page(page)
@@ -561,134 +558,5 @@ public ResponseEntity<ApiResponse<?>> filterByRating(
                 Page<ProductViewResponse> result = productViewService.filterByRating(minRating, maxRating, request);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo đánh giá thành công", result));
         }
-}
-
-// ==================== NEW ENHANCED ENDPOINTS ====================
-
-/**
- * Lấy danh sách sản phẩm nổi bật theo nhiều tiêu chí
- * Tiêu chí: Giá >= 5tr, Hàng mới (60 ngày), Rating >= 4.8, Review >= 10, Có giảm giá
- */
-@GetMapping("/featured")
-@Operation(
-        summary = "Lấy sản phẩm nổi bật",
-        description = "Lấy danh sách sản phẩm nổi bật theo nhiều tiêu chí: Giá từ 5 triệu, Hàng mới trong 60 ngày, Đánh giá >= 4.8, Số đánh giá >= 10, Có giảm giá"
-)
-@ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                responseCode = "200",
-                description = "Lấy sản phẩm nổi bật thành công",
-                content = @Content(schema = @Schema(implementation = ApiResponse.class))
-        )
-})
-public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getFeaturedProducts(
-        @Parameter(description = "Số lượng sản phẩm (mặc định 10)") @RequestParam(required = false, defaultValue = "10") Integer limit
-) {
-        log.info("Getting featured products with limit: {}", limit);
-        
-        List<ProductViewResponse> result = productViewService.getFeaturedProductsByCriteria(limit);
-        
-        return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm nổi bật thành công", result));
-}
-
-/**
- * Lọc sản phẩm theo số lượng đã bán
- */
-@GetMapping("/filter/sold-count")
-@Operation(
-        summary = "Lọc sản phẩm theo số lượng đã bán",
-        description = "Lọc sản phẩm có số lượng đã bán tối thiểu. Ví dụ: minSoldCount=100 để lấy sản phẩm bán được trên 100 cái"
-)
-@ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                responseCode = "200",
-                description = "Lọc thành công",
-                content = @Content(schema = @Schema(implementation = ApiResponse.class))
-        )
-})
-public ResponseEntity<ApiResponse<Page<ProductViewResponse>>> filterBySoldCount(
-        @Parameter(description = "Số lượng đã bán tối thiểu") @RequestParam(required = false, defaultValue = "0") Integer minSoldCount,
-        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
-        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size,
-        @Parameter(description = "Sắp xếp theo") @RequestParam(required = false, defaultValue = "created_date") String sortBy,
-        @Parameter(description = "Hướng sắp xếp") @RequestParam(required = false, defaultValue = "desc") String sortDirection
-) {
-        log.info("Filtering products by sold count: {}", minSoldCount);
-        
-        ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
-                .minSoldCount(minSoldCount)
-                .page(page)
-                .size(size)
-                .sortBy(sortBy)
-                .sortDirection(sortDirection)
-                .build();
-        
-        Page<ProductViewResponse> result = productViewService.filterBySoldCount(minSoldCount, request);
-        
-        return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo số lượng bán thành công", result));
-}
-
-/**
- * Lấy tất cả sản phẩm (bao gồm cả hết hàng)
- */
-@GetMapping("/all")
-@Operation(
-        summary = "Lấy tất cả sản phẩm",
-        description = "Lấy danh sách tất cả sản phẩm đang hoạt động, bao gồm cả sản phẩm còn hàng và hết hàng"
-)
-@ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                responseCode = "200",
-                description = "Lấy danh sách thành công",
-                content = @Content(schema = @Schema(implementation = ApiResponse.class))
-        )
-})
-public ResponseEntity<ApiResponse<Page<ProductViewResponse>>> getAllProducts(
-        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
-        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size,
-        @Parameter(description = "Sắp xếp theo") @RequestParam(required = false, defaultValue = "created_date") String sortBy,
-        @Parameter(description = "Hướng sắp xếp") @RequestParam(required = false, defaultValue = "desc") String sortDirection
-) {
-        log.info("Getting all products - page: {}, size: {}", page, size);
-        
-        ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
-                .page(page)
-                .size(size)
-                .sortBy(sortBy)
-                .sortDirection(sortDirection)
-                .build();
-        
-        Page<ProductViewResponse> result = productViewService.getAllProducts(request);
-        
-        return ResponseEntity.ok(ApiResponse.success("Lấy tất cả sản phẩm thành công", result));
-}
-
-/**
- * Xem chi tiết sản phẩm kèm số lượng đã bán
- */
-@GetMapping("/{id}/detail-with-sold")
-@Operation(
-        summary = "Xem chi tiết sản phẩm kèm số lượng đã bán",
-        description = "Lấy thông tin chi tiết của một sản phẩm bao gồm thông số kỹ thuật, các phiên bản, hình ảnh và số lượng đã bán"
-)
-@ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                responseCode = "200",
-                description = "Lấy chi tiết thành công",
-                content = @Content(schema = @Schema(implementation = ApiResponse.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                responseCode = "404",
-                description = "Không tìm thấy sản phẩm"
-        )
-})
-public ResponseEntity<ApiResponse<ProductDetailViewResponse>> getProductDetailWithSoldCount(
-        @Parameter(description = "ID sản phẩm", required = true) @PathVariable Long id
-) {
-        log.info("Getting product detail with sold count for ID: {}", id);
-        
-        ProductDetailViewResponse result = productViewService.getProductDetailWithSoldCount(id);
-        
-        return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết sản phẩm thành công", result));
 }
 }

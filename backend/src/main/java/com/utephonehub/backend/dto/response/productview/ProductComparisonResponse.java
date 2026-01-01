@@ -32,9 +32,8 @@ public class ProductComparisonResponse {
         private String thumbnailUrl;
         private String brandName;
         
-        // Price Range
-        private BigDecimal minPrice;
-        private BigDecimal maxPrice;
+        // Price (single template = single price)
+        private BigDecimal price;
         
         // Rating
         private Double averageRating;

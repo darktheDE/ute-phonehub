@@ -175,15 +175,57 @@ public class ProductViewServiceImpl implements IProductViewService {
         
         int limitValue = (limit != null && limit > 0) ? limit : 8;
         
-        // Get products from same category, excluding current product
-        Pageable pageable = PageRequest.of(0, limitValue);
-        Page<Product> relatedProducts = productRepository.findByCategoryIdAndIsDeletedFalse(
-                product.getCategory().getId(), pageable);
+        // Get product's single template info
+        ProductTemplate productTemplate = product.getTemplates() != null && !product.getTemplates().isEmpty() 
+                ? product.getTemplates().get(0) : null;
         
-        return relatedProducts.getContent().stream()
-                .filter(p -> !p.getId().equals(productId) && p.getStatus())
+        BigDecimal productPrice = productTemplate != null ? productTemplate.getPrice() : BigDecimal.ZERO;
+        
+        // Get all active products (excluding current)
+        List<Product> allProducts = productRepository.findByStatusTrueAndIsDeletedFalse();
+        
+        // Filter related products: same brand AND same category AND price diff <= 2tr
+        List<Product> relatedProducts = allProducts.stream()
+                .filter(p -> !p.getId().equals(productId))
+                .filter(p -> isRelatedProduct(p, product, productPrice))
+                .limit(limitValue)
+                .collect(Collectors.toList());
+        
+        return relatedProducts.stream()
                 .map(this::convertToProductViewResponse)
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Check if a product is related based on:
+     * - Same brand AND same category
+     * - Price difference <= 2,000,000 VND
+     */
+    private boolean isRelatedProduct(Product candidate, Product original, BigDecimal originalPrice) {
+        
+        // Must be same brand AND same category
+        if (!candidate.getBrand().getId().equals(original.getBrand().getId())) {
+            return false;
+        }
+        
+        if (!candidate.getCategory().getId().equals(original.getCategory().getId())) {
+            return false;
+        }
+        
+        // Get candidate's single template
+        ProductTemplate candidateTemplate = candidate.getTemplates() != null && !candidate.getTemplates().isEmpty()
+                ? candidate.getTemplates().get(0) : null;
+        
+        if (candidateTemplate == null) {
+            return false;
+        }
+        
+        // Price difference must be <= 2,000,000 VND
+        BigDecimal candidatePrice = candidateTemplate.getPrice();
+        BigDecimal priceDifference = candidatePrice.subtract(originalPrice).abs();
+        BigDecimal maxDifference = new BigDecimal("2000000"); // 2 triệu
+        
+        return priceDifference.compareTo(maxDifference) <= 0;
     }
     
     @Override
@@ -406,53 +448,22 @@ public class ProductViewServiceImpl implements IProductViewService {
      *    - Show price range on product card
      */
     private ProductViewResponse convertToProductViewResponse(Product product, ProductStats stats) {
-        // Get price range from templates
+        // Each product has only ONE template (no variants)
         List<ProductTemplate> templates = product.getTemplates();
-        BigDecimal minPrice = null;
-        BigDecimal maxPrice = null;
+        ProductTemplate template = (templates != null && !templates.isEmpty()) ? templates.get(0) : null;
+        
+        BigDecimal price = null;
         int totalStock = 0;
+        String ram = null;
+        String storage = null;
+        String color = null;
         
-        if (templates != null && !templates.isEmpty()) {
-            List<BigDecimal> prices = templates.stream()
-                    .filter(t -> t.getStatus())
-                    .map(ProductTemplate::getPrice)
-                    .collect(Collectors.toList());
-            
-            if (!prices.isEmpty()) {
-                minPrice = prices.stream().min(BigDecimal::compareTo).orElse(null);
-                maxPrice = prices.stream().max(BigDecimal::compareTo).orElse(null);
-            }
-            
-            totalStock = templates.stream()
-                    .filter(t -> t.getStatus())
-                    .mapToInt(ProductTemplate::getStockQuantity)
-                    .sum();
-        }
-        
-        // Get all RAM options (e.g., "6GB/8GB/12GB")
-        // OPTIMIZATION: Stream tất cả templates, lấy distinct RAM values, join bằng "/"
-        // Old way: templates.get(0).getRam() → chỉ show 1 option "6GB"
-        // New way: "6GB/8GB/12GB" - user thấy tất cả options available
-        String ramOptions = null;
-        if (templates != null && !templates.isEmpty()) {
-            ramOptions = templates.stream()
-                    .map(ProductTemplate::getRam)
-                    .filter(ram -> ram != null && !ram.isEmpty())
-                    .distinct()
-                    .sorted()
-                    .collect(Collectors.joining("/"));
-        }
-        
-        // Get all Storage options (e.g., "128GB/256GB/512GB")
-        // Tương tự RAM, hiển thị tất cả storage variations
-        String storageOptions = null;
-        if (templates != null && !templates.isEmpty()) {
-            storageOptions = templates.stream()
-                    .map(ProductTemplate::getStorage)
-                    .filter(storage -> storage != null && !storage.isEmpty())
-                    .distinct()
-                    .sorted()
-                    .collect(Collectors.joining("/"));
+        if (template != null && template.getStatus()) {
+            price = template.getPrice();
+            totalStock = template.getStockQuantity();
+            ram = template.getRam();
+            storage = template.getStorage();
+            color = template.getColor();
         }
         
         // Get images
@@ -476,31 +487,25 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .categoryName(product.getCategory().getName())
                 .brandId(product.getBrand().getId())
                 .brandName(product.getBrand().getName())
-                .minPrice(minPrice)
-                .maxPrice(maxPrice)
+                .minPrice(price)
+                .maxPrice(price)
                 .averageRating(stats != null ? stats.averageRating : 0.0)
                 .totalReviews(stats != null ? stats.totalReviews : 0)
                 .inStock(totalStock > 0)
                 .totalStock(totalStock)
                 .images(images)
-                .variantsCount(templates != null ? templates.size() : 0)
-                // Technical Specs - show all options
-                .ram(ramOptions)
-                .storage(storageOptions)
-                .battery(product.getMetadata() != null && product.getMetadata().getBatteryCapacity() != null 
-                        ? product.getMetadata().getBatteryCapacity() + " mAh" : null)
-                .cpu(product.getMetadata() != null ? product.getMetadata().getCpuChipset() : null)
-                .screen(product.getMetadata() != null && product.getMetadata().getScreenSize() != null 
-                        ? product.getMetadata().getScreenSize() + "\" " + 
-                          (product.getMetadata().getScreenTechnology() != null ? product.getMetadata().getScreenTechnology() : "")
-                        : null)
-                .os(product.getMetadata() != null ? product.getMetadata().getOperatingSystem() : null)
-                .rearCamera(product.getMetadata() != null ? product.getMetadata().getCameraDetails() : null)
-                .frontCamera(product.getMetadata() != null && product.getMetadata().getFrontCameraMegapixels() != null
-                        ? product.getMetadata().getFrontCameraMegapixels() + "MP" : null)
-                .promotionBadge(null) // TODO: Implement promotion logic
-                .discountPercentage(null) // TODO: Implement promotion logic
-                .soldCount(stats != null ? stats.soldCount : 0)
+                // Technical Specs from template (raw values from DB)
+                .color(color)
+                .ram(ram)
+                .storage(storage)
+                // Technical Specs from metadata (raw values from DB - no formatting)
+                .screenSize(product.getMetadata() != null ? product.getMetadata().getScreenSize() : null)
+                .screenTechnology(product.getMetadata() != null ? product.getMetadata().getScreenTechnology() : null)
+                .cpuChipset(product.getMetadata() != null ? product.getMetadata().getCpuChipset() : null)
+                .operatingSystem(product.getMetadata() != null ? product.getMetadata().getOperatingSystem() : null)
+                .cameraDetails(product.getMetadata() != null ? product.getMetadata().getCameraDetails() : null)
+                .frontCameraMegapixels(product.getMetadata() != null ? product.getMetadata().getFrontCameraMegapixels() : null)
+                .batteryCapacity(product.getMetadata() != null ? product.getMetadata().getBatteryCapacity() : null)
                 .build();
     }
     
@@ -516,7 +521,6 @@ public class ProductViewServiceImpl implements IProductViewService {
         ProductDetailViewResponse.CategoryInfo categoryInfo = ProductDetailViewResponse.CategoryInfo.builder()
                 .id(product.getCategory().getId())
                 .name(product.getCategory().getName())
-                .slug(product.getCategory().getName().toLowerCase().replaceAll("\\s+", "-"))
                 .build();
         
         // Brand info
@@ -547,41 +551,46 @@ public class ProductViewServiceImpl implements IProductViewService {
                         .storage(t.getStorage())
                         .ram(t.getRam())
                         .price(t.getPrice())
-                        .compareAtPrice(null) // Can add compareAtPrice field to ProductTemplate
                         .stockQuantity(t.getStockQuantity())
                         .stockStatus(t.getStockStatus().name())
                         .status(t.getStatus())
                         .build())
                 .collect(Collectors.toList());
         
-        // Technical Specs
+        // Technical Specs - Map exactly from DB columns
         ProductDetailViewResponse.TechnicalSpecsInfo specs = null;
         if (product.getMetadata() != null) {
             ProductMetadata metadata = product.getMetadata();
-            String screenInfo = "";
-            if (metadata.getScreenSize() != null && metadata.getScreenTechnology() != null) {
-                screenInfo = metadata.getScreenSize() + "\" " + metadata.getScreenTechnology();
-            } else if (metadata.getScreenSize() != null) {
-                screenInfo = metadata.getScreenSize() + "\"";
-            }
             
             specs = ProductDetailViewResponse.TechnicalSpecsInfo.builder()
-                    .screen(screenInfo.isEmpty() ? null : screenInfo)
-                    .os(metadata.getOperatingSystem())
-                    .frontCamera(metadata.getFrontCameraMegapixels() != null ? metadata.getFrontCameraMegapixels() + "MP" : null)
-                    .rearCamera(metadata.getCameraDetails())
-                    .cpu(metadata.getCpuChipset())
-                    .ram(null) // RAM is in ProductTemplate, not metadata
-                    .internalMemory(null) // Storage is in ProductTemplate
-                    .externalMemory(null)
-                    .sim(metadata.getSimType())
-                    .battery(metadata.getBatteryCapacity() != null ? metadata.getBatteryCapacity() + " mAh" : null)
-                    .charging(metadata.getChargingPower() != null ? metadata.getChargingPower() + "W" : null)
+                    // Display
+                    .screenResolution(metadata.getScreenResolution())
+                    .screenSize(metadata.getScreenSize())
+                    .screenTechnology(metadata.getScreenTechnology())
+                    .refreshRate(metadata.getRefreshRate())
+                    // Performance
+                    .cpuChipset(metadata.getCpuChipset())
+                    .gpu(metadata.getGpu())
+                    .operatingSystem(metadata.getOperatingSystem())
+                    // Camera
+                    .cameraDetails(metadata.getCameraDetails())
+                    .frontCameraMegapixels(metadata.getFrontCameraMegapixels())
+                    // Battery
+                    .batteryCapacity(metadata.getBatteryCapacity())
+                    .chargingPower(metadata.getChargingPower())
+                    .chargingType(metadata.getChargingType())
+                    // Physical
+                    .weight(metadata.getWeight())
                     .dimensions(metadata.getDimensions())
-                    .weight(metadata.getWeight() != null ? metadata.getWeight() + "g" : null)
-                    .materials(metadata.getMaterial())
-                    .connectivity(metadata.getWirelessConnectivity())
-                    .features(metadata.getSecurityFeatures())
+                    .material(metadata.getMaterial())
+                    // Connectivity
+                    .wirelessConnectivity(metadata.getWirelessConnectivity())
+                    .simType(metadata.getSimType())
+                    // Additional
+                    .waterResistance(metadata.getWaterResistance())
+                    .audioFeatures(metadata.getAudioFeatures())
+                    .securityFeatures(metadata.getSecurityFeatures())
+                    .additionalSpecs(metadata.getAdditionalSpecs())
                     .build();
         }
         
@@ -603,31 +612,25 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .averageRating(0.0) // Placeholder
                 .totalReviews(0) // Placeholder
                 .inStock(totalStock > 0)
-                .soldCount(orderItemRepository.countSoldQuantityByProductId(product.getId()))
                 .build();
     }
     
     private ProductComparisonResponse.ComparisonProduct convertToComparisonProduct(Product product) {
+        // Each product has only ONE template
         List<ProductTemplate> templates = product.getTemplates();
-        BigDecimal minPrice = null;
-        BigDecimal maxPrice = null;
+        ProductTemplate template = (templates != null && !templates.isEmpty()) ? templates.get(0) : null;
         
-        if (templates != null && !templates.isEmpty()) {
-            List<BigDecimal> prices = templates.stream()
-                    .filter(t -> t.getStatus())
-                    .map(ProductTemplate::getPrice)
-                    .collect(Collectors.toList());
-            
-            if (!prices.isEmpty()) {
-                minPrice = prices.stream().min(BigDecimal::compareTo).orElse(null);
-                maxPrice = prices.stream().max(BigDecimal::compareTo).orElse(null);
-            }
+        BigDecimal price = null;
+        int totalStock = 0;
+        String ram = null;
+        String storage = null;
+        
+        if (template != null && template.getStatus()) {
+            price = template.getPrice();
+            totalStock = template.getStockQuantity();
+            ram = template.getRam();
+            storage = template.getStorage();
         }
-        
-        int totalStock = templates.stream()
-                .filter(t -> t.getStatus())
-                .mapToInt(ProductTemplate::getStockQuantity)
-                .sum();
         
         // Comparison specs
         ProductComparisonResponse.ComparisonSpecs specs = null;
@@ -646,11 +649,15 @@ public class ProductViewServiceImpl implements IProductViewService {
                     .frontCamera(metadata.getFrontCameraMegapixels() != null ? metadata.getFrontCameraMegapixels() + "MP" : null)
                     .rearCamera(metadata.getCameraDetails())
                     .cpu(metadata.getCpuChipset())
-                    .ram(null) // RAM is in ProductTemplate
-                    .internalMemory(null) // Storage is in ProductTemplate
+                    .ram(ram)
+                    .internalMemory(storage)
                     .battery(metadata.getBatteryCapacity() != null ? metadata.getBatteryCapacity() + " mAh" : null)
                     .charging(metadata.getChargingPower() != null ? metadata.getChargingPower() + "W" : null)
                     .weight(metadata.getWeight() != null ? metadata.getWeight() + "g" : null)
+                    .dimensions(metadata.getDimensions())
+                    .connectivity(metadata.getWirelessConnectivity())
+                    .sim(metadata.getSimType())
+                    .materials(metadata.getMaterial())
                     .build();
         }
         
@@ -659,8 +666,7 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .name(product.getName())
                 .thumbnailUrl(product.getThumbnailUrl())
                 .brandName(product.getBrand().getName())
-                .minPrice(minPrice)
-                .maxPrice(maxPrice)
+                .price(price)
                 .averageRating(0.0) // Placeholder
                 .totalReviews(0) // Placeholder
                 .inStock(totalStock > 0)
@@ -674,7 +680,6 @@ public class ProductViewServiceImpl implements IProductViewService {
         return CategoryProductsResponse.CategoryInfo.builder()
                 .id(category.getId())
                 .name(category.getName())
-                .slug(category.getName().toLowerCase().replaceAll("\\s+", "-"))
                 .description(category.getDescription())
                 .productCount(productCount)
                 .build();
@@ -688,7 +693,6 @@ public class ProductViewServiceImpl implements IProductViewService {
             breadcrumbs.add(0, CategoryProductsResponse.BreadcrumbItem.builder()
                     .id(current.getId())
                     .name(current.getName())
-                    .slug(current.getName().toLowerCase().replaceAll("\\s+", "-"))
                     .build());
             current = current.getParent();
         }
@@ -724,26 +728,27 @@ public class ProductViewServiceImpl implements IProductViewService {
                 brandMap.put(product.getBrand().getId(), product.getBrand().getName());
             }
             
-            // Get price range and technical specs
-            for (ProductTemplate template : product.getTemplates()) {
-                if (template.getStatus()) {
-                    // Price range
-                    if (minPrice == null || template.getPrice().compareTo(minPrice) < 0) {
-                        minPrice = template.getPrice();
-                    }
-                    if (maxPrice == null || template.getPrice().compareTo(maxPrice) > 0) {
-                        maxPrice = template.getPrice();
-                    }
-                    
-                    // RAM
-                    if (template.getRam() != null) {
-                        ramMap.put(template.getRam(), ramMap.getOrDefault(template.getRam(), 0) + 1);
-                    }
-                    
-                    // Storage
-                    if (template.getStorage() != null) {
-                        storageMap.put(template.getStorage(), storageMap.getOrDefault(template.getStorage(), 0) + 1);
-                    }
+            // Get single template (each product has only 1 template)
+            ProductTemplate template = product.getTemplates() != null && !product.getTemplates().isEmpty()
+                    ? product.getTemplates().get(0) : null;
+            
+            if (template != null && template.getStatus()) {
+                // Price range
+                if (minPrice == null || template.getPrice().compareTo(minPrice) < 0) {
+                    minPrice = template.getPrice();
+                }
+                if (maxPrice == null || template.getPrice().compareTo(maxPrice) > 0) {
+                    maxPrice = template.getPrice();
+                }
+                
+                // RAM
+                if (template.getRam() != null) {
+                    ramMap.put(template.getRam(), ramMap.getOrDefault(template.getRam(), 0) + 1);
+                }
+                
+                // Storage
+                if (template.getStorage() != null) {
+                    storageMap.put(template.getStorage(), storageMap.getOrDefault(template.getStorage(), 0) + 1);
                 }
             }
             
@@ -751,7 +756,7 @@ public class ProductViewServiceImpl implements IProductViewService {
             if (product.getMetadata() != null) {
                 // Battery
                 if (product.getMetadata().getBatteryCapacity() != null) {
-                    String batteryKey = product.getMetadata().getBatteryCapacity() + " mAh";
+                    String batteryKey = String.valueOf(product.getMetadata().getBatteryCapacity());
                     batteryMap.put(batteryKey, batteryMap.getOrDefault(batteryKey, 0) + 1);
                 }
                 
@@ -796,7 +801,7 @@ public class ProductViewServiceImpl implements IProductViewService {
         List<CategoryProductsResponse.FilterOptions.BatteryOption> batteryOptions = batteryMap.entrySet().stream()
                 .map(entry -> CategoryProductsResponse.FilterOptions.BatteryOption.builder()
                         .value(entry.getKey())
-                        .displayValue(entry.getKey())
+                        .displayValue(entry.getKey() + " mAh")
                         .count(entry.getValue())
                         .build())
                 .collect(Collectors.toList());
@@ -853,18 +858,24 @@ public class ProductViewServiceImpl implements IProductViewService {
         
         Pageable pageable = buildPageable(request);
         
-        // Get all products and filter
+        // Get all products and filter (each product has 1 template)
         List<Product> allProducts = productRepository.findByIsDeletedFalse();
         List<Product> filtered = allProducts.stream()
-                .filter(product -> product.getTemplates().stream()
-                        .anyMatch(template -> template.getStatus() && ramOptions.contains(template.getRam())))
+                .filter(product -> {
+                    ProductTemplate template = product.getTemplates() != null && !product.getTemplates().isEmpty()
+                            ? product.getTemplates().get(0) : null;
+                    return template != null && template.getStatus() && ramOptions.contains(template.getRam());
+                })
                 .skip(pageable.getPageNumber() * pageable.getPageSize())
                 .limit(pageable.getPageSize())
                 .collect(Collectors.toList());
         
         long total = allProducts.stream()
-                .filter(product -> product.getTemplates().stream()
-                        .anyMatch(template -> template.getStatus() && ramOptions.contains(template.getRam())))
+                .filter(product -> {
+                    ProductTemplate template = product.getTemplates() != null && !product.getTemplates().isEmpty()
+                            ? product.getTemplates().get(0) : null;
+                    return template != null && template.getStatus() && ramOptions.contains(template.getRam());
+                })
                 .count();
         
         return new PageImpl<>(
@@ -884,17 +895,24 @@ public class ProductViewServiceImpl implements IProductViewService {
         
         Pageable pageable = buildPageable(request);
         
+        // Get all products and filter (each product has 1 template)
         List<Product> allProducts = productRepository.findByIsDeletedFalse();
         List<Product> filtered = allProducts.stream()
-                .filter(product -> product.getTemplates().stream()
-                        .anyMatch(template -> template.getStatus() && storageOptions.contains(template.getStorage())))
+                .filter(product -> {
+                    ProductTemplate template = product.getTemplates() != null && !product.getTemplates().isEmpty()
+                            ? product.getTemplates().get(0) : null;
+                    return template != null && template.getStatus() && storageOptions.contains(template.getStorage());
+                })
                 .skip(pageable.getPageNumber() * pageable.getPageSize())
                 .limit(pageable.getPageSize())
                 .collect(Collectors.toList());
         
         long total = allProducts.stream()
-                .filter(product -> product.getTemplates().stream()
-                        .anyMatch(template -> template.getStatus() && storageOptions.contains(template.getStorage())))
+                .filter(product -> {
+                    ProductTemplate template = product.getTemplates() != null && !product.getTemplates().isEmpty()
+                            ? product.getTemplates().get(0) : null;
+                    return template != null && template.getStatus() && storageOptions.contains(template.getStorage());
+                })
                 .count();
         
         return new PageImpl<>(
