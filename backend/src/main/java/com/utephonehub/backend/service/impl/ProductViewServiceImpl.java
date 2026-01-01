@@ -223,7 +223,7 @@ public class ProductViewServiceImpl implements IProductViewService {
         // Price difference must be <= 2,000,000 VND
         BigDecimal candidatePrice = candidateTemplate.getPrice();
         BigDecimal priceDifference = candidatePrice.subtract(originalPrice).abs();
-        BigDecimal maxDifference = new BigDecimal("2000000"); // 2 triệu
+        BigDecimal maxDifference = new BigDecimal("6000000"); // 2 triệu
         
         return priceDifference.compareTo(maxDifference) <= 0;
     }
