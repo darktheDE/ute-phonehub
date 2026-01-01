@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { MobileMenu } from "./MobileMenu";
 import { ROUTES } from "@/lib/constants";
+import { useCartStore } from "@/store";
 
 interface MainHeaderProps {
   user: any | null;
@@ -25,6 +26,7 @@ interface MainHeaderProps {
 
 export function MainHeader({ user, onLogout }: MainHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { totalItems } = useCartStore();
 
   return (
     <header className="bg-primary sticky top-0 z-50 shadow-md">
@@ -73,9 +75,11 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             >
               <ShoppingCart className="w-5 h-5" />
               <span className="hidden lg:inline text-sm">Giỏ hàng</span>
-              <span className="absolute -top-1 -right-1 lg:-top-1 lg:right-8 bg-destructive text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                0
-              </span>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 lg:-top-1 lg:right-8 bg-destructive text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-semibold">
+                  {totalItems > 99 ? '99+' : totalItems}
+                </span>
+              )}
             </Link>
 
             {user ? (

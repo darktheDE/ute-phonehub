@@ -16,6 +16,12 @@ export function PromotionsSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Only fetch on client side
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
     const fetchPromotions = async () => {
       try {
         const response = await promotionAPI.getAllActivePromotions();
@@ -26,7 +32,9 @@ export function PromotionsSection() {
         // Show only first 3 promotions
         setPromotions(promotionsList.slice(0, 3));
       } catch (error) {
-        console.error("Failed to fetch promotions:", error);
+        console.warn("Could not load promotions (backend may not be ready):", error instanceof Error ? error.message : error);
+        // Silently fail - don't show error to user, just hide section
+        setPromotions([]);
       } finally {
         setLoading(false);
       }
@@ -68,13 +76,10 @@ export function PromotionsSection() {
   const getPromotionTypeLabel = (type: string) => {
     switch (type) {
       case "DISCOUNT_PERCENTAGE":
-      case "DISCOUNT":
         return "Giảm %";
       case "DISCOUNT_FIXED":
-      case "VOUCHER":
         return "Giảm giá";
       case "FREE_SHIPPING":
-      case "FREESHIP":
         return "Miễn phí vận chuyển";
       default:
         return type;
@@ -127,7 +132,7 @@ export function PromotionsSection() {
               {/* Discount Info */}
               <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-lg p-3 mb-3">
                 <div className="text-center">
-                  {promotion.percentDiscount &&
+                  {promotion.templateType !== "FREE_SHIPPING" &&
                     promotion.percentDiscount > 0 && (
                       <div className="text-white">
                         <span className="text-3xl font-bold">
@@ -136,17 +141,7 @@ export function PromotionsSection() {
                         <span className="text-sm block mt-1">Giảm giá</span>
                       </div>
                     )}
-                  {promotion.fixedAmount && promotion.fixedAmount > 0 && (
-                    <div className="text-white">
-                      <span className="text-2xl font-bold">
-                        {formatCurrency(promotion.fixedAmount)}
-                      </span>
-                      <span className="text-sm block mt-1">Giảm giá</span>
-                    </div>
-                  )}
-                  {promotion.templateType === "FREESHIP" &&
-                    !promotion.fixedAmount &&
-                    !promotion.percentDiscount && (
+                  {promotion.templateType === "FREE_SHIPPING" && (
                       <div className="text-white">
                         <Package className="w-8 h-8 mx-auto mb-1" />
                         <span className="text-sm">Miễn phí vận chuyển</span>
@@ -157,20 +152,12 @@ export function PromotionsSection() {
 
               {/* Conditions */}
               <div className="space-y-2 text-sm text-gray-600 mb-3">
-                {promotion.minValueToBeApplied && (
+                {promotion.minValueToBeApplied !== null && promotion.minValueToBeApplied > 0 && (
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-gray-400" />
                     <span>
                       Đơn tối thiểu:{" "}
                       {formatCurrency(promotion.minValueToBeApplied)}
-                    </span>
-                  </div>
-                )}
-                {promotion.maxDiscount && promotion.percentDiscount && (
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-gray-400" />
-                    <span>
-                      Giảm tối đa: {formatCurrency(promotion.maxDiscount)}
                     </span>
                   </div>
                 )}

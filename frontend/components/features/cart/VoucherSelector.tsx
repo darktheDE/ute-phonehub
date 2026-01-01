@@ -61,7 +61,13 @@ export function VoucherSelector({
     try {
       const resp = await promotionAPI.getAvailablePromotions(orderTotal);
       if (resp.success && Array.isArray(resp.data)) {
-        setAvailableVouchers(resp.data);
+        setAvailableVouchers(
+          resp.data.map((v: any) => ({
+            ...v,
+            // Normalize nullable values from PromotionResponse
+            minValueToBeApplied: v.minValueToBeApplied ?? undefined,
+          }))
+        );
       }
     } catch (error) {
       console.error("Failed to load vouchers:", error);
@@ -93,33 +99,66 @@ export function VoucherSelector({
   // Auto re-calculate discount when order total changes while a voucher is applied.
   // This prevents the user from having to remove + re-apply the voucher when they add/remove selected items.
   useEffect(() => {
-    if (!currentVoucher) return;
+    const discountVoucher = currentDiscountVoucher;
+    const freeshipVoucher = currentFreeshipVoucher;
 
-    const promotionId = String(currentVoucher.id || currentVoucher.code || currentVoucher.templateCode || '');
-    if (!promotionId) return;
+    if (!discountVoucher && !freeshipVoucher) return;
 
-    // If there's nothing selected, keep voucher but discount becomes 0.
+    const discountId = discountVoucher
+      ? String(
+          discountVoucher.id ||
+            discountVoucher.code ||
+            discountVoucher.templateCode ||
+            ''
+        )
+      : '';
+    const freeshipId = freeshipVoucher
+      ? String(
+          freeshipVoucher.id ||
+            freeshipVoucher.code ||
+            freeshipVoucher.templateCode ||
+            ''
+        )
+      : '';
+
+    // If there's nothing selected, keep vouchers but discount becomes 0.
     if (!Number.isFinite(orderTotal) || orderTotal <= 0) {
-      const key = `${promotionId}:0`;
+      const key = `${discountId}|${freeshipId}:0`;
       if (lastCalculatedKeyRef.current !== key) {
         lastCalculatedKeyRef.current = key;
-        onApplyVoucher(currentVoucher, 0);
+        onApplyVoucher(discountVoucher, freeshipVoucher, 0);
       }
       return;
     }
 
-    const key = `${promotionId}:${orderTotal}`;
+    const key = `${discountId}|${freeshipId}:${orderTotal}`;
     if (lastCalculatedKeyRef.current === key) return;
 
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
-        const resp = await promotionAPI.calculateDiscount(promotionId, orderTotal);
+        const [discountResp, freeshipResp] = await Promise.all([
+          discountId
+            ? promotionAPI.calculateDiscount(discountId, orderTotal)
+            : Promise.resolve({ success: true, data: 0 } as any),
+          freeshipId
+            ? promotionAPI.calculateDiscount(freeshipId, orderTotal)
+            : Promise.resolve({ success: true, data: 0 } as any),
+        ]);
+
         if (cancelled) return;
 
-        const nextDiscount = resp.success && typeof resp.data === 'number' ? resp.data : 0;
+        const discountAmount =
+          discountResp?.success && typeof discountResp.data === 'number'
+            ? discountResp.data
+            : 0;
+        const freeshipAmount =
+          freeshipResp?.success && typeof freeshipResp.data === 'number'
+            ? freeshipResp.data
+            : 0;
+
         lastCalculatedKeyRef.current = key;
-        onApplyVoucher(currentVoucher, nextDiscount);
+        onApplyVoucher(discountVoucher, freeshipVoucher, discountAmount + freeshipAmount);
       } catch (error) {
         if (cancelled) return;
         console.error('Failed to auto-recalculate discount:', error);
@@ -130,7 +169,7 @@ export function VoucherSelector({
       cancelled = true;
       clearTimeout(t);
     };
-  }, [currentVoucher, orderTotal, onApplyVoucher]);
+  }, [currentDiscountVoucher, currentFreeshipVoucher, orderTotal, onApplyVoucher]);
 
   const canApplyVoucher = (voucher: Promotion): boolean => {
     const minValue =
