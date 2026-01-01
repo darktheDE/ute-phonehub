@@ -114,8 +114,16 @@ async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
+  // Disallow absolute URLs to avoid malformed URLs like
+  // `${API_BASE_URL}https://external.com/endpoint`
+  if (/^https?:\/\//i.test(endpoint) || endpoint.startsWith("//")) {
+    throw new Error(
+      `fetchAPI endpoint must be a relative path starting with '/', received: '${endpoint}'`
+    );
+  }
+
   // Ensure endpoint starts with / for proper URL construction
-  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
   const url = `${API_BASE_URL}${normalizedEndpoint}`;
   const token = getAuthToken();
 
@@ -172,7 +180,7 @@ async function fetchAPI<T>(
         data?.message ||
         data?.error ||
         (typeof data === "string" ? data : null) ||
-        `API request failed: ${response.status} ${response.statusText} - ${url}`;
+        `API request failed with status ${response.status} ${response.statusText}`;
       throw new Error(errorMessage);
     }
 

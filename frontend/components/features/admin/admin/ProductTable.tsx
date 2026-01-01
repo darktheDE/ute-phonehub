@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -116,6 +116,18 @@ export function ProductTable({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(() => new Set());
+
+  // Clear broken images cache when products change to prevent memory leak
+  useEffect(() => {
+    setBrokenImageIds((prev) => {
+      const currentIds = new Set(products.map((p) => p.id));
+      const filtered = new Set<number>();
+      prev.forEach((id) => {
+        if (currentIds.has(id)) filtered.add(id);
+      });
+      return filtered;
+    });
+  }, [products]);
 
   // Debounce search
   const handleSearchChange = (value: string) => {

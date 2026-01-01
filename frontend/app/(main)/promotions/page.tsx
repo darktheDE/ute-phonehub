@@ -159,7 +159,7 @@ export default function PromotionsPage() {
                 </div>
 
                 {/* Min Order Value */}
-                {!!promo.minValueToBeApplied && promo.minValueToBeApplied > 0 && (
+                {promo.minValueToBeApplied != null && promo.minValueToBeApplied > 0 && (
                   <div className="flex items-center gap-2 text-sm">
                     <Tag className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-muted-foreground">

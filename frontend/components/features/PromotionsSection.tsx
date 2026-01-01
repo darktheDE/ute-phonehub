@@ -16,12 +16,6 @@ export function PromotionsSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only fetch on client side
-    if (typeof window === 'undefined') {
-      setLoading(false);
-      return;
-    }
-
     const fetchPromotions = async () => {
       try {
         const response = await promotionAPI.getAllActivePromotions();
@@ -32,7 +26,14 @@ export function PromotionsSection() {
         // Show only first 3 promotions
         setPromotions(promotionsList.slice(0, 3));
       } catch (error) {
-        console.warn("Could not load promotions (backend may not be ready):", error instanceof Error ? error.message : error);
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(
+            "[PromotionsSection] Failed to load promotions:",
+            error instanceof Error ? error.message : error
+          );
+        } else {
+          console.warn("[PromotionsSection] Promotions are temporarily unavailable.");
+        }
         // Silently fail - don't show error to user, just hide section
         setPromotions([]);
       } finally {

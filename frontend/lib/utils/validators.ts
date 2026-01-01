@@ -43,6 +43,15 @@ export const validatePassword = (password: string): ValidationResult => {
 };
 
 /**
+ * Check if a URL is a remote image (http/https)
+ */
+export const isRemoteImageUrl = (value: unknown): boolean => {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  return /^(https?:)?\.\/\//i.test(trimmed);
+};
+
+/**
  * Validate username format
  */
 export const validateUsername = (username: string): ValidationResult => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Tag, X, ChevronRight, Ticket, Check, Sparkles } from 'lucide-react';
+import { X, ChevronRight, Ticket, Sparkles } from 'lucide-react';
 import { promotionAPI } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 import type { Promotion } from '@/types/api-cart';
@@ -134,7 +134,7 @@ export function VoucherSelector({
     const key = `${discountId}|${freeshipId}:${orderTotal}`;
     if (lastCalculatedKeyRef.current === key) return;
 
-    let cancelled = false;
+    const abortController = new AbortController();
     const t = setTimeout(async () => {
       try {
         const [discountResp, freeshipResp] = await Promise.all([
@@ -146,7 +146,7 @@ export function VoucherSelector({
             : Promise.resolve({ success: true, data: 0 } as any),
         ]);
 
-        if (cancelled) return;
+        if (abortController.signal.aborted) return;
 
         const discountAmount =
           discountResp?.success && typeof discountResp.data === 'number'
@@ -160,13 +160,13 @@ export function VoucherSelector({
         lastCalculatedKeyRef.current = key;
         onApplyVoucher(discountVoucher, freeshipVoucher, discountAmount + freeshipAmount);
       } catch (error) {
-        if (cancelled) return;
+        if (abortController.signal.aborted) return;
         console.error('Failed to auto-recalculate discount:', error);
       }
     }, 200);
 
     return () => {
-      cancelled = true;
+      abortController.abort();
       clearTimeout(t);
     };
   }, [currentDiscountVoucher, currentFreeshipVoucher, orderTotal, onApplyVoucher]);

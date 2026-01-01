@@ -12,6 +12,7 @@ import { useCartStore } from '@/store';
 import { useAuth } from '@/hooks';
 import type { CartItem as CartItemType } from '@/types';
 import { mapBackendCartItems, getItemSubtotal } from '@/lib/utils/cartMapper';
+import { formatPrice, isRemoteImageUrl } from '@/lib/utils';
 
 interface CartItemProps {
   item: CartItemType;
@@ -27,8 +28,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
   const [imageError, setImageError] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  const isRemoteImage =
-    typeof item.productImage === 'string' && /^(https?:)?\/\//i.test(item.productImage.trim());
+  const isRemoteImage = isRemoteImageUrl(item.productImage);
 
   const isValidImageSrc = (src: unknown) => {
     if (!src || typeof src !== 'string') return false;
@@ -225,7 +225,6 @@ export function CartItem({ item, onUpdateQuantity, onRemove, selected, onSelectC
                 onError={() => setImageError(true)}
                 loading="lazy"
                 sizes="(max-width: 640px) 96px, 112px"
-                unoptimized={isRemoteImage}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
