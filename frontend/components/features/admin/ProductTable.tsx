@@ -76,7 +76,9 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
           adminAPI.getAllBrands()
         ]);
         if (catsRes.data) {
-          setCategories(catsRes.data.map((c: any) => ({ id: c.id, name: c.name })));
+          // Filter out "Phụ kiện" category
+          const filteredCategories = catsRes.data.filter((c: any) => c.name !== 'Phụ kiện');
+          setCategories(filteredCategories.map((c: any) => ({ id: c.id, name: c.name })));
         }
         if (brandsRes.data) {
           setBrands(brandsRes.data.map((b: any) => ({ id: b.id, name: b.name })));
