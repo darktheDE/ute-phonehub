@@ -110,7 +110,9 @@ export function TemplatesTable() {
       }
     } catch (err) {
       console.error("Delete template error:", err);
-      alert("Có lỗi xảy ra khi xóa template");
+      // Extract error message from Error object
+      const errorMessage = err instanceof Error ? err.message : "Có lỗi xảy ra khi xóa template";
+      alert(errorMessage);
     }
   };
 

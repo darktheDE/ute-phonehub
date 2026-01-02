@@ -98,7 +98,8 @@ export function usePromotions() {
       console.error("Create promotion failed:", errorMsg, response);
       return false;
     } catch (err) {
-      setError("Failed to create promotion");
+      const errorMessage = err instanceof Error ? err.message : "Failed to create promotion";
+      setError(errorMessage);
       console.error("Error creating promotion:", err);
       return false;
     }
@@ -117,7 +118,8 @@ export function usePromotions() {
       setError(response.message || "Failed to update promotion");
       return false;
     } catch (err) {
-      setError("Failed to update promotion");
+      const errorMessage = err instanceof Error ? err.message : "Failed to update promotion";
+      setError(errorMessage);
       console.error("Error updating promotion:", err);
       return false;
     }
@@ -133,7 +135,8 @@ export function usePromotions() {
       setError(response.message || "Failed to disable promotion");
       return false;
     } catch (err) {
-      setError("Failed to disable promotion");
+      const errorMessage = err instanceof Error ? err.message : "Failed to disable promotion";
+      setError(errorMessage);
       console.error("Error disabling promotion:", err);
       return false;
     }

@@ -168,21 +168,15 @@ async function fetchAPI<T>(
     }
 
     if (!response.ok) {
-      // Log more details for debugging
-      console.error("API Error Details:", {
-        url,
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        contentType,
-        data,
-      });
-
       const errorMessage =
         data?.message ||
         data?.error ||
         (typeof data === "string" ? data : null) ||
         `API request failed with status ${response.status} ${response.statusText}`;
+      
+      // Log error for debugging
+      console.error(`API Error [${response.status}]:`, errorMessage);
+      
       throw new Error(errorMessage);
     }
 

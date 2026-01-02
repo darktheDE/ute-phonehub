@@ -43,7 +43,9 @@ export function PromotionFormModal({
   const [loadingOptions, setLoadingOptions] = useState(false);
 
   // Target selection UI state (for adding multiple targets at once)
-  const [targetType, setTargetType] = useState<"CATEGORY" | "BRAND" | "PRODUCT">("CATEGORY");
+  const [targetType, setTargetType] = useState<
+    "CATEGORY" | "BRAND" | "PRODUCT"
+  >("CATEGORY");
   const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
 
   // Form state
@@ -486,7 +488,9 @@ export function PromotionFormModal({
                   <select
                     value={targetType}
                     onChange={(e) => {
-                      setTargetType(e.target.value as "CATEGORY" | "BRAND" | "PRODUCT");
+                      setTargetType(
+                        e.target.value as "CATEGORY" | "BRAND" | "PRODUCT"
+                      );
                       setSelectedTargetIds([]); // Clear selection when changing type
                     }}
                     className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -503,7 +507,9 @@ export function PromotionFormModal({
                     disabled={selectedTargetIds.length === 0}
                   >
                     <Plus className="w-4 h-4 mr-1" />
-                    Thêm {selectedTargetIds.length > 0 && `(${selectedTargetIds.length})`}
+                    Thêm{" "}
+                    {selectedTargetIds.length > 0 &&
+                      `(${selectedTargetIds.length})`}
                   </Button>
                 </div>
 
@@ -515,10 +521,12 @@ export function PromotionFormModal({
                     </p>
                   ) : (
                     (() => {
-                      const options = 
-                        targetType === "PRODUCT" ? productOptions :
-                        targetType === "CATEGORY" ? categoryOptions :
-                        brandOptions;
+                      const options =
+                        targetType === "PRODUCT"
+                          ? productOptions
+                          : targetType === "CATEGORY"
+                          ? categoryOptions
+                          : brandOptions;
 
                       if (options.length === 0) {
                         return (
@@ -538,9 +546,16 @@ export function PromotionFormModal({
                             checked={selectedTargetIds.includes(option.value)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedTargetIds([...selectedTargetIds, option.value]);
+                                setSelectedTargetIds([
+                                  ...selectedTargetIds,
+                                  option.value,
+                                ]);
                               } else {
-                                setSelectedTargetIds(selectedTargetIds.filter(id => id !== option.value));
+                                setSelectedTargetIds(
+                                  selectedTargetIds.filter(
+                                    (id) => id !== option.value
+                                  )
+                                );
                               }
                             }}
                             className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
@@ -558,7 +573,8 @@ export function PromotionFormModal({
               {/* Added Targets List */}
               {formData.targets.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                  Chưa có đối tượng áp dụng. Chọn các mục ở trên và nhấn &quot;Thêm&quot;.
+                  Chưa có đối tượng áp dụng. Chọn các mục ở trên và nhấn
+                  &quot;Thêm&quot;.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -566,15 +582,21 @@ export function PromotionFormModal({
                     Đã thêm {formData.targets.length} đối tượng:
                   </p>
                   {formData.targets.map((target, index) => {
-                    const options = 
-                      target.type === "PRODUCT" ? productOptions :
-                      target.type === "CATEGORY" ? categoryOptions :
-                      brandOptions;
-                    const option = options.find(opt => opt.value === target.applicableObjectId);
-                    const typeLabel = 
-                      target.type === "PRODUCT" ? "Sản phẩm" :
-                      target.type === "CATEGORY" ? "Danh mục" :
-                      "Thương hiệu";
+                    const options =
+                      target.type === "PRODUCT"
+                        ? productOptions
+                        : target.type === "CATEGORY"
+                        ? categoryOptions
+                        : brandOptions;
+                    const option = options.find(
+                      (opt) => opt.value === target.applicableObjectId
+                    );
+                    const typeLabel =
+                      target.type === "PRODUCT"
+                        ? "Sản phẩm"
+                        : target.type === "CATEGORY"
+                        ? "Danh mục"
+                        : "Thương hiệu";
 
                     return (
                       <div
