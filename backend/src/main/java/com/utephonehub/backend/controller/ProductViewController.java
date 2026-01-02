@@ -39,21 +39,15 @@ import java.util.List;
 @Slf4j
 @Tag(name = "ProductView API", description = "API dùng để hiển thị sản phẩm client và tương tác - Tham quan, tìm kiếm, lọc, sắp xếp, so sánh sản phẩm")
 public class ProductViewController {
-
-private final IProductViewService productViewService;
+        private final IProductViewService productViewService;
 
 /**
  * GET /api/v1/products/search
- * Tìm kiếm và lọc sản phẩm với nhiều tiêu chí
+ * Tìm kiếm sản phẩm theo từ khóa
  * 
- * Filters hỗ trợ:
+ * Features:
  * - keyword: Tìm trong tên sản phẩm
- * - categoryId: Lọc theo danh mục
- * - brandIds: Lọc theo nhiều thương hiệu
- * - minPrice, maxPrice: Lọc theo khoảng giá
- * - minRating: Lọc theo đánh giá tối thiểu
- * - inStockOnly: Chỉ sản phẩm còn hàng
- * - onSaleOnly: Chỉ sản phẩm đang khuyến mãi
+ * - Chỉ hỗ trợ keyword search, không hỗ trợ filter
  * 
  * Sort options:
  * - name: Sắp xếp theo tên
@@ -68,8 +62,8 @@ private final IProductViewService productViewService;
  */
 @GetMapping("/search")
 @Operation(
-        summary = "Tìm kiếm và lọc sản phẩm",
-        description = "API cho phép người dùng tìm kiếm sản phẩm theo từ khóa, lọc theo danh mục, thương hiệu, giá, đánh giá và sắp xếp theo nhiều tiêu chí"
+        summary = "Tìm kiếm sản phẩm theo từ khóa",
+        description = "API cho phép người dùng tìm kiếm sản phẩm theo từ khóa và sắp xếp theo nhiều tiêu chí"
 )
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -82,36 +76,24 @@ private final IProductViewService productViewService;
                 description = "Tham số không hợp lệ"
         )
 })
-public ResponseEntity<ApiResponse<Page<ProductViewResponse>>> searchProducts(
+public ResponseEntity<ApiResponse<Page<ProductCardResponse>>> searchProducts(
         @Parameter(description = "Từ khóa tìm kiếm") @RequestParam(required = false) String keyword,
-        @Parameter(description = "ID danh mục") @RequestParam(required = false) Long categoryId,
-        @Parameter(description = "Danh sách ID thương hiệu") @RequestParam(required = false) List<Long> brandIds,
-        @Parameter(description = "Giá tối thiểu") @RequestParam(required = false) java.math.BigDecimal minPrice,
-        @Parameter(description = "Giá tối đa") @RequestParam(required = false) java.math.BigDecimal maxPrice,
-        @Parameter(description = "Đánh giá tối thiểu (1-5)") @RequestParam(required = false) Double minRating,
-        @Parameter(description = "Chỉ sản phẩm còn hàng") @RequestParam(required = false, defaultValue = "false") Boolean inStockOnly,
         @Parameter(description = "Sắp xếp theo (name, price, rating, created_date)") @RequestParam(required = false, defaultValue = "created_date") String sortBy,
         @Parameter(description = "Hướng sắp xếp (asc, desc)") @RequestParam(required = false, defaultValue = "desc") String sortDirection,
         @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
         @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
 ) {
-        log.info("Searching products with keyword: {}, category: {}, brands: {}", keyword, categoryId, brandIds);
+        log.info("Searching products with keyword: {}", keyword);
         
         ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
                 .keyword(keyword)
-                .categoryId(categoryId)
-                .brandIds(brandIds)
-                .minPrice(minPrice)
-                .maxPrice(maxPrice)
-                .minRating(minRating)
-                .inStockOnly(inStockOnly)
                 .sortBy(sortBy)
                 .sortDirection(sortDirection)
                 .page(page)
                 .size(size)
                 .build();
         
-        Page<ProductViewResponse> result = productViewService.searchAndFilterProducts(request);
+        Page<ProductCardResponse> result = productViewService.searchAndFilterProducts(request);
         
         return ResponseEntity.ok(ApiResponse.success("Tìm kiếm sản phẩm thành công", result));
 
@@ -134,7 +116,7 @@ public ResponseEntity<ApiResponse<Page<ProductViewResponse>>> searchProducts(
 @GetMapping("/{id}")
 @Operation(
         summary = "Xem chi tiết sản phẩm",
-        description = "Lấy thông tin chi tiết của một sản phẩm bao gồm thông số kỹ thuật, các phiên bản, hình ảnh"
+        description = "Lấy thông tin chi tiết của một sản phẩm bao gồm thông số kỹ thuật, các phiên bản, hình ảnh,giá,..."
 )
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -187,8 +169,6 @@ public ResponseEntity<ApiResponse<ProductDetailViewResponse>> getProductDetail(
 })
 public ResponseEntity<ApiResponse<CategoryProductsResponse>> getProductsByCategory(
         @Parameter(description = "ID danh mục", required = true) @PathVariable Long categoryId,
-        @Parameter(description = "Giá tối thiểu") @RequestParam(required = false) java.math.BigDecimal minPrice,
-        @Parameter(description = "Giá tối đa") @RequestParam(required = false) java.math.BigDecimal maxPrice,
         @Parameter(description = "Sắp xếp theo") @RequestParam(required = false, defaultValue = "created_date") String sortBy,
         @Parameter(description = "Hướng sắp xếp") @RequestParam(required = false, defaultValue = "desc") String sortDirection,
         @Parameter(description = "Số trang") @RequestParam(required = false, defaultValue = "0") Integer page,
@@ -197,9 +177,6 @@ public ResponseEntity<ApiResponse<CategoryProductsResponse>> getProductsByCatego
         log.info("Getting products for category ID: {}", categoryId);
         
         ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
-                .categoryId(categoryId)
-                .minPrice(minPrice)
-                .maxPrice(maxPrice)
                 .sortBy(sortBy)
                 .sortDirection(sortDirection)
                 .page(page)
@@ -209,6 +186,53 @@ public ResponseEntity<ApiResponse<CategoryProductsResponse>> getProductsByCatego
         CategoryProductsResponse result = productViewService.getProductsByCategory(categoryId, request);
         
         return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm theo danh mục thành công", result));
+}
+
+/**
+ * GET /api/v1/products/category/{categoryId}/list
+ * Lấy danh sách sản phẩm theo danh mục (chỉ sản phẩm)
+ * 
+ * Response bao gồm:
+ * - Danh sách sản phẩm thuộc danh mục (paginated)
+ * - Không bao gồm thông tin danh mục chi tiết
+ * 
+ * Use case: Category Product Listing, Quick Category Browse
+ */
+@GetMapping("/category/{categoryId}/list")
+@Operation(
+        summary = "Lấy danh sách sản phẩm theo danh mục",
+        description = "Lấy danh sách sản phẩm thuộc danh mục với pagination"
+)
+@ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "200",
+                description = "Lấy danh sách thành công",
+                content = @Content(schema = @Schema(implementation = ApiResponse.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "Không tìm thấy danh mục"
+        )
+})
+public ResponseEntity<ApiResponse<?>> getProductListByCategory(
+        @Parameter(description = "ID danh mục", required = true) @PathVariable Long categoryId,
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
+) {
+        log.info("Getting product list for category ID: {} with limit: {}, page: {}, size: {}", categoryId, limit, page, size);
+        
+        if (limit != null && limit > 0) {
+                List<ProductCardResponse> result = productViewService.getProductsByCategoryList(categoryId, limit);
+                return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm thành công", result));
+        } else {
+                ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                        .page(page)
+                        .size(size)
+                        .build();
+                Page<ProductCardResponse> result = productViewService.getProductsByCategoryPaginated(categoryId, request);
+                return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm thành công", result));
+        }
 }
 
 /**
@@ -259,20 +283,21 @@ public ResponseEntity<ApiResponse<ProductComparisonResponse>> compareProducts(
  * Lấy sản phẩm liên quan
  * 
  * Logic:
- * - Cùng danh mục HOẶC cùng thương hiệu với sản phẩm gốc
+ * - Cùng danh mục với sản phẩm gốc
+ * - Chênh lệch giá không quá 6 triệu VND
  * - Loại trừ chính sản phẩm đó
  * - Sắp xếp theo created_date DESC (mới nhất)
  * 
  * Hỗ trợ:
- * - limit=null: Lấy tất cả related products
- * - limit=10: Lấy 10 sản phẩm đầu tiên
+ * - page/size: Phân trang
+ * - limit: Lấy N sản phẩm đầu tiên (không pagination)
  * 
  * Use case: "Sản phẩm tương tự" section in Product Detail Page
  */
 @GetMapping("/{id}/related")
 @Operation(
         summary = "Xem sản phẩm liên quan",
-        description = "Lấy danh sách sản phẩm liên quan (cùng danh mục hoặc thương hiệu). Nếu không chỉ định limit thì lấy tất cả, nếu chỉ định limit thì giới hạn số lượng"
+        description = "Lấy danh sách sản phẩm liên quan (cùng danh mục, chênh lệch giá ≤ 6 triệu). Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
 )
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -285,15 +310,25 @@ public ResponseEntity<ApiResponse<ProductComparisonResponse>> compareProducts(
                 description = "Không tìm thấy sản phẩm"
         )
 })
-public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getRelatedProducts(
+public ResponseEntity<ApiResponse<?>> getRelatedProducts(
         @Parameter(description = "ID sản phẩm", required = true) @PathVariable Long id,
-        @Parameter(description = "Số lượng sản phẩm liên quan (nếu không chỉ định thì lấy tất cả)") @RequestParam(required = false) Integer limit
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
 ) {
-        log.info("Getting related products for ID: {} with limit: {}", id, limit);
+        log.info("Getting related products for ID: {} with limit: {}, page: {}, size: {}", id, limit, page, size);
         
-        List<ProductViewResponse> result = productViewService.getRelatedProducts(id, limit != null ? limit : Integer.MAX_VALUE);
-
-        return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm liên quan thành công", result));
+        if (limit != null && limit > 0) {
+                List<ProductCardResponse> result = productViewService.getRelatedProducts(id, limit);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm liên quan thành công", result));
+        } else {
+                ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                        .page(page)
+                        .size(size)
+                        .build();
+                Page<ProductCardResponse> result = productViewService.getRelatedProductsPaginated(id, request);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm liên quan thành công", result));
+        }
 }
 
 /**
@@ -301,19 +336,19 @@ public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getRelatedProducts
  * Lấy sản phẩm bán chạy
  * 
  * Logic:
- * - Sắp xếp theo sold count DESC (từ order_items)
+ * - Sắp xếp theo sold count DESC (lượt bán cao nhất)
  * - Chỉ lấy sản phẩm ACTIVE và không bị xóa
  * 
  * Hỗ trợ:
- * - limit=null: Lấy tất cả (có thể slow nếu data lớn)
- * - limit=20: Lấy top 20 best sellers
+ * - page/size: Phân trang
+ * - limit: Lấy N sản phẩm đầu tiên (không pagination)
  * 
  * Use case: Homepage "Best Sellers", Product Recommendations
  */
 @GetMapping("/best-selling")
 @Operation(
         summary = "Xem sản phẩm bán chạy",
-        description = "Lấy danh sách sản phẩm bán chạy nhất. Nếu không chỉ định limit thì lấy tất cả, nếu chỉ định limit thì giới hạn số lượng"
+        description = "Lấy danh sách sản phẩm bán chạy nhất theo lượt bán. Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
 )
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -322,14 +357,24 @@ public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getRelatedProducts
                 content = @Content(schema = @Schema(implementation = ApiResponse.class))
         )
 })
-public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getBestSellingProducts(
-        @Parameter(description = "Số lượng sản phẩm (nếu không chỉ định thì lấy tất cả)") @RequestParam(required = false) Integer limit
+public ResponseEntity<ApiResponse<?>> getBestSellingProducts(
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
 ) {
-        log.info("Getting best selling products with limit: {}", limit);
+        log.info("Getting best selling products with limit: {}, page: {}, size: {}", limit, page, size);
         
-        List<ProductViewResponse> result = productViewService.getBestSellingProducts(limit != null ? limit : Integer.MAX_VALUE);
-        
-        return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm bán chạy thành công", result));
+        if (limit != null && limit > 0) {
+                List<ProductCardResponse> result = productViewService.getBestSellingProducts(limit);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm bán chạy thành công", result));
+        } else {
+                ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                        .page(page)
+                        .size(size)
+                        .build();
+                Page<ProductCardResponse> result = productViewService.getBestSellingProductsPaginated(request);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm bán chạy thành công", result));
+        }
 }
 
 /**
@@ -337,19 +382,19 @@ public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getBestSellingProd
  * Lấy sản phẩm mới nhất
  * 
  * Logic:
- * - Sắp xếp theo created_date DESC
+ * - Sắp xếp theo created_date DESC (mới nhất trước)
  * - Chỉ lấy sản phẩm ACTIVE và không bị xóa
  * 
  * Hỗ trợ:
- * - limit=null: Lấy tất cả
- * - limit=20: Lấy 20 sản phẩm mới nhất
+ * - page/size: Phân trang
+ * - limit: Lấy N sản phẩm đầu tiên (không pagination)
  * 
  * Use case: Homepage "New Arrivals", Product Discovery
  */
 @GetMapping("/new-arrivals")
 @Operation(
         summary = "Xem sản phẩm mới nhất",
-        description = "Lấy danh sách sản phẩm mới ra mắt. Nếu không chỉ định limit thì lấy tất cả, nếu chỉ định limit thì giới hạn số lượng"
+        description = "Lấy danh sách sản phẩm mới ra mắt sắp xếp theo ngày thêm. Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
 )
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -358,18 +403,120 @@ public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getBestSellingProd
                 content = @Content(schema = @Schema(implementation = ApiResponse.class))
         )
 })
-public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getNewArrivals(
-        @Parameter(description = "Số lượng sản phẩm (nếu không chỉ định thì lấy tất cả)") @RequestParam(required = false) Integer limit
+public ResponseEntity<ApiResponse<?>> getNewArrivals(
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
 ) {
-        log.info("Getting new arrivals with limit: {}", limit);
+        log.info("Getting new arrivals with limit: {}, page: {}, size: {}", limit, page, size);
         
-        List<ProductViewResponse> result = productViewService.getNewArrivals(limit != null ? limit : Integer.MAX_VALUE);
-        
-        return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm mới nhất thành công", result));
+        if (limit != null && limit > 0) {
+                List<ProductCardResponse> result = productViewService.getNewArrivals(limit);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm mới nhất thành công", result));
+        } else {
+                ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                        .page(page)
+                        .size(size)
+                        .build();
+                Page<ProductCardResponse> result = productViewService.getNewArrivalsPaginated(request);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm mới nhất thành công", result));
+        }
 }
 
 /**
+ * GET /api/v1/products/featured
  * Lấy sản phẩm nổi bật
+ * 
+ * Tiêu chí:
+ * - Đánh giá trung bình >= 4.5 sao
+ * - Số lượng đã bán >= 100
+ * - Sắp xếp theo rating DESC, sold count DESC
+ * 
+ * Hỗ trợ:
+ * - page/size: Phân trang
+ * - limit: Lấy N sản phẩm đầu tiên (không pagination)
+ * 
+ * Use case: Homepage "Featured Products", Product Recommendations
+ */
+@GetMapping("/featured")
+@Operation(
+        summary = "Xem sản phẩm nổi bật",
+        description = "Lấy danh sách sản phẩm nổi bật (đánh giá >= 4.5, đã bán >= 100). Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
+)
+@ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "200",
+                description = "Lấy danh sách thành công",
+                content = @Content(schema = @Schema(implementation = ApiResponse.class))
+        )
+})
+public ResponseEntity<ApiResponse<?>> getFeaturedProducts(
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
+) {
+        log.info("Getting featured products with limit: {}, page: {}, size: {}", limit, page, size);
+        
+        if (limit != null && limit > 0) {
+                List<ProductCardResponse> result = productViewService.getFeaturedProducts(limit);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm nổi bật thành công", result));
+        } else {
+                ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                        .page(page)
+                        .size(size)
+                        .build();
+                Page<ProductCardResponse> result = productViewService.getFeaturedProductsPaginated(request);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm nổi bật thành công", result));
+        }
+}
+
+/**
+ * GET /api/v1/products/on-sale
+ * Lấy sản phẩm đang giảm giá
+ * 
+ * Logic:
+ * - Có mã giảm giá đang active (promotion)
+ * - Sắp xếp theo số tiền giảm DESC (giảm nhiều nhất trước)
+ * - Chỉ lấy sản phẩm ACTIVE và không bị xóa
+ * 
+ * Hỗ trợ:
+ * - page/size: Phân trang
+ * - limit: Lấy N sản phẩm đầu tiên (không pagination)
+ * 
+ * Use case: Homepage "On Sale", Sales Page
+ */
+@GetMapping("/on-sale")
+@Operation(
+        summary = "Xem sản phẩm đang giảm giá",
+        description = "Lấy danh sách sản phẩm đang giảm giá (có mã giảm giá) sắp xếp theo số tiền giảm. Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
+)
+@ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "200",
+                description = "Lấy danh sách thành công",
+                content = @Content(schema = @Schema(implementation = ApiResponse.class))
+        )
+})
+public ResponseEntity<ApiResponse<?>> getProductsOnSale(
+        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
+        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
+        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
+) {
+        log.info("Getting products on sale with limit: {}, page: {}, size: {}", limit, page, size);
+        
+        if (limit != null && limit > 0) {
+                List<ProductCardResponse> result = productViewService.getProductsOnSale(limit);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm giảm giá thành công", result));
+        } else {
+                ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
+                        .page(page)
+                        .size(size)
+                        .build();
+                Page<ProductCardResponse> result = productViewService.getProductsOnSalePaginated(request);
+                return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm giảm giá thành công", result));
+        }
+}
+
 /**
  * Lọc sản phẩm theo RAM
  * Hỗ trợ cả limit (query all/limit) hoặc pagination
@@ -394,11 +541,11 @@ public ResponseEntity<ApiResponse<?>> filterByRam(
         
         if (limit != null && limit > 0) {
                 // Query với limit (lấy N sản phẩm đầu tiên)
-                List<ProductViewResponse> result = productViewService.filterByRamWithLimit(ramOptions, request, limit);
+                List<ProductCardResponse> result = productViewService.filterByRamWithLimit(ramOptions, request, limit);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo RAM thành công", result));
         } else {
                 // Query với pagination
-                Page<ProductViewResponse> result = productViewService.filterByRam(ramOptions, request);
+                Page<ProductCardResponse> result = productViewService.filterByRam(ramOptions, request);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo RAM thành công", result));
         }
 }
@@ -426,10 +573,10 @@ public ResponseEntity<ApiResponse<?>> filterByStorage(
                 .build();
         
         if (limit != null && limit > 0) {
-                List<ProductViewResponse> result = productViewService.filterByStorageWithLimit(storageOptions, request, limit);
+                List<ProductCardResponse> result = productViewService.filterByStorageWithLimit(storageOptions, request, limit);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo lưu trữ thành công", result));
         } else {
-                Page<ProductViewResponse> result = productViewService.filterByStorage(storageOptions, request);
+                Page<ProductCardResponse> result = productViewService.filterByStorage(storageOptions, request);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo lưu trữ thành công", result));
         }
 }
@@ -458,10 +605,10 @@ public ResponseEntity<ApiResponse<?>> filterByBattery(
                 .build();
         
         if (limit != null && limit > 0) {
-                List<ProductViewResponse> result = productViewService.filterByBatteryWithLimit(minBattery, maxBattery, request, limit);
+                List<ProductCardResponse> result = productViewService.filterByBatteryWithLimit(minBattery, maxBattery, request, limit);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo pin thành công", result));
         } else {
-                Page<ProductViewResponse> result = productViewService.filterByBattery(minBattery, maxBattery, request);
+                Page<ProductCardResponse> result = productViewService.filterByBattery(minBattery, maxBattery, request);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo pin thành công", result));
         }
 }
@@ -489,10 +636,10 @@ public ResponseEntity<ApiResponse<?>> filterByScreenSize(
                 .build();
         
         if (limit != null && limit > 0) {
-                List<ProductViewResponse> result = productViewService.filterByScreenSizeWithLimit(screenSizeOptions, request, limit);
+                List<ProductCardResponse> result = productViewService.filterByScreenSizeWithLimit(screenSizeOptions, request, limit);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo màn hình thành công", result));
         } else {
-                Page<ProductViewResponse> result = productViewService.filterByScreenSize(screenSizeOptions, request);
+                Page<ProductCardResponse> result = productViewService.filterByScreenSize(screenSizeOptions, request);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo màn hình thành công", result));
         }
 }
@@ -520,43 +667,13 @@ public ResponseEntity<ApiResponse<?>> filterByOS(
                 .build();
         
         if (limit != null && limit > 0) {
-                List<ProductViewResponse> result = productViewService.filterByOSWithLimit(osOptions, request, limit);
+                List<ProductCardResponse> result = productViewService.filterByOSWithLimit(osOptions, request, limit);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo hệ điều hành thành công", result));
         } else {
-                Page<ProductViewResponse> result = productViewService.filterByOS(osOptions, request);
+                Page<ProductCardResponse> result = productViewService.filterByOS(osOptions, request);
                 return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo hệ điều hành thành công", result));
         }
 }
 
-/**
- * Lọc sản phẩm theo đánh giá sao
- * Hỗ trợ cả limit (query all/limit) hoặc pagination
- */
-@GetMapping("/filter/rating")
-@Operation(
-        summary = "Lọc sản phẩm theo đánh giá",
-        description = "Lọc sản phẩm theo đánh giá sao (1-5). Sử dụng limit để lấy N sản phẩm đầu tiên, hoặc dùng page/size để phân trang"
-)
-public ResponseEntity<ApiResponse<?>> filterByRating(
-        @Parameter(description = "Đánh giá tối thiểu") @RequestParam(required = false) Double minRating,
-        @Parameter(description = "Đánh giá tối đa") @RequestParam(required = false) Double maxRating,
-        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
-        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
-        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
-) {
-        log.info("Filtering products by Rating: {} - {} - limit: {}", minRating, maxRating, limit);
-        
-        ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
-                .page(page)
-                .size(size)
-                .build();
-        
-        if (limit != null && limit > 0) {
-                List<ProductViewResponse> result = productViewService.filterByRatingWithLimit(minRating, maxRating, request, limit);
-                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo đánh giá thành công", result));
-        } else {
-                Page<ProductViewResponse> result = productViewService.filterByRating(minRating, maxRating, request);
-                return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm theo đánh giá thành công", result));
-        }
 }
-}
+

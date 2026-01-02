@@ -33,7 +33,9 @@ public class ProductComparisonResponse {
         private String brandName;
         
         // Price (single template = single price)
-        private BigDecimal price;
+        private BigDecimal originalPrice;
+        private BigDecimal discountedPrice;
+        private Boolean hasDiscount;
         
         // Rating
         private Double averageRating;

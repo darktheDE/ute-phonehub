@@ -84,10 +84,29 @@ public class ProductDetailViewResponse {
         private String color;           // from product_templates.color
         private String storage;         // from product_templates.storage
         private String ram;             // from product_templates.ram
-        private BigDecimal price;       // from product_templates.price
+        private BigDecimal originalPrice;    // giá gốc từ product_templates.price
+        private BigDecimal discountedPrice;  // giá sau khi giảm (có thể null nếu không có khuyến mãi)
+        private DiscountInfo discountInfo;   // thông tin chi tiết về giảm giá
         private Integer stockQuantity;  // from product_templates.stock_quantity
         private String stockStatus;     // from product_templates.stock_status
         private Boolean status;         // from product_templates.status
+        
+        // Tương thích ngược - deprecated, sẽ trả về originalPrice
+        @Deprecated
+        public BigDecimal getPrice() {
+            return originalPrice;
+        }
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DiscountInfo {
+        private BigDecimal discountAmount;     // số tiền đã giảm
+        private Double discountPercentage;     // phần trăm giảm giá (đã tính sẵn)
+        private String promotionId;            // ID của khuyến mãi được áp dụng
+        private String promotionTitle;         // tên khuyến mãi
     }
     
     @Data
