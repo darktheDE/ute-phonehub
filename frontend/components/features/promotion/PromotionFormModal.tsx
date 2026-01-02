@@ -91,8 +91,8 @@ export function PromotionFormModal({
           const options: SelectOption[] = productsResponse.data.content.map(
             (product: any) => ({
               value: String(product.id),
-              label: product.productName,
-              description: `ID: ${product.id} | ${product.brand || 'N/A'}`,
+              label: product.name || product.productName,
+              description: `ID: ${product.id} | ${product.brand || "N/A"}`,
             })
           );
           setProductOptions(options);

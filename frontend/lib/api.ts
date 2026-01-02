@@ -58,7 +58,7 @@ import type {
 const getApiBaseUrl = (): string => {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
   if (envUrl) return envUrl;
-  
+
   // Default to backend server URL
   return "http://localhost:8081/api/v1";
 };
@@ -123,7 +123,9 @@ async function fetchAPI<T>(
   }
 
   // Ensure endpoint starts with / for proper URL construction
-  const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const normalizedEndpoint = endpoint.startsWith("/")
+    ? endpoint
+    : `/${endpoint}`;
   const url = `${API_BASE_URL}${normalizedEndpoint}`;
   const token = getAuthToken();
 
@@ -289,7 +291,10 @@ export const productAPI = {
 
   // Update product (Admin)
   // PUT /api/v1/admin/products/{id}
-  update: async (id: number, data: Partial<Product>): Promise<ApiResponse<Product>> => {
+  update: async (
+    id: number,
+    data: Partial<Product>
+  ): Promise<ApiResponse<Product>> => {
     return fetchAPI<Product>(`/admin/products/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -306,19 +311,28 @@ export const productAPI = {
   },
 
   // Get all products including deleted (Admin only)
-  // GET /api/v1/products/admin/all?page={page}&size={size}
+  // GET /api/v1/admin/products?page={page}&size={size}
   getAllProducts: async (params?: {
     page?: number;
     size?: number;
+    keyword?: string;
+    categoryId?: number;
+    brandId?: number;
   }): Promise<ApiResponse<any>> => {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined)
       queryParams.append("page", String(params.page));
     if (params?.size !== undefined)
       queryParams.append("size", String(params.size));
+    if (params?.keyword)
+      queryParams.append("keyword", params.keyword);
+    if (params?.categoryId !== undefined)
+      queryParams.append("categoryId", String(params.categoryId));
+    if (params?.brandId !== undefined)
+      queryParams.append("brandId", String(params.brandId));
 
     return fetchAPI<any>(
-      `/products/admin/all${
+      `/admin/products${
         queryParams.toString() ? `?${queryParams.toString()}` : ""
       }`,
       {
@@ -577,16 +591,17 @@ export const adminAPI = {
     if (params?.maxPrice !== undefined)
       queryParams.append("maxPrice", String(params.maxPrice));
     if (params?.sortBy) queryParams.append("sortBy", params.sortBy);
-    if (params?.sortDirection) queryParams.append("sortDirection", params.sortDirection);
-    if (params?.page !== undefined) queryParams.append("page", String(params.page));
-    if (params?.size !== undefined) queryParams.append("size", String(params.size));
+    if (params?.sortDirection)
+      queryParams.append("sortDirection", params.sortDirection);
+    if (params?.page !== undefined)
+      queryParams.append("page", String(params.page));
+    if (params?.size !== undefined)
+      queryParams.append("size", String(params.size));
 
     const query = queryParams.toString();
-    return fetchAPI<any>(`/admin/products${query ? `?${query}` : ""}`,
-      {
-        method: "GET",
-      }
-    );
+    return fetchAPI<any>(`/admin/products${query ? `?${query}` : ""}`, {
+      method: "GET",
+    });
   },
 
   // Products (admin)
