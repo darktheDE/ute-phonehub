@@ -111,6 +111,8 @@ public class PromotionServiceImpl implements IPromotionService {
         
         return promotions.stream()
                 .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                // Filter out DISCOUNT promotions - they auto-apply to products, not for user selection
+                .filter(p -> p.getTemplate().getType() != EPromotionTemplateType.DISCOUNT)
                 .map(promotionMapper::toResponse)
                 .collect(Collectors.toList());
     }
@@ -126,6 +128,8 @@ public class PromotionServiceImpl implements IPromotionService {
 
         return promotions.stream()
                 .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                // Filter out DISCOUNT promotions - they auto-apply to products, not for user selection
+                .filter(p -> p.getTemplate().getType() != EPromotionTemplateType.DISCOUNT)
                 .filter(p -> isMinValueMet(p, orderTotal))
                 .map(promotionMapper::toResponse)
                 .collect(Collectors.toList());

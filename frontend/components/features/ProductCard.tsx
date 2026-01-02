@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { Heart, Star, ShoppingCart } from 'lucide-react';
-import { formatPrice } from '@/lib/utils';
-import { useAuth } from '@/hooks';
-import { useCartStore } from '@/store';
-import { cartAPI } from '@/lib/api';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { Heart, Star, ShoppingCart } from "lucide-react";
+import { formatPrice } from "@/lib/utils";
+import { useAuth } from "@/hooks";
+import { useCartStore } from "@/store";
+import { cartAPI } from "@/lib/api";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface ProductCardProps {
   id: number;
@@ -51,7 +51,7 @@ export function ProductCard({
   const hasDiscount = actualDiscountPercent > 0;
 
   const isValidImage = (src: unknown) => {
-    if (!src || typeof src !== 'string') return false;
+    if (!src || typeof src !== "string") return false;
     return /^(https?:\/\/|\/|data:|blob:)/i.test(src);
   };
 
@@ -59,7 +59,7 @@ export function ProductCard({
     e?.stopPropagation?.();
     await handleAddToCart();
     try {
-      router.push('/checkout');
+      router.push("/checkout");
     } catch {
       // noop
     }
@@ -71,13 +71,13 @@ export function ProductCard({
       addItem({
         productId: id,
         productName: name,
-        productImage: isValidImage(image) ? image : '',
+        productImage: isValidImage(image) ? image : "",
         price: actualOriginalPrice,
         discountPercent: hasDiscount ? actualDiscountPercent : undefined,
         appliedPrice: actualFinalPrice,
         quantity: 1,
       } as any);
-      toast.success('Đã thêm vào giỏ (khách) — đăng nhập để đồng bộ');
+      toast.success("Đã thêm vào giỏ (khách) — đăng nhập để đồng bộ");
       return;
     }
 
@@ -88,13 +88,24 @@ export function ProductCard({
         try {
           const cartResp = await cartAPI.getCurrentCart();
           if (cartResp && cartResp.success && cartResp.data) {
-            const backendItems = Array.isArray(cartResp.data.items) ? cartResp.data.items : [];
+            const backendItems = Array.isArray(cartResp.data.items)
+              ? cartResp.data.items
+              : [];
             const mappedItems = backendItems.map((obj: any) => ({
               id: Number(obj.id ?? 0),
               productId: Number(obj.productId ?? 0),
-              productName: typeof obj.productName === 'string' ? obj.productName : (obj.product?.name ?? 'Unknown Product'),
-              productImage: typeof obj.productImage === 'string' ? obj.productImage : (obj.productThumbnailUrl ?? obj.product?.thumbnailUrl ?? ''),
-              price: typeof obj.price === 'number' ? obj.price : (obj.unitPrice ?? obj.product?.salePrice ?? 0),
+              productName:
+                typeof obj.productName === "string"
+                  ? obj.productName
+                  : obj.product?.name ?? "Unknown Product",
+              productImage:
+                typeof obj.productImage === "string"
+                  ? obj.productImage
+                  : obj.productThumbnailUrl ?? obj.product?.thumbnailUrl ?? "",
+              price:
+                typeof obj.price === "number"
+                  ? obj.price
+                  : obj.unitPrice ?? obj.product?.salePrice ?? 0,
               quantity: Number(obj.quantity ?? 0),
               color: obj.color,
               storage: obj.storage,
@@ -103,16 +114,19 @@ export function ProductCard({
             setItems(mappedItems as any);
           }
         } catch (syncErr) {
-          console.warn('ProductCard: failed to refresh cart after addToCart', syncErr);
+          console.warn(
+            "ProductCard: failed to refresh cart after addToCart",
+            syncErr
+          );
         }
 
-        toast.success('Đã thêm vào giỏ hàng');
+        toast.success("Đã thêm vào giỏ hàng");
       } else {
-        throw new Error(resp?.message || 'Không thể thêm vào giỏ');
+        throw new Error(resp?.message || "Không thể thêm vào giỏ");
       }
     } catch (e: any) {
-      console.error('Add to cart failed:', e);
-      toast.error(e?.message || 'Lỗi khi thêm vào giỏ');
+      console.error("Add to cart failed:", e);
+      toast.error(e?.message || "Lỗi khi thêm vào giỏ");
     }
   };
   return (
@@ -164,10 +178,11 @@ export function ProductCard({
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
-              className={`w-3 h-3 ${i < Math.floor(rating)
-                ? 'fill-primary text-primary'
-                : 'fill-gray-200 text-gray-200'
-                }`}
+              className={`w-3 h-3 ${
+                i < Math.floor(rating)
+                  ? "fill-primary text-primary"
+                  : "fill-gray-200 text-gray-200"
+              }`}
             />
           ))}
           <span className="text-xs text-muted-foreground ml-1">
