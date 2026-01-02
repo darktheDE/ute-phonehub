@@ -96,7 +96,7 @@ export function PromotionFormModal({
       //   );
       //   setProductOptions(options);
       // }
-      
+
       // Set empty products for now
       setProductOptions([]);
 
