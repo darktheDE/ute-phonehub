@@ -7,11 +7,15 @@ export interface Product {
   id: number;
   name: string;
   image: string;
-  originalPrice: number;
-  salePrice: number;
+  originalPrice: number; // For mock data compatibility
+  salePrice: number; // For mock data compatibility
+  // Backend fields
+  price?: number; // Original price from backend
+  discountPercent?: number; // Discount % from active DISCOUNT promotions (0-100)
+  discountedPrice?: number; // Price after discount
   rating: number;
   reviews: number;
-  discount: number;
+  discount: number; // For mock data compatibility
   isNew?: boolean;
   stock?: number;
   category?: string;

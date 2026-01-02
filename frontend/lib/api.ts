@@ -173,10 +173,10 @@ async function fetchAPI<T>(
         data?.error ||
         (typeof data === "string" ? data : null) ||
         `API request failed with status ${response.status} ${response.statusText}`;
-      
+
       // Log error for debugging
       console.error(`API Error [${response.status}]:`, errorMessage);
-      
+
       throw new Error(errorMessage);
     }
 

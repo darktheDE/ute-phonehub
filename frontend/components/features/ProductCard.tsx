@@ -12,11 +12,15 @@ interface ProductCardProps {
   id: number;
   name: string;
   image: string;
-  originalPrice: number;
-  salePrice: number;
+  // Support both mock data format and backend format
+  originalPrice?: number; // Mock data
+  salePrice?: number; // Mock data
+  price?: number; // Backend: original price
+  discountPercent?: number; // Backend: discount % (0-100)
+  discountedPrice?: number; // Backend: price after discount
   rating: number;
   reviews: number;
-  discount: number;
+  discount?: number; // Mock data discount
   isNew?: boolean;
 }
 
@@ -26,6 +30,9 @@ export function ProductCard({
   image,
   originalPrice,
   salePrice,
+  price,
+  discountPercent,
+  discountedPrice,
   rating,
   reviews,
   discount,
@@ -35,6 +42,13 @@ export function ProductCard({
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const { addItem, setItems } = useCartStore();
+
+  // Determine actual prices based on available data
+  // Priority: Backend data (price/discountedPrice) > Mock data (originalPrice/salePrice)
+  const actualOriginalPrice = price ?? originalPrice ?? 0;
+  const actualDiscountPercent = discountPercent ?? discount ?? 0;
+  const actualFinalPrice = discountedPrice ?? salePrice ?? actualOriginalPrice;
+  const hasDiscount = actualDiscountPercent > 0;
 
   const isValidImage = (src: unknown) => {
     if (!src || typeof src !== 'string') return false;
@@ -54,15 +68,13 @@ export function ProductCard({
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
       // Add to local cart store for guest
-      // compute applied price when discount present
-      const appliedPrice = discount && discount > 0 ? Math.round(salePrice * (100 - discount) / 100) : salePrice;
       addItem({
         productId: id,
         productName: name,
         productImage: isValidImage(image) ? image : '',
-        price: salePrice,
-        discountPercent: discount > 0 ? discount : undefined,
-        appliedPrice: appliedPrice,
+        price: actualOriginalPrice,
+        discountPercent: hasDiscount ? actualDiscountPercent : undefined,
+        appliedPrice: actualFinalPrice,
         quantity: 1,
       } as any);
       toast.success('Đã thêm vào giỏ (khách) — đăng nhập để đồng bộ');
@@ -114,9 +126,9 @@ export function ProductCard({
             Mới
           </span>
         )}
-        {discount > 0 && (
+        {hasDiscount && (
           <span className="absolute top-2 right-2 bg-primary text-primary-foreground text-[11px] font-semibold px-2 py-1 rounded-md shadow-sm">
-            -{discount}%
+            -{Math.round(actualDiscountPercent)}%
           </span>
         )}
 
@@ -164,11 +176,13 @@ export function ProductCard({
         </div>
         <div className="flex flex-col">
           <span className="text-base md:text-lg font-bold text-primary">
-            {formatPrice(salePrice)}
+            {formatPrice(actualFinalPrice)}
           </span>
-          <span className="text-xs md:text-sm text-muted-foreground line-through">
-            {formatPrice(originalPrice)}
-          </span>
+          {hasDiscount && (
+            <span className="text-xs md:text-sm text-muted-foreground line-through">
+              {formatPrice(actualOriginalPrice)}
+            </span>
+          )}
         </div>
         <div className="mt-3 flex items-center gap-2">
           <button

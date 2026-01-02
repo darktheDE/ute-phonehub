@@ -3,8 +3,10 @@ package com.utephonehub.backend.service.impl;
 import com.utephonehub.backend.dto.request.PromotionRequest;
 import com.utephonehub.backend.dto.response.PromotionResponse;
 import com.utephonehub.backend.entity.Promotion;
+import com.utephonehub.backend.entity.PromotionTarget;
 import com.utephonehub.backend.entity.PromotionTemplate;
 import com.utephonehub.backend.enums.EPromotionStatus;
+import com.utephonehub.backend.enums.EPromotionTemplateType;
 import com.utephonehub.backend.exception.promotion.PromotionNotFoundException;
 import com.utephonehub.backend.mapper.PromotionMapper;
 import com.utephonehub.backend.repository.PromotionRepository;
@@ -236,5 +238,71 @@ public class PromotionServiceImpl implements IPromotionService {
             });
             promotionRepository.saveAll(expiredPromotions);
         }
+    }
+
+    /**
+     * Get the best active DISCOUNT promotion for a product
+     * Automatically applies to products based on PRODUCT/CATEGORY/BRAND targets
+     * Returns highest discount percentage among applicable promotions
+     * 
+     * @param productId Product ID
+     * @param categoryId Category ID of the product
+     * @param brandId Brand ID of the product
+     * @return Best discount percentage (0-100), or null if no discount
+     */
+    @Override
+    public Double getBestDiscountForProduct(Long productId, Long categoryId, Long brandId) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Get all active DISCOUNT promotions
+        List<Promotion> activeDiscounts = promotionRepository.findAll().stream()
+                .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                .filter(p -> p.getTemplate().getType() == EPromotionTemplateType.DISCOUNT)
+                .filter(p -> now.isAfter(p.getEffectiveDate()) && now.isBefore(p.getExpirationDate()))
+                .collect(Collectors.toList());
+        
+        // Find applicable promotions and collect their discount percentages
+        Double maxDiscount = activeDiscounts.stream()
+                .filter(promotion -> isPromotionApplicableToProduct(promotion, productId, categoryId, brandId))
+                .map(Promotion::getPercentDiscount)
+                .filter(discount -> discount != null && discount > 0)
+                .max(Double::compare)
+                .orElse(null);
+        
+        return maxDiscount;
+    }
+
+    /**
+     * Check if a promotion is applicable to a specific product
+     * Checks if promotion targets include the product's ID, category, or brand
+     */
+    private boolean isPromotionApplicableToProduct(Promotion promotion, Long productId, Long categoryId, Long brandId) {
+        if (promotion.getTargets() == null || promotion.getTargets().isEmpty()) {
+            return false;
+        }
+        
+        for (PromotionTarget target : promotion.getTargets()) {
+            Long targetId = target.getApplicableObjectId();
+            
+            switch (target.getType()) {
+                case PRODUCT:
+                    if (productId != null && productId.equals(targetId)) {
+                        return true;
+                    }
+                    break;
+                case CATEGORY:
+                    if (categoryId != null && categoryId.equals(targetId)) {
+                        return true;
+                    }
+                    break;
+                case BRAND:
+                    if (brandId != null && brandId.equals(targetId)) {
+                        return true;
+                    }
+                    break;
+            }
+        }
+        
+        return false;
     }
 }
