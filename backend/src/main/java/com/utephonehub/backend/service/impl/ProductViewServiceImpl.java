@@ -14,6 +14,7 @@ import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.repository.CategoryRepository;
 import com.utephonehub.backend.repository.ProductRepository;
+import com.utephonehub.backend.repository.ReviewRepository;
 import com.utephonehub.backend.service.IProductViewService;
 import com.utephonehub.backend.service.IPromotionService;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -41,6 +45,7 @@ public class ProductViewServiceImpl implements IProductViewService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ReviewRepository reviewRepository;
     private final IPromotionService promotionService;
 
     @Override
@@ -50,7 +55,7 @@ public class ProductViewServiceImpl implements IProductViewService {
         Page<Product> page = (keyword != null && !keyword.isBlank())
                 ? productRepository.searchProductsOptimized(keyword.trim(), pageable)
                 : productRepository.findAllForProductView(pageable);
-        return page.map(this::toCard);
+        return toCardPage(page);
     }
 
     @Override
@@ -73,6 +78,8 @@ public class ProductViewServiceImpl implements IProductViewService {
     public ProductDetailViewResponse getProductDetailById(Long productId) {
         Product product = productRepository.findByIdAndIsDeletedFalse(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sản phẩm"));
+        Double avgRating = reviewRepository.calculateAverageRatingByProductId(productId);
+        Long reviewCount = reviewRepository.countReviewsByProductId(productId);
         return ProductDetailViewResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -87,6 +94,8 @@ public class ProductViewServiceImpl implements IProductViewService {
                         .name(product.getBrand() != null ? product.getBrand().getName() : null)
                         .logoUrl(null)
                         .build())
+                    .averageRating(avgRating != null ? avgRating : 0.0)
+                    .totalReviews(reviewCount != null ? reviewCount.intValue() : 0)
                 .inStock(hasStock(product))
                 .build();
     }
@@ -96,7 +105,7 @@ public class ProductViewServiceImpl implements IProductViewService {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
         Pageable pageable = buildPageable(request.getPage(), request.getSize(), request.getSortBy(), request.getSortDirection());
-        Page<Product> productPage = productRepository.findByCategoryIdOptimized(categoryId, pageable);
+        productRepository.findByCategoryIdOptimized(categoryId, pageable);
         CategoryProductsResponse.CategoryInfo info = CategoryProductsResponse.CategoryInfo.builder()
                 .id(category.getId())
                 .name(category.getName())
@@ -120,8 +129,9 @@ public class ProductViewServiceImpl implements IProductViewService {
         if (products.size() != productIds.size()) {
             throw new ResourceNotFoundException("Một số sản phẩm không tồn tại");
         }
+        Map<Long, ReviewSummary> stats = reviewStats(products);
         List<ProductComparisonResponse.ComparisonProduct> items = products.stream()
-                .map(this::toComparisonProduct)
+                .map(p -> toComparisonProduct(p, stats.get(p.getId())))
                 .collect(Collectors.toList());
         return ProductComparisonResponse.builder().products(items).build();
     }
@@ -131,40 +141,40 @@ public class ProductViewServiceImpl implements IProductViewService {
         Product product = productRepository.findByIdAndIsDeletedFalse(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         List<Product> list = productRepository.findByCategoryIdAndIsDeletedFalse(product.getCategory().getId());
-        return list.stream()
-                .filter(p -> !Objects.equals(p.getId(), productId))
-                .limit(limitOrDefault(limit))
-                .map(this::toCard)
-                .collect(Collectors.toList());
+        List<Product> filtered = list.stream()
+            .filter(p -> !Objects.equals(p.getId(), productId))
+            .limit(limitOrDefault(limit))
+            .collect(Collectors.toList());
+        return toCards(filtered);
     }
 
     @Override
     public List<ProductCardResponse> getBestSellingProducts(Integer limit) {
         List<Product> list = productRepository.findByStatusTrueAndIsDeletedFalse();
-        return list.stream()
+        List<Product> sorted = list.stream()
                 .sorted(Comparator.comparing(Product::getCreatedAt).reversed())
                 .limit(limitOrDefault(limit))
-                .map(this::toCard)
-                .collect(Collectors.toList());
+            .collect(Collectors.toList());
+        return toCards(sorted);
     }
 
     @Override
     public List<ProductCardResponse> getNewArrivals(Integer limit) {
         List<Product> list = productRepository.findByStatusTrueAndIsDeletedFalse();
-        return list.stream()
+        List<Product> sorted = list.stream()
                 .sorted(Comparator.comparing(Product::getCreatedAt).reversed())
                 .limit(limitOrDefault(limit))
-                .map(this::toCard)
-                .collect(Collectors.toList());
+            .collect(Collectors.toList());
+        return toCards(sorted);
     }
 
     @Override
     public List<ProductCardResponse> getFeaturedProducts(Integer limit) {
         List<Product> list = productRepository.findByStatusTrueAndIsDeletedFalse();
-        return list.stream()
-                .limit(limitOrDefault(limit))
-                .map(this::toCard)
-                .collect(Collectors.toList());
+        List<Product> limited = list.stream()
+            .limit(limitOrDefault(limit))
+            .collect(Collectors.toList());
+        return toCards(limited);
     }
 
     @Override
@@ -199,9 +209,9 @@ public class ProductViewServiceImpl implements IProductViewService {
 
     @Override
     public List<ProductCardResponse> getProductsByCategoryWithLimit(Long categoryId, ProductSearchFilterRequest request, Integer limit) {
-        Page<ProductCardResponse> page = productRepository.findByCategoryIdOptimized(categoryId, buildPageable(request.getPage(), request.getSize(), request.getSortBy(), request.getSortDirection()))
-                .map(this::toCard);
-        return page.getContent().stream().limit(limitOrDefault(limit)).collect(Collectors.toList());
+        Page<Product> page = productRepository.findByCategoryIdOptimized(categoryId, buildPageable(request.getPage(), request.getSize(), request.getSortBy(), request.getSortDirection()));
+        List<Product> limited = page.getContent().stream().limit(limitOrDefault(limit)).collect(Collectors.toList());
+        return toCards(limited);
     }
 
     @Override
@@ -238,13 +248,13 @@ public class ProductViewServiceImpl implements IProductViewService {
     public Page<ProductCardResponse> filterBySoldCount(Integer minSoldCount, ProductSearchFilterRequest request) {
         Pageable pageable = buildPageable(request.getPage(), request.getSize(), request.getSortBy(), request.getSortDirection());
         Page<Product> page = productRepository.findByStatusTrueAndIsDeletedFalse(pageable);
-        return page.map(this::toCard);
+        return toCardPage(page);
     }
 
     @Override
     public Page<ProductCardResponse> getAllProducts(ProductSearchFilterRequest request) {
         Pageable pageable = buildPageable(request.getPage(), request.getSize(), request.getSortBy(), request.getSortDirection());
-        return productRepository.findByIsDeletedFalse(pageable).map(this::toCard);
+        return toCardPage(productRepository.findByIsDeletedFalse(pageable));
     }
 
     @Override
@@ -286,29 +296,33 @@ public class ProductViewServiceImpl implements IProductViewService {
         Product product = productRepository.findByIdAndIsDeletedFalse(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         Page<Product> page = productRepository.findByCategoryIdAndIsDeletedFalse(product.getCategory().getId(), pageable);
-        return page.map(this::toCard);
+        return toCardPage(page);
     }
 
     @Override
     public List<ProductCardResponse> getProductsByCategoryList(Long categoryId, Integer limit) {
         List<Product> list = productRepository.findByCategoryIdAndIsDeletedFalse(categoryId);
-        return list.stream().limit(limitOrDefault(limit)).map(this::toCard).collect(Collectors.toList());
+        List<Product> limited = list.stream().limit(limitOrDefault(limit)).collect(Collectors.toList());
+        return toCards(limited);
     }
 
     @Override
     public Page<ProductCardResponse> getProductsByCategoryPaginated(Long categoryId, ProductSearchFilterRequest request) {
         Pageable pageable = buildPageable(request.getPage(), request.getSize(), request.getSortBy(), request.getSortDirection());
-        return productRepository.findByCategoryIdAndIsDeletedFalse(categoryId, pageable).map(this::toCard);
+        return toCardPage(productRepository.findByCategoryIdAndIsDeletedFalse(categoryId, pageable));
     }
 
     @Override
     public List<ProductCardResponse> getProductsOnSale(Integer limit) {
         int take = limitOrDefault(limit);
-        return productRepository.findByStatusTrueAndIsDeletedFalse().stream()
-                .map(this::toCard)
-                .filter(ProductCardResponse::getHasDiscount)
+        List<Product> discounted = productRepository.findByStatusTrueAndIsDeletedFalse().stream()
+                .filter(p -> {
+                    ProductTemplate t = displayTemplate(p);
+                    return calculateDiscount(t != null ? t.getPrice() : null).hasDiscount;
+                })
                 .limit(take)
                 .collect(Collectors.toList());
+        return toCards(discounted);
     }
 
     private Pageable buildPageable(Integer page, Integer size, String sortBy, String sortDirection) {
@@ -328,20 +342,20 @@ public class ProductViewServiceImpl implements IProductViewService {
 
     private Page<ProductCardResponse> getFeaturedProductsPage(ProductSearchFilterRequest request) {
         Pageable pageable = buildPageable(request.getPage(), request.getSize(), request.getSortBy(), request.getSortDirection());
-        return productRepository.findByStatusTrueAndIsDeletedFalse(pageable)
-                .map(this::toCard);
+        return toCardPage(productRepository.findByStatusTrueAndIsDeletedFalse(pageable));
     }
 
     private Page<ProductCardResponse> createPageFromList(List<Product> products, Pageable pageable, long total) {
-        List<ProductCardResponse> content = products.stream().map(this::toCard).collect(Collectors.toList());
+        List<ProductCardResponse> content = toCards(products);
         return new PageImpl<>(content, pageable, total);
     }
 
-    private ProductCardResponse toCard(Product product) {
+    private ProductCardResponse toCard(Product product, ReviewSummary reviewSummary) {
         ProductTemplate template = displayTemplate(product);
         BigDecimal originalPrice = template != null ? template.getPrice() : null;
         DiscountResult discount = calculateDiscount(originalPrice);
         ProductMetadata metadata = product.getMetadata();
+        ReviewSummary stats = reviewSummary != null ? reviewSummary : ReviewSummary.empty();
         return ProductCardResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -355,9 +369,9 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .hasDiscount(discount.hasDiscount)
                 .discountPercentage(discount.discountPercentage)
                 .savingAmount(discount.discountAmount)
-                .averageRating(0.0)
-                .totalReviews(0)
-                .ratingDisplay("0.0 (0 reviews)")
+                .averageRating(stats.average)
+                .totalReviews(stats.count)
+                .ratingDisplay(ratingDisplay(stats))
                 .inStock(hasStock(product))
                 .stockQuantity(totalStock(product))
                 .stockStatus(stockStatus(totalStock(product)))
@@ -388,9 +402,10 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .build();
     }
 
-    private ProductComparisonResponse.ComparisonProduct toComparisonProduct(Product product) {
+    private ProductComparisonResponse.ComparisonProduct toComparisonProduct(Product product, ReviewSummary reviewSummary) {
         ProductTemplate template = displayTemplate(product);
         DiscountResult discount = calculateDiscount(template != null ? template.getPrice() : null);
+        ReviewSummary stats = reviewSummary != null ? reviewSummary : ReviewSummary.empty();
         return ProductComparisonResponse.ComparisonProduct.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -399,8 +414,8 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .originalPrice(template != null ? template.getPrice() : null)
                 .discountedPrice(discount.discountedPrice)
                 .hasDiscount(discount.hasDiscount)
-                .averageRating(0.0)
-                .totalReviews(0)
+                .averageRating(stats.average)
+                .totalReviews(stats.count)
                 .inStock(hasStock(product))
                 .specs(ProductComparisonResponse.ComparisonSpecs.builder()
                         .screen(metadataValue(product, ProductMetadata::getScreenSize))
@@ -514,6 +529,46 @@ public class ProductViewServiceImpl implements IProductViewService {
         return (limit != null && limit > 0) ? limit : 10;
     }
 
+    private Page<ProductCardResponse> toCardPage(Page<Product> page) {
+        List<ProductCardResponse> content = toCards(page.getContent());
+        return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
+    }
+
+    private List<ProductCardResponse> toCards(List<Product> products) {
+        Map<Long, ReviewSummary> stats = reviewStats(products);
+        return products.stream()
+                .map(p -> toCard(p, stats.get(p.getId())))
+                .collect(Collectors.toList());
+    }
+
+    private Map<Long, ReviewSummary> reviewStats(List<Product> products) {
+        Map<Long, ReviewSummary> stats = new HashMap<>();
+        if (products == null || products.isEmpty()) {
+            return stats;
+        }
+        List<Long> ids = products.stream()
+                .map(Product::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (ids.isEmpty()) {
+            return stats;
+        }
+        for (Object[] row : reviewRepository.getReviewStatsByProductIds(ids)) {
+            Long productId = (Long) row[0];
+            Double avg = (Double) row[1];
+            Long count = (Long) row[2];
+            stats.put(productId, new ReviewSummary(avg != null ? avg : 0.0, count != null ? count.intValue() : 0));
+        }
+        return stats;
+    }
+
+    private String ratingDisplay(ReviewSummary stats) {
+        double avg = stats != null ? stats.average : 0.0;
+        int count = stats != null ? stats.count : 0;
+        return String.format(Locale.US, "%.1f (%d reviews)", avg, count);
+    }
+
     private <T> T firstOrNull(List<T> list) {
         if (list == null || list.isEmpty()) return null;
         return list.get(0);
@@ -545,6 +600,20 @@ public class ProductViewServiceImpl implements IProductViewService {
 
         static DiscountResult of(BigDecimal discountedPrice, BigDecimal discountAmount, Double discountPercentage) {
             return new DiscountResult(discountedPrice, discountAmount, discountPercentage, true);
+        }
+    }
+
+    private static final class ReviewSummary {
+        private final double average;
+        private final int count;
+
+        private ReviewSummary(double average, int count) {
+            this.average = average;
+            this.count = count;
+        }
+
+        static ReviewSummary empty() {
+            return new ReviewSummary(0.0, 0);
         }
     }
 }
