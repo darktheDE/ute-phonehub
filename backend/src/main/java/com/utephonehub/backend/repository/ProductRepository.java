@@ -149,18 +149,36 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findAllForProductView(Pageable pageable);
     
     /**
-     * Search với JOIN FETCH
+     * Search ProductView bằng đối sánh chuỗi con cơ bản để tránh lỗi HQL phức tạp
      */
-    @Query(value = "SELECT DISTINCT p FROM Product p " +
-           "LEFT JOIN FETCH p.category " +
-           "LEFT JOIN FETCH p.brand " +
-           "WHERE p.status = true AND p.isDeleted = false " +
-           "AND (LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))",
-           countQuery = "SELECT COUNT(DISTINCT p) FROM Product p " +
-                       "WHERE p.status = true AND p.isDeleted = false " +
-                       "AND (LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-                       "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    @Query(value = """
+               SELECT DISTINCT p FROM Product p
+               LEFT JOIN FETCH p.category c
+               LEFT JOIN FETCH p.brand b
+               WHERE p.status = true
+               AND p.isDeleted = false
+               AND (
+                      :keyword IS NULL OR :keyword = ''
+                      OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               )
+               """,
+               countQuery = """
+               SELECT COUNT(DISTINCT p) FROM Product p
+               LEFT JOIN p.category c
+               LEFT JOIN p.brand b
+               WHERE p.status = true
+               AND p.isDeleted = false
+               AND (
+                      :keyword IS NULL OR :keyword = ''
+                      OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               )
+               """)
     Page<Product> searchProductsOptimized(@Param("keyword") String keyword, Pageable pageable);
     
     /**

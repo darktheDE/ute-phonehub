@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ import java.util.List;
 public class CategoryProductsResponse {
     
     private CategoryInfo category;
+    private Page<ProductCardResponse> products; // Thêm field products
     private List<BreadcrumbItem> breadcrumbs;
     private List<CategoryInfo> subCategories;
     private FilterOptions filterOptions;

@@ -220,16 +220,6 @@ public interface IProductViewService {
     Page<ProductCardResponse> getRelatedProductsPaginated(Long productId, ProductSearchFilterRequest request);
     
     /**
-     * [Client] Lấy sản phẩm theo danh mục (List mode)
-     */
-    List<ProductCardResponse> getProductsByCategoryList(Long categoryId, Integer limit);
-    
-    /**
-     * [Client] Lấy sản phẩm theo danh mục (Pagination mode)
-     */
-    Page<ProductCardResponse> getProductsByCategoryPaginated(Long categoryId, ProductSearchFilterRequest request);
-    
-    /**
      * [Client] Lấy sản phẩm đang giảm giá (List mode)
      */
     List<ProductCardResponse> getProductsOnSale(Integer limit);

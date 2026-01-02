@@ -1,6 +1,7 @@
 package com.utephonehub.backend.controller;
 
 import com.utephonehub.backend.dto.ApiResponse;
+import com.utephonehub.backend.dto.request.productview.ProductFilterRequest;
 import com.utephonehub.backend.dto.request.productview.ProductSearchFilterRequest;
 import com.utephonehub.backend.dto.response.productview.*;
 import com.utephonehub.backend.service.IProductViewService;
@@ -100,6 +101,49 @@ public ResponseEntity<ApiResponse<Page<ProductCardResponse>>> searchProducts(
 }
 
 /**
+ * POST /api/v1/products/filter
+ * Lọc sản phẩm theo nhiều tiêu chí cùng lúc
+ * 
+ * Features:
+ * - Hỗ trợ lọc đa tiêu chí: category, brand, price, RAM, storage, battery, screen, OS
+ * - Logic AND: tất cả điều kiện phải thỏa mãn
+ * - Hỗ trợ pagination và sorting
+ * - Frontend có thể tick nhiều checkbox cùng lúc
+ * 
+ * Use case: Product Listing Page với sidebar filters
+ */
+@PostMapping("/filter")
+@Operation(
+        summary = "Lọc sản phẩm đa tiêu chí",
+        description = "Lọc sản phẩm theo nhiều tiêu chí cùng lúc: danh mục, thương hiệu, giá, RAM, storage, pin, màn hình, OS, đánh giá, trạng thái kho"
+)
+@ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "200",
+                description = "Lọc sản phẩm thành công",
+                content = @Content(schema = @Schema(implementation = ApiResponse.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "400",
+                description = "Tham số lọc không hợp lệ"
+        )
+})
+public ResponseEntity<ApiResponse<Page<ProductCardResponse>>> filterProducts(
+        @Parameter(description = "Tiêu chí lọc sản phẩm", required = true)
+        @RequestBody ProductFilterRequest request
+) {
+        log.info("Filtering products with criteria: categories={}, brands={}, priceRange=[{}-{}], ram={}, storage={}, battery=[{}-{}], screenSizes={}, os={}, minRating={}, inStockOnly={}, hasDiscountOnly={}", 
+                request.getCategoryIds(), request.getBrandIds(), request.getMinPrice(), request.getMaxPrice(),
+                request.getRamOptions(), request.getStorageOptions(), request.getMinBattery(), request.getMaxBattery(),
+                request.getScreenSizeOptions(), request.getOsOptions(), request.getMinRating(), 
+                request.getInStockOnly(), request.getHasDiscountOnly());
+        
+        Page<ProductCardResponse> result = productViewService.filterProducts(request);
+        
+        return ResponseEntity.ok(ApiResponse.success("Lọc sản phẩm thành công", result));
+}
+
+/**
  * GET /api/v1/products/{id}
  * Lấy chi tiết sản phẩm theo ID
  * 
@@ -186,53 +230,6 @@ public ResponseEntity<ApiResponse<CategoryProductsResponse>> getProductsByCatego
         CategoryProductsResponse result = productViewService.getProductsByCategory(categoryId, request);
         
         return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm theo danh mục thành công", result));
-}
-
-/**
- * GET /api/v1/products/category/{categoryId}/list
- * Lấy danh sách sản phẩm theo danh mục (chỉ sản phẩm)
- * 
- * Response bao gồm:
- * - Danh sách sản phẩm thuộc danh mục (paginated)
- * - Không bao gồm thông tin danh mục chi tiết
- * 
- * Use case: Category Product Listing, Quick Category Browse
- */
-@GetMapping("/category/{categoryId}/list")
-@Operation(
-        summary = "Lấy danh sách sản phẩm theo danh mục",
-        description = "Lấy danh sách sản phẩm thuộc danh mục với pagination"
-)
-@ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                responseCode = "200",
-                description = "Lấy danh sách thành công",
-                content = @Content(schema = @Schema(implementation = ApiResponse.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                responseCode = "404",
-                description = "Không tìm thấy danh mục"
-        )
-})
-public ResponseEntity<ApiResponse<?>> getProductListByCategory(
-        @Parameter(description = "ID danh mục", required = true) @PathVariable Long categoryId,
-        @Parameter(description = "Số lượng giới hạn sản phẩm (không pagination)") @RequestParam(required = false) Integer limit,
-        @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(required = false, defaultValue = "0") Integer page,
-        @Parameter(description = "Số sản phẩm mỗi trang") @RequestParam(required = false, defaultValue = "20") Integer size
-) {
-        log.info("Getting product list for category ID: {} with limit: {}, page: {}, size: {}", categoryId, limit, page, size);
-        
-        if (limit != null && limit > 0) {
-                List<ProductCardResponse> result = productViewService.getProductsByCategoryList(categoryId, limit);
-                return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm thành công", result));
-        } else {
-                ProductSearchFilterRequest request = ProductSearchFilterRequest.builder()
-                        .page(page)
-                        .size(size)
-                        .build();
-                Page<ProductCardResponse> result = productViewService.getProductsByCategoryPaginated(categoryId, request);
-                return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm thành công", result));
-        }
 }
 
 /**

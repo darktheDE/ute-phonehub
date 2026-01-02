@@ -27,7 +27,10 @@ public class ProductCardResponse {
     private Long categoryId;  // For filtering/navigation
     
     // === PRICE INFO ===
-    private BigDecimal originalPrice;  // Giá gốc
+    private BigDecimal originalPrice;  // Giá gốc (giá thấp nhất)
+    private BigDecimal minPrice;  // Giá thấp nhất từ tất cả template
+    private BigDecimal maxPrice;  // Giá cao nhất từ tất cả template  
+    private String priceRange;  // "10.000.000đ - 15.000.000đ" hoặc "10.000.000đ" nếu chỉ có 1 giá
     private BigDecimal discountedPrice;  // Giá sau giảm
     private Boolean hasDiscount;
     private Double discountPercentage;  // % giảm giá để hiển thị trên UI
