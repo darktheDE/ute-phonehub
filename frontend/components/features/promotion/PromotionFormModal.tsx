@@ -10,7 +10,7 @@ import {
   SearchableSelect,
   SelectOption,
 } from "@/components/ui/searchable-select";
-import { templateAPI, productAPI, categoryAPI } from "@/lib/api";
+import { templateAPI, productAPI, categoryAPI, brandAPI } from "@/lib/api";
 import type {
   PromotionResponse,
   CreatePromotionRequest,
@@ -39,6 +39,7 @@ export function PromotionFormModal({
   // Options for target selection
   const [productOptions, setProductOptions] = useState<SelectOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([]);
+  const [brandOptions, setBrandOptions] = useState<SelectOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
 
   // Form state
@@ -76,41 +77,65 @@ export function PromotionFormModal({
     }
   }, [isOpen]);
 
-  // Load products and categories for selection
+  // Load products, categories, and brands for selection
   const loadProductsAndCategories = async () => {
     setLoadingOptions(true);
     try {
-      // TODO: Backend endpoint /products/admin/all doesn't exist yet
-      // Load products - temporarily disabled until backend implements the endpoint
-      // const productsResponse = await productAPI.getAllProducts({
-      //   page: 0,
-      //   size: 1000,
-      // });
-      // if (productsResponse.success && productsResponse.data?.content) {
-      //   const options: SelectOption[] = productsResponse.data.content.map(
-      //     (product: any) => ({
-      //       value: String(product.id),
-      //       label: product.productName,
-      //       description: `ID: ${product.id} | ${product.brand}`,
-      //     })
-      //   );
-      //   setProductOptions(options);
-      // }
-
-      // Set empty products for now
-      setProductOptions([]);
+      // Load products
+      try {
+        const productsResponse = await productAPI.getAllProducts({
+          page: 0,
+          size: 1000,
+        });
+        if (productsResponse.success && productsResponse.data?.content) {
+          const options: SelectOption[] = productsResponse.data.content.map(
+            (product: any) => ({
+              value: String(product.id),
+              label: product.productName,
+              description: `ID: ${product.id} | ${product.brand || 'N/A'}`,
+            })
+          );
+          setProductOptions(options);
+        }
+      } catch (err) {
+        console.warn("Failed to load products:", err);
+        setProductOptions([]);
+      }
 
       // Load categories
-      const categoriesResponse = await categoryAPI.getRootCategories();
-      if (categoriesResponse.success && categoriesResponse.data) {
-        const options: SelectOption[] = categoriesResponse.data.map(
-          (category: any) => ({
-            value: String(category.id),
-            label: category.name,
-            description: `ID: ${category.id}`,
-          })
-        );
-        setCategoryOptions(options);
+      try {
+        const categoriesResponse = await categoryAPI.getRootCategories();
+        if (categoriesResponse.success && categoriesResponse.data) {
+          const options: SelectOption[] = categoriesResponse.data.map(
+            (category: any) => ({
+              value: String(category.id),
+              label: category.name,
+              description: `ID: ${category.id}`,
+            })
+          );
+          setCategoryOptions(options);
+        }
+      } catch (err) {
+        console.warn("Failed to load categories:", err);
+        setCategoryOptions([]);
+      }
+
+      // Load brands
+      try {
+        const brandsResponse = await brandAPI.getAll();
+        if (brandsResponse.success && brandsResponse.data) {
+          const options: SelectOption[] = brandsResponse.data.map(
+            (brand: any) => ({
+              value: String(brand.id),
+              label: brand.name,
+              description: `ID: ${brand.id}`,
+            })
+          );
+          setBrandOptions(options);
+        }
+      } catch (err) {
+        console.warn("Failed to load brands:", err);
+        setBrandOptions([]);
       }
     } catch (err) {
       console.error("Failed to load options:", err);
@@ -462,8 +487,9 @@ export function PromotionFormModal({
                         case "PRODUCT":
                           return productOptions;
                         case "CATEGORY":
-                        case "BRAND":
                           return categoryOptions;
+                        case "BRAND":
+                          return brandOptions;
                         default:
                           return [];
                       }

@@ -390,6 +390,17 @@ export const categoryAPI = {
   },
 };
 
+// Brand API endpoints
+export const brandAPI = {
+  // Get all brands
+  // GET /api/v1/brands
+  getAll: async (): Promise<ApiResponse<any[]>> => {
+    return fetchAPI<any[]>("/brands", {
+      method: "GET",
+    });
+  },
+};
+
 // Order API endpoints
 export const orderAPI = {
   // Create new order
