@@ -19,6 +19,8 @@ import {
   Bell,
   FolderTree,
   Tag,
+  Ticket,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -32,6 +34,7 @@ import {
   CategoryManagement,
   BrandManagement,
 } from '@/components/features/dashboard';
+import { PromotionsTable, TemplatesTable } from '@/components/features/promotion';
 import { ProductsManagement } from '@/components/features/admin/ProductsManagement';
 import { Sidebar } from '@/components/features/layout/Sidebar';
 import { useOrders } from '@/hooks';
@@ -43,6 +46,8 @@ type TabType =
   | 'products'
   | 'categories'
   | 'brands'
+  | 'promotions'
+  | 'templates'
   | 'users'
   | 'profile'
   | 'addresses'
@@ -67,6 +72,8 @@ export default function ManagePageClient() {
     { id: 'products' as TabType, label: 'Sản phẩm', icon: Package },
     { id: 'categories' as TabType, label: 'Danh mục', icon: FolderTree },
     { id: 'brands' as TabType, label: 'Thương hiệu', icon: Tag },
+    { id: 'promotions' as TabType, label: 'Khuyến mãi', icon: Ticket },
+    { id: 'templates' as TabType, label: 'Templates', icon: FileText },
     { id: 'users' as TabType, label: 'Người dùng', icon: Users },
   ];
 
@@ -150,9 +157,11 @@ export default function ManagePageClient() {
               {activeTab === 'dashboard' && 'Dashboard'}
               {activeTab === 'products' && 'Quản lý sản phẩm'}
               {activeTab === 'orders' && (isAdmin ? 'Quản lý đơn hàng' : 'Đơn hàng của tôi')}
-              {activeTab === 'users' && 'Quản lý người dùng'}
               {activeTab === 'categories' && 'Quản lý danh mục'}
               {activeTab === 'brands' && 'Quản lý thương hiệu'}
+              {activeTab === 'promotions' && 'Quản lý khuyến mãi'}
+              {activeTab === 'templates' && 'Quản lý Templates'}
+              {activeTab === 'users' && 'Quản lý người dùng'}
               {activeTab === 'profile' && 'Thông tin cá nhân'}
               {activeTab === 'addresses' && 'Địa chỉ của tôi'}
               {activeTab === 'wishlist' && 'Sản phẩm yêu thích'}
@@ -183,6 +192,12 @@ export default function ManagePageClient() {
 
           {/* Brands Management (Admin Only) */}
           {activeTab === 'brands' && isAdmin && <BrandManagement />}
+
+          {/* Promotions Management (Admin Only) */}
+          {activeTab === 'promotions' && isAdmin && <PromotionsTable />}
+
+          {/* Templates Management (Admin Only) */}
+          {activeTab === 'templates' && isAdmin && <TemplatesTable />}
 
           {/* Orders */}
           {activeTab === 'orders' &&
