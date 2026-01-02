@@ -32,8 +32,30 @@ export type { CartItem, CartState } from "./cart";
 // Wishlist types
 export type { WishlistItem, WishlistState } from "./wishlist";
 
+// Category types
+export type {
+  Category,
+  CategoryResponse,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+} from "./category";
+
+// Brand types
+export type {
+  Brand,
+  BrandResponse,
+  CreateBrandRequest,
+  UpdateBrandRequest,
+} from "./brand";
+
 // Product types
-export type { Product, ProductResponse, TopProductResponse } from "./product";
+export type {
+  Product,
+  ProductResponse,
+  ProductMetadata,
+  CreateProductRequest,
+  UpdateProductRequest,
+} from "./product";
 
 // Order types
 export type {
@@ -53,6 +75,15 @@ export type {
   DashboardOverview,
   DashboardOverviewResponse,
   DashboardStats,
+  RevenueChartData,
+  OrderStatusChartData,
+  UserRegistrationChartData,
+  TopProduct,
+  TopProductResponse,
+  RecentOrder,
+  LowStockProduct,
+  DashboardPeriod,
+  RegistrationPeriod,
 } from "./dashboard";
 
 // Promotion types
@@ -69,3 +100,14 @@ export type {
   CreateTemplateRequest,
   UpdateTemplateRequest,
 } from "./template";
+
+// Payment types
+export type {
+  PaymentStatus,
+  PaymentResponse,
+  VNPayPaymentResponse,
+  CreatePaymentRequest,
+  PaymentHistoryResponse,
+  VNPayCallbackParams,
+  PaymentMethodOption,
+} from "./payment";

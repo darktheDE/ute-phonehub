@@ -44,11 +44,11 @@ export default function PromotionsPage() {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
-  const getPromotionTypeLabel = (type: string) => {
+  const getPromotionTypeLabel = (type: PromotionResponse["templateType"]) => {
     switch (type) {
-      case "PERCENTAGE":
+      case "DISCOUNT_PERCENTAGE":
         return "Giảm theo %";
-      case "FIXED_AMOUNT":
+      case "DISCOUNT_FIXED":
         return "Giảm cố định";
       case "FREE_SHIPPING":
         return "Miễn phí ship";
@@ -129,7 +129,7 @@ export default function PromotionsPage() {
                     {promo.title}
                   </h3>
                   <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">
-                    {getPromotionTypeLabel(promo.type)}
+                    {getPromotionTypeLabel(promo.templateType)}
                   </span>
                 </div>
                 <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-full flex-shrink-0">
@@ -150,30 +150,20 @@ export default function PromotionsPage() {
                 <div className="flex items-center gap-2 text-sm">
                   <TrendingUp className="w-4 h-4 text-primary flex-shrink-0" />
                   <span className="text-foreground font-semibold">
-                    {promo.type === "PERCENTAGE"
-                      ? `Giảm ${promo.discountValue}%`
-                      : promo.type === "FIXED_AMOUNT"
-                      ? `Giảm ${formatPrice(promo.discountValue)}`
+                    {promo.templateType === "DISCOUNT_PERCENTAGE"
+                      ? `Giảm ${promo.percentDiscount}%`
+                      : promo.templateType === "DISCOUNT_FIXED"
+                      ? `Giảm ${formatPrice(promo.percentDiscount)}`
                       : "Miễn phí vận chuyển"}
                   </span>
                 </div>
 
                 {/* Min Order Value */}
-                {promo.minOrderValue && promo.minOrderValue > 0 && (
+                {promo.minValueToBeApplied != null && promo.minValueToBeApplied > 0 && (
                   <div className="flex items-center gap-2 text-sm">
                     <Tag className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-muted-foreground">
-                      Đơn tối thiểu: {formatPrice(promo.minOrderValue)}
-                    </span>
-                  </div>
-                )}
-
-                {/* Max Discount */}
-                {promo.maxDiscountAmount && promo.maxDiscountAmount > 0 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <TrendingUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-muted-foreground">
-                      Giảm tối đa: {formatPrice(promo.maxDiscountAmount)}
+                      Đơn tối thiểu: {formatPrice(promo.minValueToBeApplied)}
                     </span>
                   </div>
                 )}
