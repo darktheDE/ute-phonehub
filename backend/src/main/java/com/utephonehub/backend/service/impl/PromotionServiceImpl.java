@@ -91,6 +91,9 @@ public class PromotionServiceImpl implements IPromotionService {
     // --- 5. GET ALL PROMOTIONS ---
     @Override
     public List<PromotionResponse> getAllPromotions() {
+        // Auto-update expired promotions status
+        updateExpiredPromotionsStatus();
+        
         List<Promotion> promotions = promotionRepository.findAll();
         return promotionMapper.toResponseList(promotions);
     }
@@ -98,6 +101,9 @@ public class PromotionServiceImpl implements IPromotionService {
     // --- PUBLIC: GET ALL ACTIVE ---
     @Override
     public List<PromotionResponse> getAllActivePromotions() {
+        // Auto-update expired promotions status
+        updateExpiredPromotionsStatus();
+        
         LocalDateTime now = LocalDateTime.now();
         List<Promotion> promotions = promotionRepository.findByEffectiveDateBeforeAndExpirationDateAfter(now, now);
         
@@ -110,6 +116,9 @@ public class PromotionServiceImpl implements IPromotionService {
     // --- 6. CHECK AVAILABLE ---
     @Override
     public List<PromotionResponse> checkAndGetAvailablePromotions(Double orderTotal) {
+        // Auto-update expired promotions status
+        updateExpiredPromotionsStatus();
+        
         LocalDateTime now = LocalDateTime.now();
         List<Promotion> promotions = promotionRepository.findByEffectiveDateBeforeAndExpirationDateAfter(now, now);
 
@@ -202,5 +211,30 @@ public class PromotionServiceImpl implements IPromotionService {
     private boolean isMinValueMet(Promotion promotion, Double orderTotal) {
         return promotion.getMinValueToBeApplied() == null 
                 || orderTotal >= promotion.getMinValueToBeApplied();
+    }
+
+    /**
+     * Auto-update expired promotions status
+     * Changes status from ACTIVE to INACTIVE for expired promotions
+     * Does NOT change the promotion title - only updates status
+     * Follows Single Responsibility - focused on status management
+     */
+    @Transactional
+    private void updateExpiredPromotionsStatus() {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Find all ACTIVE promotions that have expired
+        List<Promotion> expiredPromotions = promotionRepository.findAll().stream()
+                .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                .filter(p -> now.isAfter(p.getExpirationDate()))
+                .collect(Collectors.toList());
+        
+        // Update status to INACTIVE (keep original title)
+        if (!expiredPromotions.isEmpty()) {
+            expiredPromotions.forEach(promotion -> {
+                promotion.setStatus(EPromotionStatus.INACTIVE);
+            });
+            promotionRepository.saveAll(expiredPromotions);
+        }
     }
 }

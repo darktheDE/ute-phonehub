@@ -3,10 +3,10 @@
  * Refactored to use modular dashboard components
  */
 
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart3,
   Users,
@@ -21,9 +21,9 @@ import {
   Tag,
   Ticket,
   FileText,
-} from 'lucide-react';
-import { useAuth } from '@/lib/auth-context';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { cn } from "@/lib/utils";
 import {
   AdminDashboard,
   CustomerProfile,
@@ -33,56 +33,59 @@ import {
   UsersManagement,
   CategoryManagement,
   BrandManagement,
-} from '@/components/features/dashboard';
-import { PromotionsTable, TemplatesTable } from '@/components/features/promotion';
-import { ProductsManagement } from '@/components/features/admin/ProductsManagement';
-import { Sidebar } from '@/components/features/layout/Sidebar';
-import { useOrders } from '@/hooks';
-import { MOCK_ORDERS } from '@/lib/mockData';
+} from "@/components/features/dashboard";
+import {
+  PromotionsTable,
+  TemplatesTable,
+} from "@/components/features/promotion";
+import { ProductsManagement } from "@/components/features/admin/ProductsManagement";
+import { Sidebar } from "@/components/features/layout/Sidebar";
+import { useOrders } from "@/hooks";
+import { MOCK_ORDERS } from "@/lib/mockData";
 
 type TabType =
-  | 'dashboard'
-  | 'orders'
-  | 'products'
-  | 'categories'
-  | 'brands'
-  | 'promotions'
-  | 'templates'
-  | 'users'
-  | 'profile'
-  | 'addresses'
-  | 'wishlist';
+  | "dashboard"
+  | "orders"
+  | "products"
+  | "categories"
+  | "brands"
+  | "promotions"
+  | "templates"
+  | "users"
+  | "profile"
+  | "addresses"
+  | "wishlist";
 
 export default function ManagePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, logout, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === "ADMIN";
 
   const { orders, loading: ordersLoading } = useOrders(isAdmin);
 
   // Admin menu items
   const adminMenuItems = [
-    { id: 'dashboard' as TabType, label: 'Dashboard', icon: BarChart3 },
-    { id: 'orders' as TabType, label: 'Đơn hàng', icon: ShoppingCart },
-    { id: 'products' as TabType, label: 'Sản phẩm', icon: Package },
-    { id: 'categories' as TabType, label: 'Danh mục', icon: FolderTree },
-    { id: 'brands' as TabType, label: 'Thương hiệu', icon: Tag },
-    { id: 'promotions' as TabType, label: 'Khuyến mãi', icon: Ticket },
-    { id: 'templates' as TabType, label: 'Templates', icon: FileText },
-    { id: 'users' as TabType, label: 'Người dùng', icon: Users },
+    { id: "dashboard" as TabType, label: "Dashboard", icon: BarChart3 },
+    { id: "orders" as TabType, label: "Đơn hàng", icon: ShoppingCart },
+    { id: "products" as TabType, label: "Sản phẩm", icon: Package },
+    { id: "categories" as TabType, label: "Danh mục", icon: FolderTree },
+    { id: "brands" as TabType, label: "Thương hiệu", icon: Tag },
+    { id: "promotions" as TabType, label: "Khuyến mãi", icon: Ticket },
+    { id: "templates" as TabType, label: "Templates", icon: FileText },
+    { id: "users" as TabType, label: "Người dùng", icon: Users },
   ];
 
   // Customer menu items
   const customerMenuItems = [
-    { id: 'profile' as TabType, label: 'Thông tin cá nhân', icon: User },
-    { id: 'orders' as TabType, label: 'Đơn hàng của tôi', icon: ShoppingCart },
-    { id: 'addresses' as TabType, label: 'Địa chỉ', icon: MapPin },
-    { id: 'wishlist' as TabType, label: 'Yêu thích', icon: Heart },
+    { id: "profile" as TabType, label: "Thông tin cá nhân", icon: User },
+    { id: "orders" as TabType, label: "Đơn hàng của tôi", icon: ShoppingCart },
+    { id: "addresses" as TabType, label: "Địa chỉ", icon: MapPin },
+    { id: "wishlist" as TabType, label: "Yêu thích", icon: Heart },
   ];
 
   const menuItems = isAdmin ? adminMenuItems : customerMenuItems;
@@ -90,23 +93,28 @@ export default function ManagePageClient() {
   useEffect(() => {
     // Redirect to login if not authenticated
     if (!isLoading && !user) {
-      router.push('/login');
+      router.push("/login");
     }
 
     // Set active tab from URL or default based on role
     if (user) {
-      const tabParam = searchParams.get('tab') as TabType | null;
-      if (tabParam && (isAdmin ? adminMenuItems : customerMenuItems).some((item) => item.id === tabParam)) {
+      const tabParam = searchParams.get("tab") as TabType | null;
+      if (
+        tabParam &&
+        (isAdmin ? adminMenuItems : customerMenuItems).some(
+          (item) => item.id === tabParam
+        )
+      ) {
         setActiveTab(tabParam);
       } else {
-        setActiveTab(isAdmin ? 'dashboard' : 'profile');
+        setActiveTab(isAdmin ? "dashboard" : "profile");
       }
     }
   }, [user, isLoading, router, isAdmin, searchParams]);
 
   const handleLogout = () => {
     logout();
-    router.push('/');
+    router.push("/");
   };
 
   if (isLoading) {
@@ -128,7 +136,10 @@ export default function ManagePageClient() {
     <div className="min-h-screen bg-secondary flex">
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
 
       {/* Sidebar */}
@@ -146,25 +157,34 @@ export default function ManagePageClient() {
       />
 
       {/* Main Content */}
-      <div className={cn('flex-1 transition-all duration-300', sidebarOpen ? 'lg:ml-64' : 'lg:ml-20')}>
+      <div
+        className={cn(
+          "flex-1 transition-all duration-300",
+          sidebarOpen ? "lg:ml-64" : "lg:ml-20"
+        )}
+      >
         {/* Top Bar */}
         <div className="bg-card border-b border-border p-4 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
-            <button onClick={() => setMobileMenuOpen(true)} className="p-2 hover:bg-secondary rounded-lg lg:hidden">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 hover:bg-secondary rounded-lg lg:hidden"
+            >
               <Menu className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-bold text-foreground">
-              {activeTab === 'dashboard' && 'Dashboard'}
-              {activeTab === 'products' && 'Quản lý sản phẩm'}
-              {activeTab === 'orders' && (isAdmin ? 'Quản lý đơn hàng' : 'Đơn hàng của tôi')}
-              {activeTab === 'categories' && 'Quản lý danh mục'}
-              {activeTab === 'brands' && 'Quản lý thương hiệu'}
-              {activeTab === 'promotions' && 'Quản lý khuyến mãi'}
-              {activeTab === 'templates' && 'Quản lý Templates'}
-              {activeTab === 'users' && 'Quản lý người dùng'}
-              {activeTab === 'profile' && 'Thông tin cá nhân'}
-              {activeTab === 'addresses' && 'Địa chỉ của tôi'}
-              {activeTab === 'wishlist' && 'Sản phẩm yêu thích'}
+              {activeTab === "dashboard" && "Dashboard"}
+              {activeTab === "products" && "Quản lý sản phẩm"}
+              {activeTab === "orders" &&
+                (isAdmin ? "Quản lý đơn hàng" : "Đơn hàng của tôi")}
+              {activeTab === "categories" && "Quản lý danh mục"}
+              {activeTab === "brands" && "Quản lý thương hiệu"}
+              {activeTab === "promotions" && "Quản lý khuyến mãi"}
+              {activeTab === "templates" && "Quản lý Templates"}
+              {activeTab === "users" && "Quản lý người dùng"}
+              {activeTab === "profile" && "Thông tin cá nhân"}
+              {activeTab === "addresses" && "Địa chỉ của tôi"}
+              {activeTab === "wishlist" && "Sản phẩm yêu thích"}
             </h2>
           </div>
           <div className="flex items-center gap-3">
@@ -174,7 +194,9 @@ export default function ManagePageClient() {
             </button>
             <div className="hidden sm:flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Xin chào,</span>
-              <span className="font-medium text-foreground">{user.fullName}</span>
+              <span className="font-medium text-foreground">
+                {user.fullName}
+              </span>
             </div>
           </div>
         </div>
@@ -182,25 +204,25 @@ export default function ManagePageClient() {
         {/* Content */}
         <div className="p-4 md:p-6">
           {/* Admin Dashboard */}
-          {activeTab === 'dashboard' && isAdmin && <AdminDashboard />}
+          {activeTab === "dashboard" && isAdmin && <AdminDashboard />}
 
           {/* Products Management (Admin Only) */}
-          {activeTab === 'products' && isAdmin && <ProductsManagement />}
+          {activeTab === "products" && isAdmin && <ProductsManagement />}
 
           {/* Categories Management (Admin Only) */}
-          {activeTab === 'categories' && isAdmin && <CategoryManagement />}
+          {activeTab === "categories" && isAdmin && <CategoryManagement />}
 
           {/* Brands Management (Admin Only) */}
-          {activeTab === 'brands' && isAdmin && <BrandManagement />}
+          {activeTab === "brands" && isAdmin && <BrandManagement />}
 
           {/* Promotions Management (Admin Only) */}
-          {activeTab === 'promotions' && isAdmin && <PromotionsTable />}
+          {activeTab === "promotions" && isAdmin && <PromotionsTable />}
 
           {/* Templates Management (Admin Only) */}
-          {activeTab === 'templates' && isAdmin && <TemplatesTable />}
+          {activeTab === "templates" && isAdmin && <TemplatesTable />}
 
           {/* Orders */}
-          {activeTab === 'orders' &&
+          {activeTab === "orders" &&
             (isAdmin ? (
               // Admin: Use real API - GET /api/v1/admin/dashboard/recent-orders exists
               ordersLoading ? (
@@ -215,24 +237,28 @@ export default function ManagePageClient() {
                   // Map mock status to OrderStatus from @/types
                   const statusMap: Record<
                     string,
-                    'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED'
+                    | "PENDING"
+                    | "CONFIRMED"
+                    | "SHIPPING"
+                    | "DELIVERED"
+                    | "CANCELLED"
                   > = {
-                    pending: 'PENDING',
-                    processing: 'CONFIRMED',
-                    shipped: 'SHIPPING',
-                    delivered: 'DELIVERED',
-                    cancelled: 'CANCELLED',
+                    pending: "PENDING",
+                    processing: "CONFIRMED",
+                    shipped: "SHIPPING",
+                    delivered: "DELIVERED",
+                    cancelled: "CANCELLED",
                   };
 
                   return {
                     id: mockOrder.id,
                     orderCode: `ORD-${mockOrder.id}`,
-                    email: user?.email || '',
+                    email: user?.email || "",
                     recipientName: mockOrder.customer,
-                    phoneNumber: '',
-                    shippingAddress: '',
-                    status: statusMap[mockOrder.status] || 'PENDING',
-                    paymentMethod: 'COD',
+                    phoneNumber: "",
+                    shippingAddress: "",
+                    status: statusMap[mockOrder.status] || "PENDING",
+                    paymentMethod: "COD",
                     totalAmount: mockOrder.total,
                     createdAt: new Date(mockOrder.date).toISOString(),
                     updatedAt: new Date(mockOrder.date).toISOString(),
@@ -243,16 +269,18 @@ export default function ManagePageClient() {
             ))}
 
           {/* Users Management (Admin Only) */}
-          {activeTab === 'users' && isAdmin && <UsersManagement />}
+          {activeTab === "users" && isAdmin && <UsersManagement />}
 
           {/* Customer Profile */}
-          {activeTab === 'profile' && !isAdmin && <CustomerProfile user={user} />}
+          {activeTab === "profile" && !isAdmin && (
+            <CustomerProfile user={user} />
+          )}
 
           {/* Customer Addresses */}
-          {activeTab === 'addresses' && !isAdmin && <CustomerAddresses />}
+          {activeTab === "addresses" && !isAdmin && <CustomerAddresses />}
 
           {/* Customer Wishlist */}
-          {activeTab === 'wishlist' && !isAdmin && <CustomerWishlist />}
+          {activeTab === "wishlist" && !isAdmin && <CustomerWishlist />}
         </div>
       </div>
     </div>

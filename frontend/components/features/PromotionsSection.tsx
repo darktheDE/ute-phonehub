@@ -32,7 +32,9 @@ export function PromotionsSection() {
             error instanceof Error ? error.message : error
           );
         } else {
-          console.warn("[PromotionsSection] Promotions are temporarily unavailable.");
+          console.warn(
+            "[PromotionsSection] Promotions are temporarily unavailable."
+          );
         }
         // Silently fail - don't show error to user, just hide section
         setPromotions([]);
@@ -101,10 +103,15 @@ export function PromotionsSection() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Tag className="w-7 h-7 text-orange-600 dark:text-orange-500" />
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Khuyến Mãi Đặc Biệt</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Khuyến Mãi Đặc Biệt
+            </h2>
           </div>
           <Link href="/promotions">
-            <Button variant="outline" className="gap-2 hover:bg-orange-50 dark:hover:bg-orange-950/30">
+            <Button
+              variant="outline"
+              className="gap-2 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+            >
               Xem tất cả
               <ArrowRight className="w-4 h-4" />
             </Button>
@@ -139,36 +146,42 @@ export function PromotionsSection() {
                         <span className="text-4xl font-extrabold drop-shadow-md">
                           {promotion.percentDiscount}%
                         </span>
-                        <span className="text-sm font-medium block mt-2">Giảm giá</span>
+                        <span className="text-sm font-medium block mt-2">
+                          Giảm giá
+                        </span>
                       </div>
                     )}
                   {promotion.templateType === "FREE_SHIPPING" && (
-                      <div className="text-white">
-                        <Package className="w-10 h-10 mx-auto mb-2 drop-shadow-md" />
-                        <span className="text-sm font-medium">Miễn phí vận chuyển</span>
-                      </div>
-                    )}
+                    <div className="text-white">
+                      <Package className="w-10 h-10 mx-auto mb-2 drop-shadow-md" />
+                      <span className="text-sm font-medium">
+                        Miễn phí vận chuyển
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Conditions */}
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                {promotion.minValueToBeApplied !== null && promotion.minValueToBeApplied > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-gray-400" />
-                    <span>
-                      Đơn tối thiểu:{" "}
-                      {formatCurrency(promotion.minValueToBeApplied)}
-                    </span>
-                  </div>
-                )}
+                {promotion.minValueToBeApplied !== null &&
+                  promotion.minValueToBeApplied > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-gray-400" />
+                      <span>
+                        Đơn tối thiểu:{" "}
+                        {formatCurrency(promotion.minValueToBeApplied)}
+                      </span>
+                    </div>
+                  )}
               </div>
 
               {/* Date Range */}
               <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <Calendar className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">
-                  {formatDate(promotion.effectiveDate)} - {formatDate(promotion.expirationDate)}
+                  {formatDate(promotion.effectiveDate)} -{" "}
+                  {formatDate(promotion.expirationDate)}
                 </span>
               </div>
             </div>
