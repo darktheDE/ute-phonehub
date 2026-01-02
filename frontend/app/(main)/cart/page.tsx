@@ -1,35 +1,52 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useCartStore } from '@/store';
-import { useAuth } from '@/lib/auth-context';
-import { cartAPI } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { CartItem, CartSummary, EmptyCart } from '@/components/features/cart';
-import { ArrowLeft, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
-import ConfirmDialog from '@/components/common/ConfirmDialog';
-import { scheduleDelete, undoMultiple } from '@/lib/undo';
-import { mapBackendCartItems } from '@/lib/utils/cartMapper';
-import type { Promotion } from '@/types/api-cart';
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useCartStore } from "@/store";
+import { useAuth } from "@/lib/auth-context";
+import { cartAPI } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { CartItem, CartSummary, EmptyCart } from "@/components/features/cart";
+import { ArrowLeft, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { scheduleDelete, undoMultiple } from "@/lib/undo";
+import { mapBackendCartItems } from "@/lib/utils/cartMapper";
+import type { Promotion } from "@/types/api-cart";
 
 export default function CartPage() {
   const router = useRouter();
   const { user } = useAuth();
   const isAuthenticated = !!user;
-  const { items, totalItems, totalPrice, updateQuantity, removeItem, clearCart, setItems, removeItems } = useCartStore();
+  const {
+    items,
+    totalItems,
+    totalPrice,
+    updateQuantity,
+    removeItem,
+    clearCart,
+    setItems,
+    removeItems,
+  } = useCartStore();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  
-  // Voucher state
-  const [selectedVoucher, setSelectedVoucher] = useState<Promotion | null>(null);
+
+  // Voucher state - support 2 vouchers (discount + freeship)
+  const [selectedDiscountVoucher, setSelectedDiscountVoucher] =
+    useState<Promotion | null>(null);
+  const [selectedFreeshipVoucher, setSelectedFreeshipVoucher] =
+    useState<Promotion | null>(null);
   const [voucherDiscount, setVoucherDiscount] = useState(0);
 
-  const handleVoucherChange = (voucher: Promotion | null, discount: number) => {
-    setSelectedVoucher(voucher);
-    setVoucherDiscount(discount);
+  const handleVoucherChange = (
+    discountVoucher: Promotion | null,
+    freeshipVoucher: Promotion | null,
+    totalDiscount: number
+  ) => {
+    setSelectedDiscountVoucher(discountVoucher);
+    setSelectedFreeshipVoucher(freeshipVoucher);
+    setVoucherDiscount(totalDiscount);
   };
 
   // Memoized fetch function to avoid useEffect dependency warning
@@ -39,7 +56,9 @@ export default function CartPage() {
       const response = await cartAPI.getCurrentCart();
       if (response.success && response.data) {
         // Use centralized mapper that handles discount/appliedPrice
-        const backendItems = Array.isArray(response.data.items) ? response.data.items : [];
+        const backendItems = Array.isArray(response.data.items)
+          ? response.data.items
+          : [];
         const mappedItems = mapBackendCartItems(backendItems);
 
         // Replace local cart with backend data
@@ -47,8 +66,8 @@ export default function CartPage() {
         if (mappedItems.length > 0) setItems(mappedItems);
       }
     } catch (error) {
-      console.error('Failed to fetch cart from backend:', error);
-      toast.error('Không thể tải giỏ hàng từ server');
+      console.error("Failed to fetch cart from backend:", error);
+      toast.error("Không thể tải giỏ hàng từ server");
     } finally {
       setIsLoading(false);
     }
@@ -64,16 +83,17 @@ export default function CartPage() {
   // Refresh cart when an order is placed in another tab/window
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'lastOrderPlacedAt') {
+      if (e.key === "lastOrderPlacedAt") {
         if (isAuthenticated && user) fetchCartFromBackend();
       }
     };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, [isAuthenticated, user, fetchCartFromBackend]);
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [showDeleteSelectedConfirm, setShowDeleteSelectedConfirm] = useState(false);
+  const [showDeleteSelectedConfirm, setShowDeleteSelectedConfirm] =
+    useState(false);
 
   const handleClearCart = async () => {
     // Server-side clearCart (single request) with undo that re-adds previous items if requested
@@ -96,7 +116,7 @@ export default function CartPage() {
               if (undone) return;
               undone = true;
               setItems(prevItems);
-              toast.success('Hoàn tác thành công — đã phục hồi giỏ hàng');
+              toast.success("Hoàn tác thành công — đã phục hồi giỏ hàng");
             }}
           >
             Hoàn tác
@@ -127,7 +147,7 @@ export default function CartPage() {
                 try {
                   // Re-add items in parallel for better performance
                   await Promise.allSettled(
-                    prevItems.map(it => 
+                    prevItems.map((it) =>
                       cartAPI.addToCart({
                         productId: it.productId,
                         quantity: it.quantity,
@@ -139,10 +159,10 @@ export default function CartPage() {
 
                   // Refresh cart from backend
                   await fetchCartFromBackend();
-                  toast.success('Hoàn tác thành công — đã phục hồi giỏ hàng');
+                  toast.success("Hoàn tác thành công — đã phục hồi giỏ hàng");
                 } catch (e) {
-                  console.error('Failed to undo clearCart:', e);
-                  toast.error('Không thể hoàn tác xóa giỏ hàng');
+                  console.error("Failed to undo clearCart:", e);
+                  toast.error("Không thể hoàn tác xóa giỏ hàng");
                 }
               }}
             >
@@ -151,13 +171,13 @@ export default function CartPage() {
           </div>
         );
       } else {
-        throw new Error(resp?.message || 'Không thể xóa giỏ hàng');
+        throw new Error(resp?.message || "Không thể xóa giỏ hàng");
       }
     } catch (e: any) {
-      console.error('Failed to clear cart on server:', e);
+      console.error("Failed to clear cart on server:", e);
       // Restore local items if server clear failed
       if (prevItems.length > 0) setItems(prevItems);
-      toast.error(e?.message || 'Lỗi khi xóa toàn bộ giỏ hàng');
+      toast.error(e?.message || "Lỗi khi xóa toàn bộ giỏ hàng");
     } finally {
       setIsLoading(false);
       setShowClearConfirm(false);
@@ -200,7 +220,7 @@ export default function CartPage() {
             const current = useCartStore.getState().items;
             useCartStore.getState().setItems([it, ...current]);
           } catch (e) {
-            console.error('Failed to restore deleted item after undo:', e);
+            console.error("Failed to restore deleted item after undo:", e);
           }
         }
       );
@@ -208,10 +228,15 @@ export default function CartPage() {
 
     // Show undo toast
     toast.success(
-      (<div className="flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <span>Đã xóa {itemsToDelete.length} sản phẩm</span>
-        <button className="underline ml-2 text-sm" onClick={() => undoMultiple(itemsToDelete.map((i) => i.id))}>Hoàn tác</button>
-      </div>)
+        <button
+          className="underline ml-2 text-sm"
+          onClick={() => undoMultiple(itemsToDelete.map((i) => i.id))}
+        >
+          Hoàn tác
+        </button>
+      </div>
     );
 
     setSelectedIds([]);
@@ -221,9 +246,17 @@ export default function CartPage() {
   const handleCheckout = () => {
     if (items.length === 0) return;
     // Navigate to checkout page with voucher info
-    const voucherParam = selectedVoucher 
-      ? `?voucher=${encodeURIComponent(JSON.stringify({ id: selectedVoucher.id, code: selectedVoucher.code, discount: voucherDiscount }))}` 
-      : '';
+    const voucherData = {
+      discountId: selectedDiscountVoucher?.id,
+      discountCode: selectedDiscountVoucher?.code,
+      freeshipId: selectedFreeshipVoucher?.id,
+      freeshipCode: selectedFreeshipVoucher?.code,
+      totalDiscount: voucherDiscount,
+    };
+    const voucherParam =
+      selectedDiscountVoucher || selectedFreeshipVoucher
+        ? `?voucher=${encodeURIComponent(JSON.stringify(voucherData))}`
+        : "";
     router.push(`/checkout${voucherParam}`);
   };
 
@@ -254,20 +287,23 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 pt-8 pb-24 sm:pb-8 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Giỏ hàng của bạn</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Giỏ hàng của bạn
+              </h1>
               <p className="text-gray-600 mt-1">
-                {totalItems} sản phẩm • Tổng: {totalPrice.toLocaleString('vi-VN')}₫
+                {totalItems} sản phẩm • Tổng:{" "}
+                {totalPrice.toLocaleString("vi-VN")}₫
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button
                 variant="outline"
-                  onClick={() => setShowDeleteSelectedConfirm(true)}
+                onClick={() => setShowDeleteSelectedConfirm(true)}
                 className="text-red-600 border-red-200 hover:bg-red-50"
                 disabled={selectedIds.length === 0}
               >
@@ -293,7 +329,9 @@ export default function CartPage() {
           <div className="xl:col-span-2 space-y-6">
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="p-6 border-b border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-900">Sản phẩm trong giỏ</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Sản phẩm trong giỏ
+                </h2>
               </div>
 
               <div className="divide-y divide-gray-100">
@@ -311,7 +349,10 @@ export default function CartPage() {
 
               <div className="p-6 bg-gray-50">
                 <Button asChild variant="outline" className="w-full sm:w-auto">
-                  <Link href="/products" className="flex items-center justify-center gap-2">
+                  <Link
+                    href="/products"
+                    className="flex items-center justify-center gap-2"
+                  >
                     <ArrowLeft className="h-4 w-4" />
                     Tiếp tục mua sắm
                   </Link>
@@ -322,23 +363,36 @@ export default function CartPage() {
 
           {/* Cart Summary */}
           <div className="xl:col-span-1">
-            <div className="sticky top-8">
+            <div className="xl:sticky xl:top-8">
               <CartSummary
-                  items={items}
-                    onCheckout={handleCheckout}
-                    selectedIds={selectedIds}
-                    onBuySelected={() => {
-                      if (selectedIds.length === 0) return;
-                      // Navigate to checkout with selected item ids and voucher info
-                      const voucherParam = selectedVoucher 
-                        ? `&voucher=${encodeURIComponent(JSON.stringify({ id: selectedVoucher.id, code: selectedVoucher.code, discount: voucherDiscount }))}` 
-                        : '';
-                      router.push(`/checkout?selected=${selectedIds.join(',')}${voucherParam}`);
-                    }}
-                    selectedVoucher={selectedVoucher}
-                    voucherDiscount={voucherDiscount}
-                    onVoucherChange={handleVoucherChange}
-                  />
+                items={items}
+                onCheckout={handleCheckout}
+                selectedIds={selectedIds}
+                onBuySelected={() => {
+                  if (selectedIds.length === 0) return;
+                  // Navigate to checkout with selected item ids and voucher info
+                  const voucherData = {
+                    discountId: selectedDiscountVoucher?.id,
+                    discountCode: selectedDiscountVoucher?.code,
+                    freeshipId: selectedFreeshipVoucher?.id,
+                    freeshipCode: selectedFreeshipVoucher?.code,
+                    totalDiscount: voucherDiscount,
+                  };
+                  const voucherParam =
+                    selectedDiscountVoucher || selectedFreeshipVoucher
+                      ? `&voucher=${encodeURIComponent(
+                          JSON.stringify(voucherData)
+                        )}`
+                      : "";
+                  router.push(
+                    `/checkout?selected=${selectedIds.join(",")}${voucherParam}`
+                  );
+                }}
+                selectedDiscountVoucher={selectedDiscountVoucher}
+                selectedFreeshipVoucher={selectedFreeshipVoucher}
+                voucherDiscount={voucherDiscount}
+                onVoucherChange={handleVoucherChange}
+              />
             </div>
           </div>
         </div>
@@ -357,7 +411,7 @@ export default function CartPage() {
             </div>
           </div>
         )}
-        
+
         {/* Confirm dialogs */}
         <ConfirmDialog
           open={showClearConfirm}

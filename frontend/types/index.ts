@@ -4,17 +4,17 @@
  */
 
 // API types
-export type { ApiResponse, ApiError } from './api';
+export type { ApiResponse, ApiError } from "./api";
 
 // User types
-export type { 
-  User, 
-  UpdateProfileRequest, 
+export type {
+  User,
+  UpdateProfileRequest,
   ChangePasswordRequest,
   UsersPageResponse,
   CreateUserRequest,
-  UserFilters
-} from './user';
+  UserFilters,
+} from "./user";
 
 // Auth types
 export type {
@@ -24,57 +24,54 @@ export type {
   ForgotPasswordRequest,
   VerifyOtpRequest,
   RefreshTokenRequest,
-} from './auth';
+} from "./auth";
 
 // Cart types
-export type { CartItem, CartState } from './cart';
+export type { CartItem, CartState } from "./cart";
 
 // Wishlist types
-export type { WishlistItem, WishlistState } from './wishlist';
-
-// Product types
-export type { 
-  Product, 
-  ProductResponse, 
-  CreateProductRequest,
-  UpdateProductRequest,
-  ProductTemplate,
-  ProductMetadata,
-  ProductImage
-} from './product';
+export type { WishlistItem, WishlistState } from "./wishlist";
 
 // Category types
-export type { Category, CreateCategoryRequest, UpdateCategoryRequest, CategoryResponse } from './category';
+export type {
+  Category,
+  CategoryResponse,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+} from "./category";
 
 // Brand types
-export type { Brand, BrandResponse, CreateBrandRequest, UpdateBrandRequest } from './brand';
+export type {
+  Brand,
+  BrandResponse,
+  CreateBrandRequest,
+  UpdateBrandRequest,
+} from "./brand";
+
+// Product types
+export type {
+  Product,
+  ProductResponse,
+  ProductMetadata,
+  CreateProductRequest,
+  UpdateProductRequest,
+} from "./product";
 
 // Order types
-export type { 
-  Order, 
-  OrderResponse, 
-  OrderStatus, 
-  OrderItem, 
-  RecentOrderResponse,
+export type {
+  Order,
+  OrderResponse,
+  OrderStatus,
+  OrderItem,
   OrderItemRequest,
   CreateOrderRequest,
   CreateOrderResponse,
-} from './order';
-
-// Payment types
-export type {
   PaymentMethod,
-  PaymentStatus,
-  PaymentResponse,
-  VNPayPaymentResponse,
-  CreatePaymentRequest,
-  PaymentHistoryResponse,
-  VNPayCallbackParams,
-  PaymentMethodOption,
-} from './payment';
+  RecentOrderResponse,
+} from "./order";
 
 // Dashboard types
-export type { 
+export type {
   DashboardOverview,
   DashboardOverviewResponse,
   DashboardStats,
@@ -86,8 +83,31 @@ export type {
   RecentOrder,
   LowStockProduct,
   DashboardPeriod,
-  RegistrationPeriod
-} from './dashboard';
+  RegistrationPeriod,
+} from "./dashboard";
 
-// Dashboard Enums
-export { OrderStatus as DashboardOrderStatus } from './dashboard';
+// Promotion types
+export type {
+  PromotionResponse,
+  PromotionTarget,
+  CreatePromotionRequest,
+  UpdatePromotionRequest,
+  AvailablePromotionParams,
+  CalculateDiscountParams,
+} from "./promotion";
+export type {
+  PromotionTemplateResponse,
+  CreateTemplateRequest,
+  UpdateTemplateRequest,
+} from "./template";
+
+// Payment types
+export type {
+  PaymentStatus,
+  PaymentResponse,
+  VNPayPaymentResponse,
+  CreatePaymentRequest,
+  PaymentHistoryResponse,
+  VNPayCallbackParams,
+  PaymentMethodOption,
+} from "./payment";

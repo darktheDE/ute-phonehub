@@ -149,8 +149,11 @@ public class OrderServiceImpl implements IOrderService {
             validatedItems.add(item);
         }
         
-        // 5. Áp dụng promotion nếu có
+        // 5. Áp dụng promotion nếu có (2 loại: DISCOUNT/VOUCHER và FREESHIP)
         Promotion promotion = null;
+        Promotion freeshippingPromotion = null;
+        
+        // Xử lý promotion (DISCOUNT/VOUCHER)
         if (request.getPromotionId() != null) {
             try {
                 promotion = promotionRepository.findById(String.valueOf(request.getPromotionId()))
@@ -162,6 +165,19 @@ public class OrderServiceImpl implements IOrderService {
                 // Nếu promotion không hợp lệ, bỏ qua và tiếp tục
                 log.warn("Invalid promotionId: {}, error: {}", request.getPromotionId(), e.getMessage());
                 promotion = null;
+            }
+        }
+        
+        // Xử lý freeship promotion (FREESHIP)
+        if (request.getFreeshippingPromotionId() != null) {
+            try {
+                freeshippingPromotion = promotionRepository.findById(String.valueOf(request.getFreeshippingPromotionId()))
+                        .orElseThrow(() -> new ResourceNotFoundException("Freeship promotion không tồn tại"));
+                
+                // TODO: Validate freeship promotion còn hiệu lực
+            } catch (ResourceNotFoundException e) {
+                log.warn("Invalid freeshippingPromotionId: {}, error: {}", request.getFreeshippingPromotionId(), e.getMessage());
+                freeshippingPromotion = null;
             }
         }
         
@@ -188,6 +204,7 @@ public class OrderServiceImpl implements IOrderService {
                 .paymentMethod(request.getPaymentMethod())
                 .totalAmount(totalAmount)
                 .promotion(promotion)
+                .freeshippingPromotion(freeshippingPromotion)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();

@@ -43,7 +43,9 @@ public class CreateOrderRequest {
     @NotNull(message = "Phương thức thanh toán không được để trống")
     private PaymentMethod paymentMethod;
     
-    private Long promotionId; // ID của promotion (Optional)
+    private String promotionId; // UUID của promotion (DISCOUNT/VOUCHER)
+    
+    private String freeshippingPromotionId; // UUID của freeship promotion (Optional)
     
     @NotEmpty(message = "Đơn hàng phải có ít nhất 1 sản phẩm")
     @Valid
