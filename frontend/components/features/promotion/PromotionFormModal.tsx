@@ -42,6 +42,10 @@ export function PromotionFormModal({
   const [brandOptions, setBrandOptions] = useState<SelectOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
 
+  // Target selection UI state (for adding multiple targets at once)
+  const [targetType, setTargetType] = useState<"CATEGORY" | "BRAND" | "PRODUCT">("CATEGORY");
+  const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
+
   // Form state
   const [formData, setFormData] = useState<CreatePromotionRequest>({
     title: "",
@@ -199,10 +203,25 @@ export function PromotionFormModal({
   };
 
   const addTarget = () => {
+    if (selectedTargetIds.length === 0) {
+      setError("Vui lòng chọn ít nhất một mục để thêm");
+      return;
+    }
+
+    // Add all selected items as separate targets
+    const newTargets = selectedTargetIds.map((id) => ({
+      type: targetType,
+      applicableObjectId: id,
+    }));
+
     setFormData((prev) => ({
       ...prev,
-      targets: [...prev.targets, { type: "CATEGORY", applicableObjectId: "" }],
+      targets: [...prev.targets, ...newTargets],
     }));
+
+    // Clear selection after adding
+    setSelectedTargetIds([]);
+    setError(null);
   };
 
   const removeTarget = (index: number) => {
@@ -457,89 +476,127 @@ export function PromotionFormModal({
 
             {/* Targets */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Đối tượng áp dụng
-                </label>
-                <Button
-                  type="button"
-                  onClick={addTarget}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Thêm đối tượng
-                </Button>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Đối tượng áp dụng
+              </label>
+
+              {/* Selection Area */}
+              <div className="mb-4 p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/30">
+                <div className="flex items-center gap-3 mb-3">
+                  <select
+                    value={targetType}
+                    onChange={(e) => {
+                      setTargetType(e.target.value as "CATEGORY" | "BRAND" | "PRODUCT");
+                      setSelectedTargetIds([]); // Clear selection when changing type
+                    }}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="CATEGORY">CATEGORY - Danh mục</option>
+                    <option value="BRAND">BRAND - Thương hiệu</option>
+                    <option value="PRODUCT">PRODUCT - Sản phẩm</option>
+                  </select>
+                  <Button
+                    type="button"
+                    onClick={addTarget}
+                    variant="default"
+                    size="sm"
+                    disabled={selectedTargetIds.length === 0}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Thêm {selectedTargetIds.length > 0 && `(${selectedTargetIds.length})`}
+                  </Button>
+                </div>
+
+                {/* Multi-select options */}
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {loadingOptions ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                      Đang tải...
+                    </p>
+                  ) : (
+                    (() => {
+                      const options = 
+                        targetType === "PRODUCT" ? productOptions :
+                        targetType === "CATEGORY" ? categoryOptions :
+                        brandOptions;
+
+                      if (options.length === 0) {
+                        return (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 py-2 italic">
+                            Không có dữ liệu
+                          </p>
+                        );
+                      }
+
+                      return options.map((option) => (
+                        <label
+                          key={option.value}
+                          className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-600/50 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTargetIds.includes(option.value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTargetIds([...selectedTargetIds, option.value]);
+                              } else {
+                                setSelectedTargetIds(selectedTargetIds.filter(id => id !== option.value));
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+                            {option.label}
+                          </span>
+                        </label>
+                      ));
+                    })()
+                  )}
+                </div>
               </div>
 
+              {/* Added Targets List */}
               {formData.targets.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                  Chưa có đối tượng áp dụng. Nhấn &quot;Thêm đối tượng&quot; để
-                  thêm.
+                  Chưa có đối tượng áp dụng. Chọn các mục ở trên và nhấn &quot;Thêm&quot;.
                 </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    Đã thêm {formData.targets.length} đối tượng:
+                  </p>
                   {formData.targets.map((target, index) => {
-                    // Determine which options to show based on target type
-                    const getOptionsForType = () => {
-                      switch (target.type) {
-                        case "PRODUCT":
-                          return productOptions;
-                        case "CATEGORY":
-                          return categoryOptions;
-                        case "BRAND":
-                          return brandOptions;
-                        default:
-                          return [];
-                      }
-                    };
+                    const options = 
+                      target.type === "PRODUCT" ? productOptions :
+                      target.type === "CATEGORY" ? categoryOptions :
+                      brandOptions;
+                    const option = options.find(opt => opt.value === target.applicableObjectId);
+                    const typeLabel = 
+                      target.type === "PRODUCT" ? "Sản phẩm" :
+                      target.type === "CATEGORY" ? "Danh mục" :
+                      "Thương hiệu";
 
                     return (
                       <div
                         key={index}
-                        className="flex flex-col gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                        className="flex items-center justify-between p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700/50"
                       >
-                        {/* Type Selection */}
-                        <select
-                          value={target.type}
-                          onChange={(e) =>
-                            updateTarget(index, "type", e.target.value)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                        >
-                          <option value="CATEGORY">CATEGORY - Danh mục</option>
-                          <option value="BRAND">BRAND - Thương hiệu</option>
-                          <option value="PRODUCT">PRODUCT - Sản phẩm</option>
-                        </select>
-
-                        {/* Searchable Select for ID */}
-                        <div className="flex items-start gap-2">
-                          <SearchableSelect
-                            options={getOptionsForType()}
-                            value={target.applicableObjectId}
-                            onChange={(value) =>
-                              updateTarget(index, "applicableObjectId", value)
-                            }
-                            placeholder={`Chọn ${
-                              target.type === "PRODUCT"
-                                ? "sản phẩm"
-                                : target.type === "CATEGORY"
-                                ? "danh mục"
-                                : "thương hiệu"
-                            }...`}
-                            loading={loadingOptions}
-                            className="flex-1"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeTarget(index)}
-                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex-shrink-0"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <div className="flex-1">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {typeLabel}:
+                          </span>
+                          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            {option?.label || target.applicableObjectId}
+                          </span>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => removeTarget(index)}
+                          className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded flex-shrink-0"
+                          title="Xóa"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     );
                   })}

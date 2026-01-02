@@ -324,8 +324,7 @@ export const productAPI = {
       queryParams.append("page", String(params.page));
     if (params?.size !== undefined)
       queryParams.append("size", String(params.size));
-    if (params?.keyword)
-      queryParams.append("keyword", params.keyword);
+    if (params?.keyword) queryParams.append("keyword", params.keyword);
     if (params?.categoryId !== undefined)
       queryParams.append("categoryId", String(params.categoryId));
     if (params?.brandId !== undefined)
