@@ -7,6 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Product } from '@/types';
+import type { CategoryResponse } from '@/types/category';
+import type { BrandResponse } from '@/types/brand';
 import { 
   getAllProductsAdmin, 
   deleteProduct, 
@@ -16,6 +18,9 @@ import { adminAPI, productAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+
+// Constants
+const EXCLUDED_CATEGORY = 'Phụ kiện';
 
 interface ProductTableProps {
   filters?: {
@@ -76,12 +81,12 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
           adminAPI.getAllBrands()
         ]);
         if (catsRes.data) {
-          // Filter out "Phụ kiện" category
-          const filteredCategories = catsRes.data.filter((c: any) => c.name !== 'Phụ kiện');
-          setCategories(filteredCategories.map((c: any) => ({ id: c.id, name: c.name })));
+          // Filter out excluded category
+          const filteredCategories = catsRes.data.filter((c: CategoryResponse) => c.name !== EXCLUDED_CATEGORY);
+          setCategories(filteredCategories.map((c: CategoryResponse) => ({ id: c.id, name: c.name })));
         }
         if (brandsRes.data) {
-          setBrands(brandsRes.data.map((b: any) => ({ id: b.id, name: b.name })));
+          setBrands(brandsRes.data.map((b: BrandResponse) => ({ id: b.id, name: b.name })));
         }
       } catch (err) {
         console.error('Failed to load filters:', err);

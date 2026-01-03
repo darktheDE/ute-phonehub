@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { productAPI, adminAPI } from '@/lib/api';
 import type { CreateProductRequest, ProductMetadata } from '@/types';
+import type { CategoryResponse } from '@/types/category';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,6 +62,10 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
     return groupMetadataFields(metadataFields);
   }, [metadataFields]);
 
+  // Constants
+  const PRICE_ROUNDING_FACTOR = 1000;
+  const EXCLUDED_CATEGORY = 'Phụ kiện';
+
   // Fill random data for testing
   const fillRandomData = () => {
     const randomNum = (min: number, max: number, decimals = 0) => {
@@ -84,22 +89,22 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
     if (selectedCategory.name === 'Điện thoại') {
       const phones = ['iPhone 15', 'Samsung Galaxy S24', 'Xiaomi 14', 'OPPO Find X7', 'Vivo X100'];
       productName = `${randomChoice(phones)} Pro Max ${randomNum(2024, 2026)}`;
-      price = Math.floor(randomNum(10000000, 35000000, 0) / 1000) * 1000; // Round to nearest 1000
+      price = Math.floor(randomNum(10000000, 35000000, 0) / PRICE_ROUNDING_FACTOR) * PRICE_ROUNDING_FACTOR; // Round to nearest 1000
       description = 'Sản phẩm flagship cao cấp với hiệu năng mạnh mẽ và camera xuất sắc.';
     } else if (selectedCategory.name === 'Tablet') {
       const tablets = ['iPad Pro', 'iPad Air', 'Galaxy Tab S9', 'MatePad Pro', 'Xiaomi Pad'];
       productName = `${randomChoice(tablets)} ${randomNum(11, 13)}" (${randomNum(2024, 2025)})`;
-      price = Math.floor(randomNum(15000000, 45000000, 0) / 1000) * 1000; // Round to nearest 1000
+      price = Math.floor(randomNum(15000000, 45000000, 0) / PRICE_ROUNDING_FACTOR) * PRICE_ROUNDING_FACTOR; // Round to nearest 1000
       description = 'Máy tính bảng cao cấp với màn hình lớn, hiệu năng mạnh mẽ cho công việc và giải trí.';
     } else if (selectedCategory.name === 'Laptop') {
       const laptops = ['MacBook Pro', 'Dell XPS', 'ThinkPad X1', 'ASUS Zenbook', 'HP Spectre'];
       productName = `${randomChoice(laptops)} ${randomNum(13, 16)}" ${randomNum(2024, 2025)}`;
-      price = Math.floor(randomNum(20000000, 60000000, 0) / 1000) * 1000; // Round to nearest 1000
+      price = Math.floor(randomNum(20000000, 60000000, 0) / PRICE_ROUNDING_FACTOR) * PRICE_ROUNDING_FACTOR; // Round to nearest 1000
       description = 'Laptop cao cấp với hiệu năng mạnh mẽ, thiết kế sang trọng, phù hợp cho công việc chuyên nghiệp.';
     } else if (selectedCategory.name === 'Đồng hồ thông minh') {
       const watches = ['Apple Watch Series', 'Galaxy Watch', 'Huawei Watch GT', 'Xiaomi Watch', 'Amazfit GTR'];
       productName = `${randomChoice(watches)} ${randomNum(6, 9)} ${randomChoice(['', 'Pro', 'Ultra'])}`;
-      price = Math.floor(randomNum(3000000, 15000000, 0) / 1000) * 1000; // Round to nearest 1000
+      price = Math.floor(randomNum(3000000, 15000000, 0) / PRICE_ROUNDING_FACTOR) * PRICE_ROUNDING_FACTOR; // Round to nearest 1000
       description = 'Đồng hồ thông minh hiện đại với nhiều tính năng sức khỏe và thể thao.';
     }
 
@@ -124,7 +129,7 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
     const newMetadata: any = {};
 
     if (selectedCategory.name === 'Điện thoại') {
-      newMetadata.screenSize = randomNum(6, 7); // 6-7 inch (integer)
+      newMetadata.screenSize = randomNum(6, 8, 1); // 6.0-7.9 inch (decimal)
       newMetadata.screenTechnology = randomChoice(['AMOLED', 'Super AMOLED', 'OLED', 'IPS LCD']);
       newMetadata.screenResolution = randomChoice(['1080 x 2400', '1440 x 3200', '1284 x 2778']);
       newMetadata.refreshRate = randomChoice([60, 90, 120, 144]); // 30-500Hz
@@ -146,7 +151,7 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
       newMetadata.securityFeatures = randomChoice(['Face ID', 'Fingerprint', 'Face + Fingerprint']);
     } 
     else if (selectedCategory.name === 'Tablet') {
-      newMetadata.screenSize = randomNum(10, 13); // 10-13 inch (integer)
+      newMetadata.screenSize = randomNum(10, 14, 1); // 10.0-13.9 inch (decimal)
       newMetadata.screenTechnology = randomChoice(['IPS LCD', 'AMOLED', 'Liquid Retina']);
       newMetadata.screenResolution = randomChoice(['2560 x 1600', '2732 x 2048', '2388 x 1668']);
       newMetadata.refreshRate = randomChoice([60, 90, 120]); // 30-500Hz
@@ -164,7 +169,7 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
       newMetadata.additionalSpecs = 'Hỗ trợ bút stylus, Magic Keyboard, Smart Connector';
     }
     else if (selectedCategory.name === 'Laptop') {
-      newMetadata.screenSize = randomNum(13, 16); // 13-16 inch (integer)
+      newMetadata.screenSize = randomNum(13, 17, 1); // 13.0-16.9 inch (decimal)
       newMetadata.screenTechnology = randomChoice(['IPS', 'OLED', 'Mini-LED', 'Retina']);
       newMetadata.screenResolution = randomChoice(['1920 x 1080', '2560 x 1600', '3840 x 2160']);
       newMetadata.refreshRate = randomChoice([60, 90, 120, 144]); // 30-500Hz
@@ -182,7 +187,7 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
       newMetadata.audioFeatures = randomChoice(['Dolby Atmos, Stereo 2W x2', 'Bang & Olufsen, Quad speakers']);
     }
     else if (selectedCategory.name === 'Đồng hồ thông minh') {
-      newMetadata.screenSize = randomNum(1, 2); // 1-2 inch (integer)
+      newMetadata.screenSize = randomNum(1.2, 2.0, 1); // 1.2-1.9 inch (decimal)
       newMetadata.screenTechnology = randomChoice(['AMOLED', 'Super AMOLED', 'LTPO OLED', 'Retina']);
       newMetadata.screenResolution = randomChoice(['466 x 466', '484 x 396', '368 x 448']);
       newMetadata.caseSize = randomChoice(['40mm', '42mm', '44mm', '45mm', '46mm', '49mm']);
@@ -340,8 +345,8 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
           adminAPI.getAllBrands()
         ]);
         if (catsRes.success && catsRes.data) {
-          // Filter out "Phụ kiện" category
-          const filteredCategories = catsRes.data.filter((c: any) => c.name !== 'Phụ kiện');
+          // Filter out excluded category
+          const filteredCategories = catsRes.data.filter((c: CategoryResponse) => c.name !== EXCLUDED_CATEGORY);
           setCategories(filteredCategories);
         }
         if (brandsRes.success && brandsRes.data) setBrands(brandsRes.data);
@@ -376,7 +381,7 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
             required={field.required}
             min={field.min}
             max={field.max}
-            step={field.name.includes('Megapixels') ? '0.1' : '1'}
+            step={field.name.includes('Megapixels') || field.name === 'screenSize' ? '0.1' : '1'}
           />
         );
       
