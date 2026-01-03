@@ -39,4 +39,16 @@ public interface IPromotionService {
 
     // SD: Request apply Promotion -> calculateDiscount()
     Double calculateDiscount(String promotionId, Double orderTotal);
+
+    // --- PRODUCT DISCOUNT CALCULATION ---
+
+    /**
+     * Get the best active DISCOUNT promotion for a product
+     * Checks promotions with targets: PRODUCT, CATEGORY, BRAND
+     * @param productId Product ID
+     * @param categoryId Category ID of the product
+     * @param brandId Brand ID of the product
+     * @return Best discount percentage (0-100), or null if no discount
+     */
+    Double getBestDiscountForProduct(Long productId, Long categoryId, Long brandId);
 }
