@@ -73,32 +73,16 @@ public class ProductServiceImpl implements IProductService {
     public ProductDetailResponse createProduct(CreateProductRequest request, Long userId) {
         log.info("Creating product with name: {} and {} templates", request.getName(), request.getTemplates().size());
         
-        // Validate category exists
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy danh mục với ID: " + request.getCategoryId()));
-        
-        // Validate brand exists
-        Brand brand = brandRepository.findById(request.getBrandId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy thương hiệu với ID: " + request.getBrandId()));
-        
-        // Get user for audit
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy người dùng với ID: " + userId));
+        // Validate and fetch related entities
+        Category category = validateAndGetCategory(request.getCategoryId());
+        Brand brand = validateAndGetBrand(request.getBrandId());
+        User user = validateAndGetUser(userId);
         
         // Check duplicate product name
-        if (productRepository.existsByNameAndNotDeleted(request.getName(), null)) {
-            throw new BadRequestException("Sản phẩm với tên '" + request.getName() + "' đã tồn tại");
-        }
+        validateProductNameUnique(request.getName(), null);
         
         // Validate templates: Check SKU uniqueness
-        for (ProductTemplateRequest templateReq : request.getTemplates()) {
-            if (productTemplateRepository.existsBySku(templateReq.getSku())) {
-                throw new BadRequestException("SKU đã tồn tại: " + templateReq.getSku());
-            }
-        }
+        validateTemplateSkuUniqueness(request.getTemplates());
         
         // Create product entity (base info only)
         Product product = productMapper.toEntity(request);
@@ -133,38 +117,28 @@ public class ProductServiceImpl implements IProductService {
     public ProductDetailResponse updateProduct(Long id, UpdateProductRequest request, Long userId) {
         log.info("Updating product with ID: {}", id);
         
-        // Find product
-        Product product = productRepository.findByIdAndIsDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + id));
+        // Find and validate product exists
+        Product product = findActiveProductById(id);
         
         // Check duplicate name if name is being updated
         if (request.getName() != null && !request.getName().equals(product.getName())) {
-            if (productRepository.existsByNameAndNotDeleted(request.getName(), id)) {
-                throw new BadRequestException("Sản phẩm với tên '" + request.getName() + "' đã tồn tại");
-            }
+            validateProductNameUnique(request.getName(), id);
         }
         
         // Update category if provided
         if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Không tìm thấy danh mục với ID: " + request.getCategoryId()));
+            Category category = validateAndGetCategory(request.getCategoryId());
             product.setCategory(category);
         }
         
         // Update brand if provided
         if (request.getBrandId() != null) {
-            Brand brand = brandRepository.findById(request.getBrandId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Không tìm thấy thương hiệu với ID: " + request.getBrandId()));
+            Brand brand = validateAndGetBrand(request.getBrandId());
             product.setBrand(brand);
         }
         
         // Get user for audit
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy người dùng với ID: " + userId));
+        User user = validateAndGetUser(userId);
         
         // Update fields using mapper (only non-null fields)
         productMapper.updateEntity(product, request);
@@ -226,15 +200,11 @@ public class ProductServiceImpl implements IProductService {
     public void deleteProduct(Long id, Long userId) {
         log.info("Soft deleting product with ID: {}", id);
         
-        // Find product
-        Product product = productRepository.findByIdAndIsDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + id));
+        // Find and validate product exists
+        Product product = findActiveProductById(id);
         
         // Get user for audit
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy người dùng với ID: " + userId));
+        User user = validateAndGetUser(userId);
         
         // Soft delete
         product.setIsDeleted(true);
@@ -253,17 +223,11 @@ public class ProductServiceImpl implements IProductService {
     public void increaseStock(Long id, Integer amount) {
         log.info("Increasing stock for product ID: {} by {}", id, amount);
         
-        if (amount <= 0) {
-            throw new BadRequestException("Số lượng tăng phải lớn hơn 0");
-        }
+        validateStockAmount(amount, "tăng");
         
-        Product product = productRepository.findByIdAndIsDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + id));
+        Product product = findActiveProductById(id);
         
-        if (product.getTemplates().isEmpty()) {
-            throw new BadRequestException("Sản phẩm không có template nào để cập nhật stock");
-        }
+        validateProductHasTemplates(product);
         
         // Update stock for all templates
         for (ProductTemplate template : product.getTemplates()) {
@@ -283,17 +247,11 @@ public class ProductServiceImpl implements IProductService {
     public void decreaseStock(Long id, Integer amount) {
         log.info("Decreasing stock for product ID: {} by {}", id, amount);
         
-        if (amount <= 0) {
-            throw new BadRequestException("Số lượng giảm phải lớn hơn 0");
-        }
+        validateStockAmount(amount, "giảm");
         
-        Product product = productRepository.findByIdAndIsDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + id));
+        Product product = findActiveProductById(id);
         
-        if (product.getTemplates().isEmpty()) {
-            throw new BadRequestException("Sản phẩm không có template nào để cập nhật stock");
-        }
+        validateProductHasTemplates(product);
         
         // Calculate total stock across all templates
         int totalStock = product.getTemplates().stream()
@@ -601,4 +559,81 @@ public class ProductServiceImpl implements IProductService {
             response.setDiscountedPrice(lowestPrice); // No discount, same as original price
         }
     }
+
+    // ========== PRIVATE HELPER METHODS FOR VALIDATION ==========
+
+    /**
+     * Validate and fetch Category by ID
+     */
+    private Category validateAndGetCategory(Long categoryId) {
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy danh mục với ID: " + categoryId));
+    }
+
+    /**
+     * Validate and fetch Brand by ID
+     */
+    private Brand validateAndGetBrand(Long brandId) {
+        return brandRepository.findById(brandId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy thương hiệu với ID: " + brandId));
+    }
+
+    /**
+     * Validate and fetch User by ID
+     */
+    private User validateAndGetUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy người dùng với ID: " + userId));
+    }
+
+    /**
+     * Find active (not deleted) product by ID
+     */
+    private Product findActiveProductById(Long id) {
+        return productRepository.findByIdAndIsDeletedFalse(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy sản phẩm với ID: " + id));
+    }
+
+    /**
+     * Validate product name uniqueness
+     */
+    private void validateProductNameUnique(String name, Long excludeId) {
+        if (productRepository.existsByNameAndNotDeleted(name, excludeId)) {
+            throw new BadRequestException("Sản phẩm với tên '" + name + "' đã tồn tại");
+        }
+    }
+
+    /**
+     * Validate template SKU uniqueness
+     */
+    private void validateTemplateSkuUniqueness(List<ProductTemplateRequest> templates) {
+        for (ProductTemplateRequest templateReq : templates) {
+            if (productTemplateRepository.existsBySku(templateReq.getSku())) {
+                throw new BadRequestException("SKU đã tồn tại: " + templateReq.getSku());
+            }
+        }
+    }
+
+    /**
+     * Validate stock amount is positive
+     */
+    private void validateStockAmount(Integer amount, String operation) {
+        if (amount <= 0) {
+            throw new BadRequestException("Số lượng " + operation + " phải lớn hơn 0");
+        }
+    }
+
+    /**
+     * Validate product has at least one template
+     */
+    private void validateProductHasTemplates(Product product) {
+        if (product.getTemplates().isEmpty()) {
+            throw new BadRequestException("Sản phẩm không có template nào để cập nhật stock");
+        }
+    }
 }
+

@@ -35,8 +35,7 @@ interface ProductTableProps {
 }
 
 export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) {
-  console.log('ProductTable received onEdit:', typeof onEdit, onEdit);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -89,7 +88,8 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
           setBrands(brandsRes.data.map((b: BrandResponse) => ({ id: b.id, name: b.name })));
         }
       } catch (err) {
-        console.error('Failed to load filters:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Không thể tải bộ lọc';
+        console.error('Failed to load filters:', errorMessage);
       }
     };
     
@@ -101,13 +101,10 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Loading products with API filters');
-      
       let response;
 
       // Use different endpoint for deleted products (Trash tab)
       if (filters?.deletedStatus === 'deleted') {
-        console.log('🗑️ Fetching DELETED products from /deleted endpoint');
         const { getDeletedProducts } = await import('@/services/product.service');
         
         // Only send keyword if it has at least 2 characters
@@ -134,22 +131,16 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
           includeDeleted: filters?.includeDeleted,
         };
         
-        console.log('📡 Calling API with filters:', apiFilters);
-        console.log('🔢 Sort params:', { sortBy, sortDirection });
         response = await getAllProductsAdmin(apiFilters);
-        console.log('📥 API Response:', response);
-        console.log('📦 First 3 products:', response.data?.slice(0, 3).map(p => ({ 
-          name: p.name, 
-          price: p.price, 
-          stock: p.stockQuantity 
-        })));
       }
       
       if (response.success && response.data) {
         setProducts(response.data as unknown as Product[]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi khi tải danh sách sản phẩm');
+      const errorMessage = err instanceof Error ? err.message : 'Lỗi khi tải danh sách sản phẩm';
+      setError(errorMessage);
+      console.error('Error loading products:', errorMessage);
     } finally {
       setLoading(false);
     }

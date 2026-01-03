@@ -139,19 +139,17 @@ public class Product {
     private User updatedBy;
 
     /**
-     * Custom getter for templates that returns unmodifiable list
-     * to prevent external modification of internal collection
+     * Returns mutable list for JPA, MapStruct, and internal operations
      */
     public List<ProductTemplate> getTemplates() {
-        return Collections.unmodifiableList(templates);
+        return templates;
     }
 
     /**
-     * Internal method to get mutable templates list
-     * Used by JPA and service layer for managed operations
+     * Public method to get immutable view of templates for safe external access
      */
-    List<ProductTemplate> getTemplatesInternal() {
-        return templates;
+    public List<ProductTemplate> getTemplatesView() {
+        return Collections.unmodifiableList(templates);
     }
 
     /**

@@ -239,11 +239,7 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
         metadata: Object.keys(cleanedMetadata).length > 0 ? cleanedMetadata : undefined,
       };
       
-      console.log('📤 Submitting product data:', JSON.stringify(submitData, null, 2));
-      
       const response = await productAPI.create(submitData);
-      
-      console.log('✅ Product created successfully:', response);
       
       // Show success message
       toast.success('Tạo sản phẩm thành công!', {
@@ -278,10 +274,6 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
       
       onSuccess?.();
     } catch (err) {
-      console.error('❌ Error creating product:', err);
-      console.error('🔍 Error type:', typeof err);
-      console.error('🔍 Error details:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
-      
       // Try to extract validation errors from response
       let errorMessage = 'Không thể tạo sản phẩm';
       let errorDescription = '';

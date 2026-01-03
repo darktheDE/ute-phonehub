@@ -3,11 +3,24 @@
 import { useState, useEffect } from 'react';
 import { ProductTable } from './admin/ProductTable';
 import { adminAPI } from '@/lib/api';
+import type { Product } from '@/types';
+
+// Type Definitions
+interface Category {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+interface Brand {
+  id: number;
+  name: string;
+}
 
 export function ProductManagement() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -17,17 +30,9 @@ export function ProductManagement() {
   const [sortBy, setSortBy] = useState('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (): Promise<void> => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching products with params:', {
-        page: currentPage,
-        size: 10,
-        keyword: searchKeyword,
-        sortBy,
-        sortDirection,
-        ...filters,
-      });
       
       const response = await adminAPI.getAllProducts({
         page: currentPage,
@@ -38,41 +43,41 @@ export function ProductManagement() {
         ...filters,
       });
       
-      console.log('📦 Products API response:', response);
-      
       if (response.success && response.data) {
         setProducts(response.data.content || []);
         setTotalPages(response.data.totalPages || 0);
         setTotalItems(response.data.totalElements || 0);
-        console.log('✅ Loaded products:', response.data.content?.length || 0);
       }
     } catch (error) {
-      console.error('❌ Error fetching products:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Không thể tải danh sách sản phẩm';
+      console.error('Error fetching products:', errorMessage);
       setProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (): Promise<void> => {
     try {
       const response = await adminAPI.getAllCategories();
       if (response.success && response.data) {
         setCategories(response.data);
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Không thể tải danh mục';
+      console.error('Error fetching categories:', errorMessage);
     }
   };
 
-  const fetchBrands = async () => {
+  const fetchBrands = async (): Promise<void> => {
     try {
       const response = await adminAPI.getAllBrands();
       if (response.success && response.data) {
         setBrands(response.data);
       }
     } catch (error) {
-      console.error('Error fetching brands:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Không thể tải thương hiệu';
+      console.error('Error fetching brands:', errorMessage);
     }
   };
 
@@ -85,14 +90,17 @@ export function ProductManagement() {
     fetchProducts();
   }, [currentPage, searchKeyword, sortBy, sortDirection, filters]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number): Promise<void> => {
     try {
       const response = await adminAPI.deleteProduct(id);
       if (response.success) {
-        fetchProducts();
+        await fetchProducts();
+      } else {
+        console.error('Delete failed:', response.message);
       }
     } catch (error) {
-      console.error('Error deleting product:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Không thể xóa sản phẩm';
+      console.error('Error deleting product:', errorMessage);
     }
   };
 

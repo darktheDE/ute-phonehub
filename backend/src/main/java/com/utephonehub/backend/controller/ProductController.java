@@ -181,18 +181,8 @@ public class ProductController {
         // Validate all filter parameters
         productFilterValidator.validateAll(keyword, minPrice, maxPrice, sortBy, sortDirection);
         
-        // Create Sort object - only for DB-level sorting (name, createdAt)
-        // price and stockQuantity will be sorted in-memory at service layer
-        Sort sort = null;
-        if ("name".equals(sortBy) || "createdAt".equals(sortBy)) {
-            Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
-            sort = Sort.by(direction, sortBy);
-        }
-        
-        // Create Pageable with or without sort
-        Pageable pageable = sort != null 
-                ? PageRequest.of(page, size, sort)
-                : PageRequest.of(page, size);
+        // Create Pageable with sorting (only for DB-supported fields)
+        Pageable pageable = createPageableWithSort(page, size, sortBy, sortDirection);
         
         // Get active products only (isDeleted=false)
         Page<ProductListResponse> products = productService.getProducts(
@@ -248,10 +238,8 @@ public class ProductController {
         log.info("GET /api/v1/admin/products/deleted - keyword: {}, categoryId: {}, brandId: {}, sort: {}({})",
                 keyword, categoryId, brandId, sortBy, sortDirection);
         
-        // Create Sort object
-        Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Sort sort = Sort.by(direction, sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
+        // Create Pageable with sorting
+        Pageable pageable = createPageable(page, size, sortBy, sortDirection);
         
         // Get deleted products only
         Page<ProductListResponse> products = productService.getDeletedProducts(
@@ -341,4 +329,36 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success("Xóa hình ảnh thành công", null));
     }
 
+    // ========== PRIVATE HELPER METHODS ==========
+
+    /**
+     * Create Pageable with Sort for DB-supported fields (name, createdAt)
+     * Fields like price and stockQuantity are sorted in-memory at service layer
+     */
+    private Pageable createPageableWithSort(int page, int size, String sortBy, String sortDirection) {
+        Sort sort = null;
+        if ("name".equals(sortBy) || "createdAt".equals(sortBy)) {
+            Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) 
+                    ? Sort.Direction.ASC 
+                    : Sort.Direction.DESC;
+            sort = Sort.by(direction, sortBy);
+        }
+        
+        return sort != null 
+                ? PageRequest.of(page, size, sort)
+                : PageRequest.of(page, size);
+    }
+
+    /**
+     * Create Pageable with Sort (for all fields)
+     */
+    private Pageable createPageable(int page, int size, String sortBy, String sortDirection) {
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) 
+                ? Sort.Direction.ASC 
+                : Sort.Direction.DESC;
+        Sort sort = Sort.by(direction, sortBy);
+        return PageRequest.of(page, size, sort);
+    }
+
 }
+
