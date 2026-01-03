@@ -8,6 +8,13 @@ import type {
   ForgotPasswordRequest,
   VerifyOtpRequest,
   Product,
+  BrandResponse,
+  CreateBrandRequest,
+  UpdateBrandRequest,
+  CategoryResponse,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  CreateProductRequest,
   ProductResponse,
   Order,
   OrderResponse,
@@ -47,8 +54,16 @@ import type {
   Promotion,
 } from "@/types/api-cart";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
+// Ensure API_BASE_URL is always absolute
+const getApiBaseUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) return envUrl;
+
+  // Default to backend server URL
+  return "http://localhost:8081/api/v1";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Helper function to get auth token from localStorage
 export const getAuthToken = (): string | null => {
@@ -99,7 +114,19 @@ async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Disallow absolute URLs to avoid malformed URLs like
+  // `${API_BASE_URL}https://external.com/endpoint`
+  if (/^https?:\/\//i.test(endpoint) || endpoint.startsWith("//")) {
+    throw new Error(
+      `fetchAPI endpoint must be a relative path starting with '/', received: '${endpoint}'`
+    );
+  }
+
+  // Ensure endpoint starts with / for proper URL construction
+  const normalizedEndpoint = endpoint.startsWith("/")
+    ? endpoint
+    : `/${endpoint}`;
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
   const token = getAuthToken();
 
   const headers = new Headers(options.headers);
@@ -141,21 +168,15 @@ async function fetchAPI<T>(
     }
 
     if (!response.ok) {
-      // Log more details for debugging
-      console.error("API Error Details:", {
-        url,
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        contentType,
-        data,
-      });
-
       const errorMessage =
         data?.message ||
         data?.error ||
         (typeof data === "string" ? data : null) ||
-        `HTTP error! status: ${response.status}`;
+        `API request failed with status ${response.status} ${response.statusText}`;
+
+      // Log error for debugging
+      console.error(`API Error [${response.status}]:`, errorMessage);
+
       throw new Error(errorMessage);
     }
 
@@ -254,20 +275,57 @@ export const healthCheck = async (): Promise<ApiResponse<any>> => {
 // Note: Public product endpoints don't exist yet, so using mock data in components
 // Only keeping admin endpoints that exist
 export const productAPI = {
+  // Get product by ID (Admin)
+  // GET /api/v1/admin/products/{id}
+  getById: async (id: number): Promise<ApiResponse<Product>> => {
+    return fetchAPI<Product>(`/admin/products/${id}`, {
+      method: "GET",
+    });
+  },
+
+  // Update product (Admin)
+  // PUT /api/v1/admin/products/{id}
+  update: async (
+    id: number,
+    data: Partial<Product>
+  ): Promise<ApiResponse<Product>> => {
+    return fetchAPI<Product>(`/admin/products/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Create product (Admin)
+  // POST /api/v1/admin/products
+  create: async (data: CreateProductRequest): Promise<ApiResponse<Product>> => {
+    return fetchAPI<Product>("/admin/products", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
   // Get all products including deleted (Admin only)
-  // GET /api/v1/products/admin/all?page={page}&size={size}
+  // GET /api/v1/admin/products?page={page}&size={size}
   getAllProducts: async (params?: {
     page?: number;
     size?: number;
+    keyword?: string;
+    categoryId?: number;
+    brandId?: number;
   }): Promise<ApiResponse<any>> => {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined)
       queryParams.append("page", String(params.page));
     if (params?.size !== undefined)
       queryParams.append("size", String(params.size));
+    if (params?.keyword) queryParams.append("keyword", params.keyword);
+    if (params?.categoryId !== undefined)
+      queryParams.append("categoryId", String(params.categoryId));
+    if (params?.brandId !== undefined)
+      queryParams.append("brandId", String(params.brandId));
 
     return fetchAPI<any>(
-      `/products/admin/all${
+      `/admin/products${
         queryParams.toString() ? `?${queryParams.toString()}` : ""
       }`,
       {
@@ -288,6 +346,36 @@ export const productAPI = {
       }
     );
   },
+
+  // Manage product images (replace all) (Admin)
+  // POST /api/v1/admin/products/{id}/images
+  uploadImage: async (
+    productId: number,
+    requestBody: {
+      images: Array<{
+        imageUrl: string;
+        altText?: string;
+        imageOrder: number;
+        isPrimary: boolean;
+      }>;
+    }
+  ): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/products/${productId}/images`, {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+    });
+  },
+
+  // Delete a specific product image (Admin)
+  // DELETE /api/v1/admin/products/{id}/images/{imageId}
+  deleteImage: async (
+    productId: number,
+    imageId: number
+  ): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/products/${productId}/images/${imageId}`, {
+      method: "DELETE",
+    });
+  },
 };
 
 // Category API endpoints
@@ -304,6 +392,17 @@ export const categoryAPI = {
   // Get all root categories (parentId = null)
   getRootCategories: async (): Promise<ApiResponse<any[]>> => {
     return fetchAPI<any[]>("/categories", {
+      method: "GET",
+    });
+  },
+};
+
+// Brand API endpoints
+export const brandAPI = {
+  // Get all brands
+  // GET /api/v1/brands
+  getAll: async (): Promise<ApiResponse<any[]>> => {
+    return fetchAPI<any[]>("/brands", {
       method: "GET",
     });
   },
@@ -380,20 +479,129 @@ export const adminAPI = {
     });
   },
 
+  // Categories
+  // Public list endpoint
+  // GET /api/v1/categories?parentId=
+  getAllCategories: async (
+    parentId?: number | null
+  ): Promise<ApiResponse<CategoryResponse[]>> => {
+    const query =
+      parentId === undefined || parentId === null
+        ? ""
+        : `?parentId=${encodeURIComponent(String(parentId))}`;
+
+    return fetchAPI<CategoryResponse[]>(`/categories${query}`, {
+      method: "GET",
+    });
+  },
+
+  // Admin CRUD endpoints
+  // POST /api/v1/admin/categories
+  createCategory: async (
+    data: CreateCategoryRequest
+  ): Promise<ApiResponse<CategoryResponse>> => {
+    return fetchAPI<CategoryResponse>("/admin/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // PUT /api/v1/admin/categories/{id}
+  updateCategory: async (
+    id: number,
+    data: UpdateCategoryRequest
+  ): Promise<ApiResponse<CategoryResponse>> => {
+    return fetchAPI<CategoryResponse>(`/admin/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // DELETE /api/v1/admin/categories/{id}
+  deleteCategory: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/categories/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Brands
+  // Public list endpoint
+  getAllBrands: async (): Promise<ApiResponse<BrandResponse[]>> => {
+    return fetchAPI<BrandResponse[]>("/brands", {
+      method: "GET",
+    });
+  },
+
+  // Admin CRUD endpoints
+  // POST /api/v1/admin/brands
+  createBrand: async (
+    data: CreateBrandRequest
+  ): Promise<ApiResponse<BrandResponse>> => {
+    return fetchAPI<BrandResponse>("/admin/brands", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // PUT /api/v1/admin/brands/{id}
+  updateBrand: async (
+    id: number,
+    data: UpdateBrandRequest
+  ): Promise<ApiResponse<BrandResponse>> => {
+    return fetchAPI<BrandResponse>(`/admin/brands/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // DELETE /api/v1/admin/brands/{id}
+  deleteBrand: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/brands/${id}`, {
+      method: "DELETE",
+    });
+  },
+
   // Products (admin management)
-  // Note: Using low-stock-products endpoint as fallback since ProductController doesn't exist
-  // TODO: Backend needs to add ProductController with GET /api/v1/admin/products endpoint
   getAllProducts: async (params?: {
+    keyword?: string;
     page?: number;
     size?: number;
     categoryId?: number;
     brandId?: number;
-    search?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sortBy?: string;
+    sortDirection?: "asc" | "desc";
   }): Promise<ApiResponse<any>> => {
-    // For now, use low-stock-products endpoint as a workaround
-    // This will return products but only low stock ones
-    return fetchAPI<any>("/admin/dashboard/low-stock-products?threshold=1000", {
+    const queryParams = new URLSearchParams();
+    if (params?.keyword) queryParams.append("keyword", params.keyword);
+    if (params?.categoryId !== undefined)
+      queryParams.append("categoryId", String(params.categoryId));
+    if (params?.brandId !== undefined)
+      queryParams.append("brandId", String(params.brandId));
+    if (params?.minPrice !== undefined)
+      queryParams.append("minPrice", String(params.minPrice));
+    if (params?.maxPrice !== undefined)
+      queryParams.append("maxPrice", String(params.maxPrice));
+    if (params?.sortBy) queryParams.append("sortBy", params.sortBy);
+    if (params?.sortDirection)
+      queryParams.append("sortDirection", params.sortDirection);
+    if (params?.page !== undefined)
+      queryParams.append("page", String(params.page));
+    if (params?.size !== undefined)
+      queryParams.append("size", String(params.size));
+
+    const query = queryParams.toString();
+    return fetchAPI<any>(`/admin/products${query ? `?${query}` : ""}`, {
       method: "GET",
+    });
+  },
+
+  // Products (admin)
+  // DELETE /api/v1/admin/products/{id}
+  deleteProduct: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/products/${id}`, {
+      method: "DELETE",
     });
   },
 };

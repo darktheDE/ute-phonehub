@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Tag, X, ChevronRight, Ticket, Check, Sparkles } from "lucide-react";
-import { promotionAPI } from "@/lib/api";
-import { formatPrice } from "@/lib/utils";
-import type { Promotion } from "@/types/api-cart";
-import { toast } from "sonner";
+import { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { X, ChevronRight, Ticket, Sparkles } from 'lucide-react';
+import { promotionAPI } from '@/lib/api';
+import { formatPrice } from '@/lib/utils';
+import type { Promotion } from '@/types/api-cart';
+import { toast } from 'sonner';
 
 interface VoucherSelectorProps {
   orderTotal: number;
@@ -48,6 +48,8 @@ export function VoucherSelector({
     return type === "FREESHIP" || type === "FREE_SHIPPING";
   });
 
+  const lastCalculatedKeyRef = useRef<string>('');
+
   useEffect(() => {
     if (showVoucherList && availableVouchers.length === 0) {
       loadAvailableVouchers();
@@ -59,7 +61,13 @@ export function VoucherSelector({
     try {
       const resp = await promotionAPI.getAvailablePromotions(orderTotal);
       if (resp.success && Array.isArray(resp.data)) {
-        setAvailableVouchers(resp.data);
+        setAvailableVouchers(
+          resp.data.map((v: any) => ({
+            ...v,
+            // Normalize nullable values from PromotionResponse
+            minValueToBeApplied: v.minValueToBeApplied ?? undefined,
+          }))
+        );
       }
     } catch (error) {
       console.error("Failed to load vouchers:", error);
@@ -87,6 +95,81 @@ export function VoucherSelector({
       return 0;
     }
   };
+
+  // Auto re-calculate discount when order total changes while a voucher is applied.
+  // This prevents the user from having to remove + re-apply the voucher when they add/remove selected items.
+  useEffect(() => {
+    const discountVoucher = currentDiscountVoucher;
+    const freeshipVoucher = currentFreeshipVoucher;
+
+    if (!discountVoucher && !freeshipVoucher) return;
+
+    const discountId = discountVoucher
+      ? String(
+          discountVoucher.id ||
+            discountVoucher.code ||
+            discountVoucher.templateCode ||
+            ''
+        )
+      : '';
+    const freeshipId = freeshipVoucher
+      ? String(
+          freeshipVoucher.id ||
+            freeshipVoucher.code ||
+            freeshipVoucher.templateCode ||
+            ''
+        )
+      : '';
+
+    // If there's nothing selected, keep vouchers but discount becomes 0.
+    if (!Number.isFinite(orderTotal) || orderTotal <= 0) {
+      const key = `${discountId}|${freeshipId}:0`;
+      if (lastCalculatedKeyRef.current !== key) {
+        lastCalculatedKeyRef.current = key;
+        onApplyVoucher(discountVoucher, freeshipVoucher, 0);
+      }
+      return;
+    }
+
+    const key = `${discountId}|${freeshipId}:${orderTotal}`;
+    if (lastCalculatedKeyRef.current === key) return;
+
+    const abortController = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const [discountResp, freeshipResp] = await Promise.all([
+          discountId
+            ? promotionAPI.calculateDiscount(discountId, orderTotal)
+            : Promise.resolve({ success: true, data: 0 } as any),
+          freeshipId
+            ? promotionAPI.calculateDiscount(freeshipId, orderTotal)
+            : Promise.resolve({ success: true, data: 0 } as any),
+        ]);
+
+        if (abortController.signal.aborted) return;
+
+        const discountAmount =
+          discountResp?.success && typeof discountResp.data === 'number'
+            ? discountResp.data
+            : 0;
+        const freeshipAmount =
+          freeshipResp?.success && typeof freeshipResp.data === 'number'
+            ? freeshipResp.data
+            : 0;
+
+        lastCalculatedKeyRef.current = key;
+        onApplyVoucher(discountVoucher, freeshipVoucher, discountAmount + freeshipAmount);
+      } catch (error) {
+        if (abortController.signal.aborted) return;
+        console.error('Failed to auto-recalculate discount:', error);
+      }
+    }, 200);
+
+    return () => {
+      abortController.abort();
+      clearTimeout(t);
+    };
+  }, [currentDiscountVoucher, currentFreeshipVoucher, orderTotal, onApplyVoucher]);
 
   const canApplyVoucher = (voucher: Promotion): boolean => {
     const minValue =
