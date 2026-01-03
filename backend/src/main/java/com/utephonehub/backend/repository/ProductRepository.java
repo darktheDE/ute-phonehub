@@ -194,6 +194,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     
     /**
      * Advanced filter với JOIN FETCH và price range
+     * Hỗ trợ lọc đa category và đa brand với logic OR
      */
     @Query(value = "SELECT DISTINCT p FROM Product p " +
            "LEFT JOIN FETCH p.category " +
@@ -201,8 +202,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "LEFT JOIN p.templates t " +
            "WHERE p.isDeleted = false " +
            "AND p.status = true " +
-           "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
-           "AND (:brandId IS NULL OR p.brand.id = :brandId) " +
+           "AND (:categoryIds IS NULL OR p.category.id IN :categoryIds) " +
+           "AND (:brandIds IS NULL OR p.brand.id IN :brandIds) " +
            "AND ((:minPrice IS NULL AND :maxPrice IS NULL) " +
            "OR (t.status = true " +
            "AND (:minPrice IS NULL OR t.price >= :minPrice) " +
@@ -210,15 +211,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            countQuery = "SELECT COUNT(DISTINCT p) FROM Product p " +
                        "LEFT JOIN p.templates t " +
                        "WHERE p.isDeleted = false AND p.status = true " +
-                       "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
-                       "AND (:brandId IS NULL OR p.brand.id = :brandId) " +
+                       "AND (:categoryIds IS NULL OR p.category.id IN :categoryIds) " +
+                       "AND (:brandIds IS NULL OR p.brand.id IN :brandIds) " +
                        "AND ((:minPrice IS NULL AND :maxPrice IS NULL) " +
                        "OR (t.status = true " +
                        "AND (:minPrice IS NULL OR t.price >= :minPrice) " +
                        "AND (:maxPrice IS NULL OR t.price <= :maxPrice)))")
     Page<Product> filterProductsOptimized(
-            @Param("categoryId") Long categoryId,
-            @Param("brandId") Long brandId,
+            @Param("categoryIds") List<Long> categoryIds,
+            @Param("brandIds") List<Long> brandIds,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice,
             Pageable pageable);

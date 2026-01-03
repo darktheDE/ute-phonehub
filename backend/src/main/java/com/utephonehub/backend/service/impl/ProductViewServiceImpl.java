@@ -81,9 +81,16 @@ public class ProductViewServiceImpl implements IProductViewService {
             Sort.by(Sort.Direction.DESC, "createdAt")
         );
         
-        Long categoryId = firstOrNull(request.getCategoryIds());
-        Long brandId = firstOrNull(request.getBrandIds());
-        Page<Product> basePage = productRepository.filterProductsOptimized(categoryId, brandId, request.getMinPrice(), request.getMaxPrice(), pageable);
+        // Lấy danh sách categoryIds và brandIds, nếu rỗng thì truyền null để lọc tất cả
+        List<Long> categoryIds = (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) 
+            ? request.getCategoryIds() : null;
+        List<Long> brandIds = (request.getBrandIds() != null && !request.getBrandIds().isEmpty()) 
+            ? request.getBrandIds() : null;
+        
+        Page<Product> basePage = productRepository.filterProductsOptimized(categoryIds, brandIds, request.getMinPrice(), request.getMaxPrice(), pageable);
+        
+        // Get review stats for minRating filter
+        Map<Long, ReviewSummary> reviewStats = reviewStats(basePage.getContent());
         
         List<Product> filtered = basePage.getContent().stream()
                 .filter(p -> matchRam(p, request.getRamOptions()))
@@ -91,6 +98,9 @@ public class ProductViewServiceImpl implements IProductViewService {
                 .filter(p -> matchBattery(p.getMetadata(), request.getMinBattery(), request.getMaxBattery()))
                 .filter(p -> matchScreenSize(p.getMetadata(), request.getScreenSizeOptions()))
                 .filter(p -> matchOs(p.getMetadata(), request.getOsOptions()))
+                .filter(p -> matchRating(p, request.getMinRating(), request.getMaxRating(), reviewStats))
+                .filter(p -> matchInStock(p, request.getInStockOnly()))
+                .filter(p -> matchHasDiscount(p, request.getHasDiscountOnly()))
                 .collect(Collectors.toList());
         
         // Apply custom sorting based on request
@@ -753,9 +763,63 @@ public class ProductViewServiceImpl implements IProductViewService {
     private boolean matchOs(ProductMetadata metadata, List<String> osOptions) {
         if (osOptions == null || osOptions.isEmpty()) return true;
         if (metadata == null || metadata.getOperatingSystem() == null) return false;
-        return osOptions.contains(metadata.getOperatingSystem());
+        String osValue = metadata.getOperatingSystem().toLowerCase();
+        // Use contains matching to handle version suffixes: "iOS" matches "iOS 17", "Android" matches "Android 14", etc.
+        // Also handle special cases: "iOS" should NOT match "iPadOS", etc.
+        return osOptions.stream().anyMatch(option -> {
+            String optionLower = option.toLowerCase();
+            // Check if osValue starts with option (e.g., "android 14" starts with "android")
+            // Or osValue equals option exactly
+            // Or osValue contains option with space/number after (e.g., "harmonyos 4.0" contains "harmonyos")
+            return osValue.startsWith(optionLower) || 
+                   osValue.equals(optionLower) ||
+                   osValue.contains(optionLower + " ") ||
+                   osValue.matches(optionLower + "\\s*\\d.*");
+        });
     }
 
+    /**
+     * Filter by rating range
+     * @param product Product to check
+     * @param minRating Minimum required rating (1.0-5.0)
+     * @param maxRating Maximum required rating (1.0-5.0)
+     * @param reviewStats Map of product ratings
+     * @return true if product rating is within range or both min/max are null
+     */
+    private boolean matchRating(Product product, Double minRating, Double maxRating, Map<Long, ReviewSummary> reviewStats) {
+        if (minRating == null && maxRating == null) return true;
+        ReviewSummary stats = reviewStats.get(product.getId());
+        double avgRating = stats != null ? stats.average : 0.0;
+        
+        boolean meetsMin = minRating == null || avgRating >= minRating;
+        boolean meetsMax = maxRating == null || avgRating < maxRating;
+        return meetsMin && meetsMax;
+    }
+
+    /**
+     * Filter by stock availability
+     * @param product Product to check
+     * @param inStockOnly If true, only return products with stock > 0
+     * @return true if inStockOnly is false/null or product has stock
+     */
+    private boolean matchInStock(Product product, Boolean inStockOnly) {
+        if (inStockOnly == null || !inStockOnly) return true;
+        return hasStock(product);
+    }
+
+    /**
+     * Filter by discount availability
+     * @param product Product to check
+     * @param hasDiscountOnly If true, only return products with active promotions
+     * @return true if hasDiscountOnly is false/null or product has discount
+     */
+    private boolean matchHasDiscount(Product product, Boolean hasDiscountOnly) {
+        if (hasDiscountOnly == null || !hasDiscountOnly) return true;
+        ProductTemplate template = displayTemplate(product);
+        if (template == null || template.getPrice() == null) return false;
+        DiscountResult discount = calculateDiscount(template.getPrice());
+        return discount.hasDiscount;
+    }
 
     private int totalStock(Product product) {
         if (product.getTemplates() == null) return 0;

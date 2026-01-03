@@ -92,46 +92,37 @@ export interface ProductVariant {
   color?: string;
   storage?: string;
   ram?: string;
-  price: number;
-  compareAtPrice?: number;
-  stockQuantity: number;
-  stockStatus: string;
-  status: boolean;
+  originalPrice?: number;
+  discountedPrice?: number;
+  discountAmount?: number;
+  discountPercentage?: number;
+  stockQuantity?: number;
+  stockStatus?: string;
+  status?: boolean;
 }
 
 export interface TechnicalSpecs {
-  screen?: string;
-  os?: string;
-  frontCamera?: string;
-  rearCamera?: string;
-  cpu?: string;
-  ram?: string;
-  internalMemory?: string;
-  externalMemory?: string;
-  sim?: string;
-  battery?: string;
-  charging?: string;
+  screenResolution?: string;
+  screenSize?: number;
+  screenTechnology?: string;
+  refreshRate?: number;
+  cpuChipset?: string;
+  gpu?: string;
+  operatingSystem?: string;
+  cameraDetails?: string;
+  frontCameraMegapixels?: number;
+  batteryCapacity?: number;
+  chargingPower?: number;
+  chargingType?: string;
+  weight?: number;
   dimensions?: string;
-  weight?: string;
-  materials?: string;
-  connectivity?: string;
-  features?: string;
-}
-
-export interface ProductDetailApiResponse {
-  id: number;
-  name: string;
-  description?: string;
-  thumbnailUrl?: string;
-  category: CategoryInfo;
-  brand: BrandInfo;
-  images: ProductImageInfo[];
-  variants: ProductVariant[];
-  technicalSpecs: TechnicalSpecs;
-  averageRating: number;
-  totalReviews: number;
-  inStock: boolean;
-  soldCount: number;
+  material?: string;
+  wirelessConnectivity?: string;
+  simType?: string;
+  waterResistance?: string;
+  audioFeatures?: string;
+  securityFeatures?: string;
+  additionalSpecs?: string;
 }
 
 export interface ProductDetailViewResponse {
@@ -139,71 +130,62 @@ export interface ProductDetailViewResponse {
   name: string;
   description?: string;
   thumbnailUrl?: string;
-  
-  // Category & Brand
-  categoryId: number;
-  categoryName: string;
-  brandId: number;
-  brandName: string;
-  
-  // Templates (variants)
-  templates: ProductTemplateInfo[];
-  
-  // Rating & Reviews
+
+  category: CategoryInfo;
+  brand: BrandInfo;
+
+  images: ProductImageInfo[];
+  variants: ProductVariant[];
+  technicalSpecs: TechnicalSpecs;
+
   averageRating: number;
   totalReviews: number;
-  
-  // Stock
-  totalStock: number;
-  soldCount: number;
-  
-  // Images
-  images: ProductImageInfo[];
-  
-  // Specifications
-  specifications: Record<string, any>;
-  
-  // Promotion
-  promotionBadge?: string;
-  discountPercentage?: number;
-  
-  // Created/Updated dates
-  createdAt: string;
-  updatedAt?: string;
+  inStock: boolean;
 }
 
-// Alias for the new API response (recommended to use)
-export type ProductDetail = ProductDetailApiResponse;
+export type ProductDetail = ProductDetailViewResponse;
 
 // ==================== SEARCH & FILTER REQUEST ====================
 
 export interface ProductSearchFilterRequest {
-  // Search
+  // Search only - for GET /api/v1/products/search
   keyword?: string;
   
-  // Filters
-  categoryId?: number;
+  // Sort
+  sortBy?: 'name' | 'price' | 'rating' | 'created_date';
+  sortDirection?: 'asc' | 'desc';
+  
+  // Pagination
+  page?: number;
+  size?: number;
+}
+
+// Separate interface for advanced filtering - for POST /api/v1/products/filter  
+export interface ProductFilterRequest {
+  // Category & Brand
+  categoryIds?: number[];
   brandIds?: number[];
+  
+  // Price range
   minPrice?: number;
   maxPrice?: number;
-  minRating?: number;
-  inStockOnly?: boolean;
-  onSaleOnly?: boolean;
   
-  // Advanced Filters
+  // Technical Specifications
   ramOptions?: string[];
   storageOptions?: string[];
   minBattery?: number;
   maxBattery?: number;
   screenSizeOptions?: string[];
   osOptions?: string[];
-  minSoldCount?: number;
   
-  // Sort
-  sortBy?: 'name' | 'price' | 'rating' | 'created_date' | 'sold_count';
+  // Rating & Status
+  minRating?: number;
+  inStockOnly?: boolean;
+  hasDiscountOnly?: boolean;
+  
+  // Sort & Pagination
+  sortBy?: 'name' | 'price' | 'rating' | 'created_date';
   sortDirection?: 'asc' | 'desc';
-  
-  // Pagination
   page?: number;
   size?: number;
 }
@@ -265,8 +247,46 @@ export interface ProductComparisonItem {
 }
 
 export interface ProductComparisonResponse {
-  products: ProductComparisonItem[];
-  comparisonFields: string[];
+  products: ComparisonProduct[];
+}
+
+export interface ComparisonProduct {
+  id: number;
+  name: string;
+  thumbnailUrl?: string;
+  brandName: string;
+  
+  // Price
+  originalPrice: number;
+  discountedPrice?: number;
+  hasDiscount: boolean;
+  
+  // Rating
+  averageRating: number;
+  totalReviews: number;
+  
+  // Stock
+  inStock: boolean;
+  
+  // Technical Specs for Comparison
+  specs: ComparisonSpecs;
+}
+
+export interface ComparisonSpecs {
+  screen?: string;
+  os?: string;
+  frontCamera?: string;
+  rearCamera?: string;
+  cpu?: string;
+  ram?: string;
+  internalMemory?: string;
+  battery?: string;
+  charging?: string;
+  weight?: string;
+  dimensions?: string;
+  connectivity?: string;
+  sim?: string;
+  materials?: string;
 }
 
 // ==================== PAGINATION RESPONSE ====================

@@ -57,6 +57,9 @@ public class ProductFilterRequest {
     @Schema(description = "Đánh giá tối thiểu (1.0-5.0)", example = "4.0")
     private Double minRating;
     
+    @Schema(description = "Đánh giá tối đa (1.0-5.0)", example = "4.5")
+    private Double maxRating;
+    
     @Schema(description = "Chỉ hiển thị sản phẩm còn hàng", example = "true")
     private Boolean inStockOnly;
     

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { productViewService } from '@/services/product-view.service';
+import { searchProducts } from '@/services/product-view.service';
+import * as productViewService from '@/services/product-view.service';
 import type {
   ProductViewResponse,
   ProductSearchFilterRequest,

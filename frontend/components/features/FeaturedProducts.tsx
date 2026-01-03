@@ -2,13 +2,11 @@
 
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import { ProductCard } from './ProductCard';
-import { MOCK_FEATURED_PRODUCTS } from '@/lib/mockData';
+import { ProductCard } from './products/NewProductCard';
+import { useFeaturedProducts } from '@/hooks/useProducts';
 
 export function FeaturedProducts() {
-  // Using mock data - endpoint /api/v1/products doesn't exist yet
-  // top-products endpoint requires admin auth, not suitable for public page
-  const hasProducts = MOCK_FEATURED_PRODUCTS.length > 0;
+  const { data: featuredProducts, isLoading, error } = useFeaturedProducts({ limit: 8 });
 
   return (
     <section className="py-8 md:py-12">
@@ -23,17 +21,36 @@ export function FeaturedProducts() {
             </p>
           </div>
           <Link
-            href="#"
+            href="/products?sort=featured"
             className="text-primary hover:underline flex items-center gap-1 text-sm font-semibold"
           >
             Xem tất cả <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
 
-        {hasProducts ? (
+        {error && (
+          <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-center text-destructive">
+            Có lỗi xảy ra khi tải sản phẩm nổi bật.
+          </div>
+        )}
+
+        {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-            {MOCK_FEATURED_PRODUCTS.map((product) => (
-              <ProductCard key={product.id} {...product} />
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="aspect-square bg-secondary rounded-lg mb-2"></div>
+                <div className="h-4 bg-secondary rounded mb-1"></div>
+                <div className="h-3 bg-secondary rounded w-3/4"></div>
+              </div>
+            ))}
+          </div>
+        ) : featuredProducts && featuredProducts.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+            {featuredProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product}
+              />
             ))}
           </div>
         ) : (

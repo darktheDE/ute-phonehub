@@ -3,6 +3,9 @@
 -- Auto-run by Docker Compose on first startup
 -- Updated to match all Entity classes
 
+-- Enable extensions for text search helpers
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 -- ============================================
 -- 1. USERS DOMAIN
 -- ============================================

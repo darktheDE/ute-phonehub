@@ -55,10 +55,8 @@ const RAM_OPTIONS = ['4GB', '6GB', '8GB', '12GB', '16GB'];
 const STORAGE_OPTIONS = ['64GB', '128GB', '256GB', '512GB', '1TB'];
 const OS_OPTIONS = ['Android', 'iOS', 'HarmonyOS'];
 const RATING_OPTIONS = [
-  { value: 4.5, label: '4.5★ trở lên' },
-  { value: 4.0, label: '4.0★ trở lên' },
-  { value: 3.5, label: '3.5★ trở lên' },
-  { value: 3.0, label: '3.0★ trở lên' },
+  { id: '4.6+', value: 4.6, label: ' 4.6+' },
+  { id: '4-4.5', value: 4.0, maxValue: 4.6, label: ' 4 - 4.5' },
 ];
 
 const MIN_PRICE = 0;
@@ -202,11 +200,6 @@ export function ProductFilterSidebar({
                     onClick={() => onCategoryChange?.(Number(category.id))}
                   >
                     <span className="text-sm">{category.label}</span>
-                    {category.count !== undefined && (
-                      <Badge variant="secondary" className="text-xs">
-                        {category.count}
-                      </Badge>
-                    )}
                   </div>
                 ))}
               </CardContent>
@@ -239,9 +232,6 @@ export function ProductFilterSidebar({
                       className="text-sm font-normal cursor-pointer flex-1"
                     >
                       {brand.label}
-                      {brand.count !== undefined && (
-                        <span className="text-muted-foreground ml-1">({brand.count})</span>
-                      )}
                     </Label>
                   </div>
                 ))}
