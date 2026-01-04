@@ -187,31 +187,31 @@ export function QuickViewModal({ productId, open, onClose }: QuickViewModalProps
                 )}
 
                 {/* Key Specs */}
-                {product.specifications && (
+                {product.technicalSpecs && (
                   <div className="border rounded-lg p-4 space-y-2">
                     <h4 className="font-semibold text-sm mb-3">Thông số nổi bật</h4>
-                    {product.specifications.screen && (
+                    {product.technicalSpecs.screenSize && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Màn hình:</span>
-                        <span className="font-medium">{product.specifications.screen}</span>
+                        <span className="font-medium">{product.technicalSpecs.screenSize}" {product.technicalSpecs.screenTechnology || ''}</span>
                       </div>
                     )}
-                    {product.specifications.cpu && (
+                    {product.technicalSpecs.cpuChipset && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">CPU:</span>
-                        <span className="font-medium">{product.specifications.cpu}</span>
+                        <span className="font-medium">{product.technicalSpecs.cpuChipset}</span>
                       </div>
                     )}
-                    {product.specifications.ram && (
+                    {product.ram && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">RAM:</span>
-                        <span className="font-medium">{product.specifications.ram}</span>
+                        <span className="font-medium">{product.ram}</span>
                       </div>
                     )}
-                    {product.specifications.battery && (
+                    {product.technicalSpecs.batteryCapacity && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Pin:</span>
-                        <span className="font-medium">{product.specifications.battery}</span>
+                        <span className="font-medium">{product.technicalSpecs.batteryCapacity}mAh</span>
                       </div>
                     )}
                   </div>

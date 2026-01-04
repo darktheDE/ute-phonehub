@@ -114,6 +114,16 @@ public class ProductServiceImpl implements IProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ProductDetailResponse getProductById(Long id) {
+        log.info("Getting product detail with ID: {}", id);
+        
+        Product product = findActiveProductById(id);
+        
+        return productMapper.toDetailResponse(product);
+    }
+
+    @Override
     public ProductDetailResponse updateProduct(Long id, UpdateProductRequest request, Long userId) {
         log.info("Updating product with ID: {}", id);
         

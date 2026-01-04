@@ -63,7 +63,7 @@ public class PublicOrderTrackingResponse {
     private String customerMessage;
     
     public static PublicOrderTrackingResponse fromEntity(Order order) {
-        return PublicOrderTrackingResponse. builder()
+        return PublicOrderTrackingResponse.builder()
                 .orderCode(order.getOrderCode())
                 .status(order.getStatus())
                 .statusDisplay(getStatusDisplayName(order.getStatus()))
@@ -72,12 +72,12 @@ public class PublicOrderTrackingResponse {
                 .maskedPhoneNumber(maskPhoneNumber(order.getPhoneNumber()))
                 .totalAmount(order.getTotalAmount())
                 .paymentMethod(order.getPaymentMethod())
-                .shippingUnit(order. getShippingUnit())
+                .shippingUnit(order.getShippingUnit())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .canCancel(order.getStatus() == OrderStatus.PENDING)
-                .availableActions(getAvailableActions(order. getStatus()))
-                .customerMessage(getCustomerMessage(order. getStatus()))
+                .availableActions(getAvailableActions(order.getStatus()))
+                .customerMessage(getCustomerMessage(order.getStatus()))
                 .build();
     }
     

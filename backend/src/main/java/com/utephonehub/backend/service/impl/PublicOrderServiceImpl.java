@@ -1,7 +1,7 @@
 
 package com.utephonehub.backend.service.impl;
 
-import com.utephonehub.backend.dto.request. order.TrackOrderRequest;
+import com.utephonehub.backend.dto.request.order.TrackOrderRequest;
 import com.utephonehub.backend.dto.response.order.PublicOrderTrackingResponse;
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.exception.BadRequestException;

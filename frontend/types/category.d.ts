@@ -5,8 +5,9 @@
 export interface Category {
   id: number;
   name: string;
+  description?: string | null;
   parentId: number | null;
-  parentName?: string;
+  parentName?: string | null;
   hasChildren?: boolean;
   childrenCount?: number;
   productCount?: number;

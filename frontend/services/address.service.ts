@@ -1,5 +1,5 @@
 import { Province, Ward, ApiVersion } from '@/types/address';
-import { api } from './api';
+import fetchAPI from '@/lib/api';
 
 const LOCATION_BASE_URL = '/locations';
 
@@ -8,7 +8,7 @@ const LOCATION_BASE_URL = '/locations';
  */
 export const listProvinces = async (): Promise<Province[]> => {
   try {
-    const response = await api.get<Province[]>(`${LOCATION_BASE_URL}/provinces`);
+    const response = await fetchAPI<Province[]>(`${LOCATION_BASE_URL}/provinces`);
     return response.data || [];
   } catch (error) {
     console.error('Lỗi khi lấy danh sách tỉnh:', error);
@@ -21,7 +21,7 @@ export const listProvinces = async (): Promise<Province[]> => {
  */
 export const getProvinceByCode = async (code: number): Promise<Province | null> => {
   try {
-    const response = await api.get<Province>(`${LOCATION_BASE_URL}/provinces/${code}`);
+    const response = await fetchAPI<Province>(`${LOCATION_BASE_URL}/provinces/${code}`);
     return response.data || null;
   } catch (error) {
     console.error('Lỗi khi lấy tỉnh:', error);
@@ -34,7 +34,7 @@ export const getProvinceByCode = async (code: number): Promise<Province | null> 
  */
 export const listWards = async (): Promise<Ward[]> => {
   try {
-    const response = await api.get<Ward[]>(`${LOCATION_BASE_URL}/wards`);
+    const response = await fetchAPI<Ward[]>(`${LOCATION_BASE_URL}/wards`);
     return response.data || [];
   } catch (error) {
     console.error('Lỗi khi lấy danh sách phường/xã:', error);
@@ -47,7 +47,7 @@ export const listWards = async (): Promise<Ward[]> => {
  */
 export const getWardByCode = async (code: number): Promise<Ward | null> => {
   try {
-    const response = await api.get<Ward>(`${LOCATION_BASE_URL}/wards/${code}`);
+    const response = await fetchAPI<Ward>(`${LOCATION_BASE_URL}/wards/${code}`);
     return response.data || null;
   } catch (error) {
     console.error('Lỗi khi lấy phường/xã:', error);
@@ -60,8 +60,10 @@ export const getWardByCode = async (code: number): Promise<Ward | null> => {
  */
 export const listAllDivisions = async (depth?: number): Promise<Province[]> => {
   try {
-    const params = depth ? { depth } : {};
-    const response = await api.get<Province[]>(`${LOCATION_BASE_URL}/divisions`, { params });
+    const url = depth 
+      ? `${LOCATION_BASE_URL}/divisions?depth=${depth}`
+      : `${LOCATION_BASE_URL}/divisions`;
+    const response = await fetchAPI<Province[]>(url);
     return response.data || [];
   } catch (error) {
     console.error('Lỗi khi lấy danh sách cấp hành chính:', error);

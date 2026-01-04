@@ -39,6 +39,7 @@ export interface Product {
   thumbnailUrl?: string;
   categoryId: number;
   brandId: number;
+  status?: boolean;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;

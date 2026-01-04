@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { compareProducts } from '@/services/product-view.service';
 import type { ProductComparisonResponse } from '@/types/product-view';
@@ -309,7 +309,7 @@ const ProductCard = ({
   );
 };
 
-export default function ProductComparePage() {
+function ProductCompareContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productIds = searchParams.get('ids')?.split(',').map(Number).filter(Boolean) || [];
@@ -354,7 +354,7 @@ export default function ProductComparePage() {
     };
 
     fetchComparisonData();
-  }, [searchParams]);
+  }, [searchParams, productIds]);
 
   const removeProduct = (productId: number) => {
     const newIds = productIds.filter(id => id !== productId);
@@ -518,5 +518,13 @@ export default function ProductComparePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProductComparePage() {
+  return (
+    <Suspense fallback={<ComparisonSkeleton count={2} />}>
+      <ProductCompareContent />
+    </Suspense>
   );
 }

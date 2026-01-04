@@ -11,6 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * CORS (Cross-Origin Resource Sharing) Configuration Cấu hình CORS toàn diện để

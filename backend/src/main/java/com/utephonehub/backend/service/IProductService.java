@@ -22,6 +22,13 @@ public interface IProductService {
     ProductDetailResponse createProduct(CreateProductRequest request, Long userId);
     
     /**
+     * Get product by ID (Admin)
+     * @param id Product ID
+     * @return Product detail response
+     */
+    ProductDetailResponse getProductById(Long id);
+    
+    /**
      * Update an existing product
      * @param id Product ID
      * @param request Product update request

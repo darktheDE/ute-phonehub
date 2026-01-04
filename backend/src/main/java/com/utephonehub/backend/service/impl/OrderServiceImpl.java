@@ -101,6 +101,13 @@ public class OrderServiceImpl implements IOrderService {
     @Override
     @Transactional
     @CacheEvict(value = "cart", key = "#userId")
+    public CreateOrderResponse createOrder(CreateOrderRequest request, Long userId) {
+        return createOrder(request, userId, null);
+    }
+    
+    @Override
+    @Transactional
+    @CacheEvict(value = "cart", key = "#userId")
     public CreateOrderResponse createOrder(CreateOrderRequest request, Long userId, HttpServletRequest servletRequest) {
         log.info("Creating order for user: {}", userId);
         
@@ -574,19 +581,16 @@ public class OrderServiceImpl implements IOrderService {
             return;
         }
         
+        // Note: Stock is managed at ProductTemplate level, not Product level
+        // If stock restoration is needed, it should be done at ProductTemplate level
         for (OrderItem item : orderItems) {
             Product product = item.getProduct();
             if (product != null) {
-                int oldStock = product.getStockQuantity();
-                int newStock = oldStock + item.getQuantity();
-                
-                product. setStockQuantity(newStock);
-                productRepository.save(product);
-                
-                log. info("Stock restored for product {}:  {} -> {} (+{})", 
-                        product.getId(), oldStock, newStock, item.getQuantity());
+                log.info("Order item restored for product: {} (quantity: {})", 
+                        product.getId(), item.getQuantity());
+                // TODO: Restore stock at ProductTemplate level if needed
             } else {
-                log.warn("Product not found for order item: {}", item. getId());
+                log.warn("Product not found for order item: {}", item.getId());
             }
         }
     }

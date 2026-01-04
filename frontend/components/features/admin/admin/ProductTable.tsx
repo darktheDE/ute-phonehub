@@ -54,10 +54,10 @@ import {
 interface Product {
   id: number;
   name: string;
-  price: number;
-  stockQuantity: number;
+  price?: number;
+  stockQuantity?: number;
   thumbnailUrl?: string;
-  status: boolean;
+  status?: boolean;
   categoryName?: string;
   brandName?: string;
 }
@@ -315,13 +315,13 @@ export function ProductTable({
                   <TableCell>{product.categoryName || '-'}</TableCell>
                   <TableCell>{product.brandName || '-'}</TableCell>
                   <TableCell className="font-semibold text-primary">
-                    {formatPrice(product.price)}
+                    {product.price !== undefined ? formatPrice(product.price) : '-'}
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={product.stockQuantity > 10 ? 'default' : product.stockQuantity > 0 ? 'secondary' : 'destructive'}
+                      variant={product.stockQuantity !== undefined && product.stockQuantity > 10 ? 'default' : product.stockQuantity !== undefined && product.stockQuantity > 0 ? 'secondary' : 'destructive'}
                     >
-                      {product.stockQuantity}
+                      {product.stockQuantity ?? '-'}
                     </Badge>
                   </TableCell>
                   <TableCell>

@@ -125,7 +125,7 @@ export interface TechnicalSpecs {
   additionalSpecs?: string;
 }
 
-export interface ProductDetailViewResponse {
+export interface ProductDetailViewResponse extends ProductViewResponse {
   id: number;
   name: string;
   description?: string;
