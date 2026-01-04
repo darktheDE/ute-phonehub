@@ -1,6 +1,7 @@
 package com.utephonehub.backend.service.impl;
 
 import com.utephonehub.backend.dto.request.order.CreateOrderRequest;
+
 import com.utephonehub.backend.dto.request.order.OrderItemRequest;
 import com.utephonehub.backend.dto.response.order.CreateOrderResponse;
 import com.utephonehub.backend.dto.response.order.OrderResponse;
@@ -40,6 +41,14 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java. util.stream.Collectors;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -361,4 +370,230 @@ public class OrderServiceImpl implements IOrderService {
         
         return uniqueCode;
     }
+    
+    
+    //Xem đơn hàng của chính mình
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getMyOrders(Long userId) {
+        log. info("Getting orders for user: {}", userId);
+        
+        User user = userRepository. findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        
+       
+        List<Order> orders = orderRepository.findByUserOrderByCreatedAtDesc(user);
+        
+        log.info("Found {} orders for user {}", orders.size(), userId);
+        
+        return orders.stream()
+                .map(orderMapper::toOrderResponse)
+                .collect(Collectors. toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getMyOrdersWithPagination(Long userId, Pageable pageable) {
+        log.info("Getting orders with pagination for user: {}, page: {}, size: {}", 
+                userId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        
+      
+        Page<Order> orderPage = orderRepository. findByUserOrderByCreatedAtDesc(user, pageable);
+        
+        log.info("Found {} orders for user {} in page {}", 
+                orderPage.getContent().size(), userId, pageable.getPageNumber());
+        
+        return orderPage. map(orderMapper:: toOrderResponse);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getMyOrdersByStatus(Long userId, OrderStatus status) {
+        log.info("Getting orders by status {} for user: {}", status, userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        
+        
+        List<Order> orders = orderRepository.findByUserAndStatusOrderByCreatedAtDesc(user, status);
+        
+        log.info("Found {} orders with status {} for user {}", orders.size(), status, userId);
+        
+        return orders.stream()
+                .map(orderMapper::toOrderResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public long getMyOrdersCount(Long userId) {
+        log.info("Counting orders for user:  {}", userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        
+        
+        long count = orderRepository. countByUser(user);
+        
+        log.info("User {} has {} orders", userId, count);
+        
+        return count;
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public OrderResponse getMyOrderDetail(Long orderId, Long userId) {
+        log.info("Getting order detail {} for user {}", orderId, userId);
+        
+        // Tái sử dụng method getOrderById đã có
+        return getOrderById(orderId, userId);
+    }
+    
+    
+    
+    // ========================================
+    // ✅ THÊM CHỨC NĂNG HỦY ĐƠN HÀNG
+    // ========================================
+    
+    @Override
+    @Transactional
+    public void cancelMyOrder(Long orderId, Long userId) {
+        log.info("User {} attempting to cancel order {}", userId, orderId);
+        
+        // 1. Tìm đơn hàng
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> {
+                    log. error("Order not found: {}", orderId);
+                    return new ResourceNotFoundException("Đơn hàng không tồn tại");
+                });
+        
+        // 2. Kiểm tra quyền sở hữu
+        if (! order.getUser().getId().equals(userId)) {
+            log.warn("User {} tried to cancel order {} owned by user {}", 
+                    userId, orderId, order.getUser().getId());
+            throw new ForbiddenException("Bạn không có quyền hủy đơn hàng này");
+        }
+        
+        // 3. Kiểm tra trạng thái có thể hủy
+        if (order.getStatus() != OrderStatus.PENDING) {
+            log.warn("Cannot cancel order {} with status {}", orderId, order.getStatus());
+            throw new BadRequestException(
+                String.format("Không thể hủy đơn hàng ở trạng thái '%s'. Chỉ có thể hủy đơn hàng ở trạng thái 'Chờ xác nhận'.", 
+                    getStatusDisplayName(order.getStatus()))
+            );
+        }
+        
+        // 4. Cập nhật trạng thái sang CANCELLED
+        OrderStatus oldStatus = order.getStatus();
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setUpdatedAt(LocalDateTime.now());
+        
+        // 5. Lưu đơn hàng
+        orderRepository.save(order);
+        
+        // 6. Ghi log lịch sử trạng thái (nếu có bảng order_status_history)
+        try {
+            saveOrderStatusHistory(order, OrderStatus.CANCELLED, "Khách hàng tự hủy đơn");
+        } catch (Exception e) {
+            log.warn("Failed to save order status history for order {}:  {}", orderId, e.getMessage());
+        }
+        
+        // 7. Hoàn lại tồn kho nếu đã trừ (đối với đơn COD/Bank Transfer)
+        if (order.getPaymentMethod() != PaymentMethod.VNPAY) {
+            try {
+                restoreProductStock(order);
+                log.info("Product stock restored for cancelled order: {}", order.getOrderCode());
+            } catch (Exception e) {
+                log.error("Failed to restore stock for cancelled order {}: {}", orderId, e.getMessage());
+                // Không throw exception để không làm thất bại việc hủy đơn
+            }
+        }
+        
+        log.info("Order {} successfully cancelled by user {}. Status changed from {} to {}", 
+                orderId, userId, oldStatus, OrderStatus.CANCELLED);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canCancelOrder(Long orderId, Long userId) {
+        log.info("Checking if user {} can cancel order {}", userId, orderId);
+        
+        try {
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại"));
+            
+            // Kiểm tra quyền sở hữu
+            if (!order.getUser().getId().equals(userId)) {
+                return false;
+            }
+            
+            // Chỉ có thể hủy khi ở trạng thái PENDING
+            boolean canCancel = order.getStatus() == OrderStatus.PENDING;
+            
+            log.info("Order {} can be cancelled:  {}", orderId, canCancel);
+            return canCancel;
+            
+        } catch (Exception e) {
+            log.error("Error checking cancel permission for order {}: {}", orderId, e.getMessage());
+            return false;
+        }
+    }
+    
+    // ========================================
+    // ✅ HELPER METHODS
+    // ========================================
+    
+    private String getStatusDisplayName(OrderStatus status) {
+        return switch (status) {
+            case PENDING -> "Chờ xác nhận";
+            case CONFIRMED -> "Đã xác nhận"; 
+            case SHIPPING -> "Đang giao hàng";
+            case DELIVERED -> "Đã giao hàng";
+            case CANCELLED -> "Đã hủy";
+        };
+    }
+    
+    private void saveOrderStatusHistory(Order order, OrderStatus newStatus, String note) {
+        // Tạo record trong order_status_history 
+        
+        log.info("Order {} status changed to {} with note: {}", order.getOrderCode(), newStatus, note);
+    }
+    
+    private void restoreProductStock(Order order) {
+        log.info("Restoring stock for cancelled order: {}", order.getOrderCode());
+        
+        
+        List<OrderItem> orderItems = order.getItems();
+        
+        if (orderItems == null || orderItems.isEmpty()) {
+            log.info("No order items found for order: {}", order.getOrderCode());
+            return;
+        }
+        
+        for (OrderItem item : orderItems) {
+            Product product = item.getProduct();
+            if (product != null) {
+                int oldStock = product.getStockQuantity();
+                int newStock = oldStock + item.getQuantity();
+                
+                product. setStockQuantity(newStock);
+                productRepository.save(product);
+                
+                log. info("Stock restored for product {}:  {} -> {} (+{})", 
+                        product.getId(), oldStock, newStock, item.getQuantity());
+            } else {
+                log.warn("Product not found for order item: {}", item. getId());
+            }
+        }
+    }
+
+    
+    
+    
+    
+   
 }
