@@ -18,6 +18,8 @@ cd ute-phonehub
 
 ```bash
 cd backend
+docker compose down -v
+docker volume rm backend_postgres_data #(nếu cần reset database)
 docker compose up -d --build
 ```
 

@@ -2,11 +2,11 @@
  * MainHeader component - Main navigation header with logo, search, and user actions
  */
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   Smartphone,
   ShoppingCart,
@@ -14,9 +14,10 @@ import {
   User,
   Heart,
   Menu,
-} from 'lucide-react';
-import { MobileMenu } from './MobileMenu';
-import { ROUTES } from '@/lib/constants';
+} from "lucide-react";
+import { MobileMenu } from "./MobileMenu";
+import { ROUTES } from "@/lib/constants";
+import { useCartStore } from "@/store";
 
 interface MainHeaderProps {
   user: any | null;
@@ -25,13 +26,17 @@ interface MainHeaderProps {
 
 export function MainHeader({ user, onLogout }: MainHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { totalItems } = useCartStore();
 
   return (
     <header className="bg-primary sticky top-0 z-50 shadow-md">
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
-          <Link href={ROUTES.HOME} className="flex items-center gap-2 flex-shrink-0">
+          <Link
+            href={ROUTES.HOME}
+            className="flex items-center gap-2 flex-shrink-0"
+          >
             <Smartphone className="w-8 h-8 text-primary-foreground" />
             <span className="text-xl font-bold text-primary-foreground hidden sm:block">
               UTE Phone Hub
@@ -65,14 +70,16 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             </Link>
 
             <Link
-              href="#"
+              href="/cart"
               className="flex items-center gap-1 text-primary-foreground hover:opacity-80 transition-opacity relative"
             >
               <ShoppingCart className="w-5 h-5" />
               <span className="hidden lg:inline text-sm">Giỏ hàng</span>
-              <span className="absolute -top-1 -right-1 lg:-top-1 lg:right-8 bg-destructive text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                0
-              </span>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 lg:-top-1 lg:right-8 bg-destructive text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-semibold">
+                  {totalItems > 99 ? '99+' : totalItems}
+                </span>
+              )}
             </Link>
 
             {user ? (
@@ -124,11 +131,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
         </div>
 
         {/* Mobile Menu */}
-        <MobileMenu
-          isOpen={mobileMenuOpen}
-          user={user}
-          onLogout={onLogout}
-        />
+        <MobileMenu isOpen={mobileMenuOpen} user={user} onLogout={onLogout} />
       </div>
     </header>
   );

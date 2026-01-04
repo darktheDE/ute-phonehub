@@ -19,12 +19,14 @@ export function CustomerAddresses() {
       </div>
 
       <div className="grid gap-4">
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-start justify-between">
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="font-medium text-foreground">Nguyễn Văn A</span>
-                <span className="px-2 py-0.5 rounded text-xs bg-primary text-primary-foreground">Mặc định</span>
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+                  Mặc định
+                </span>
               </div>
               <p className="text-muted-foreground text-sm">0912345678</p>
               <p className="text-muted-foreground text-sm mt-1">
@@ -32,10 +34,16 @@ export function CustomerAddresses() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button className="p-2 hover:bg-secondary rounded-lg text-blue-600">
+              <button
+                className="rounded-lg p-2 text-blue-600 hover:bg-secondary"
+                aria-label="Chỉnh sửa địa chỉ"
+              >
                 <Edit className="w-4 h-4" />
               </button>
-              <button className="p-2 hover:bg-secondary rounded-lg text-red-600">
+              <button
+                className="rounded-lg p-2 text-red-600 hover:bg-secondary"
+                aria-label="Xóa địa chỉ"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>

@@ -14,6 +14,7 @@ import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import jakarta.servlet.http.HttpServletRequest;
 
 public interface IOrderService {
     
@@ -29,6 +30,7 @@ public interface IOrderService {
      * Tạo đơn hàng mới
      * @param request Thông tin đơn hàng
      * @param userId ID của user tạo đơn
+     * @param servletRequest Request context (để lấy IP cho VNPay)
      * @return Thông tin đơn hàng đã tạo
      */
     CreateOrderResponse createOrder(CreateOrderRequest request, Long userId);
@@ -47,4 +49,5 @@ public interface IOrderService {
 
 	void cancelMyOrder(Long orderId, Long userId);
 	
+  CreateOrderResponse createOrder(CreateOrderRequest request, Long userId, HttpServletRequest servletRequest);
 }

@@ -5,18 +5,10 @@
 'use client';
 
 import { useAuth } from '@/hooks';
-import { TopBar, MainHeader } from '@/components/features/layout';
-
-// Re-export TopBar for use in index.ts
-export { TopBar };
+import { MainHeader } from '@/components/features/layout';
 
 export function Header() {
   const { user, logout } = useAuth();
 
-  return (
-    <>
-      <TopBar />
-      <MainHeader user={user} onLogout={logout} />
-    </>
-  );
+  return <MainHeader user={user} onLogout={logout} />;
 }

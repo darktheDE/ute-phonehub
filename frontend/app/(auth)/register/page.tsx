@@ -11,24 +11,18 @@ import { ROUTES } from '@/lib/constants';
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center p-4 py-8">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
-      </div>
-
-      <div className="w-full max-w-md relative">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-secondary p-4">
+      <div className="relative w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-6">
+        <div className="mb-6 text-center">
           <Link href={ROUTES.HOME} className="inline-flex items-center gap-2">
             <Smartphone className="w-10 h-10 text-primary" />
-            <span className="text-2xl font-bold text-white">UTE Phone Hub</span>
+            <span className="text-2xl font-bold">UTE Phone Hub</span>
           </Link>
         </div>
 
         {/* Card */}
-        <div className="bg-card rounded-2xl shadow-2xl border border-border overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
           {/* Header */}
           <div className="bg-primary px-6 py-6 text-center">
             <h1 className="text-2xl font-bold text-primary-foreground">Tạo tài khoản</h1>

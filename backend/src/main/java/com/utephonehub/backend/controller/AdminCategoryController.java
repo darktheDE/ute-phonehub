@@ -31,7 +31,7 @@ public class AdminCategoryController {
     private final ICategoryService categoryService;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "[ADMIN] Tạo danh mục mới",
             description = "Tạo một danh mục mới. " +
@@ -75,7 +75,7 @@ public class AdminCategoryController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "[ADMIN] Cập nhật danh mục",
             description = "Cập nhật thông tin của danh mục đã tồn tại. " +
@@ -121,7 +121,7 @@ public class AdminCategoryController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "[ADMIN] Xóa danh mục",
             description = "Xóa danh mục theo ID. " +

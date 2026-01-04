@@ -5,10 +5,15 @@ import com.utephonehub.backend.dto.request.order.CreateOrderRequest;
 import com.utephonehub.backend.dto.request.order.OrderItemRequest;
 import com.utephonehub.backend.dto.response.order.CreateOrderResponse;
 import com.utephonehub.backend.dto.response.order.OrderResponse;
+import com.utephonehub.backend.dto.request.payment.CreatePaymentRequest;
+import com.utephonehub.backend.dto.response.payment.VNPayPaymentResponse;
+import com.utephonehub.backend.entity.Cart;
+import com.utephonehub.backend.entity.CartItem;
 import com.utephonehub.backend.entity.Order;
 import com.utephonehub.backend.entity.OrderItem;
 import com.utephonehub.backend.entity.Payment;
 import com.utephonehub.backend.entity.Product;
+import com.utephonehub.backend.entity.ProductTemplate;
 import com.utephonehub.backend.entity.Promotion;
 import com.utephonehub.backend.entity.User;
 import com.utephonehub.backend.enums.OrderStatus;
@@ -18,6 +23,8 @@ import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ForbiddenException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.mapper.OrderMapper;
+import com.utephonehub.backend.repository.CartItemRepository;
+import com.utephonehub.backend.repository.CartRepository;
 import com.utephonehub.backend.repository.OrderItemRepository;
 import com.utephonehub.backend.repository.OrderRepository;
 import com.utephonehub.backend.repository.PaymentRepository;
@@ -25,8 +32,12 @@ import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.repository.PromotionRepository;
 import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.service.IOrderService;
+import com.utephonehub.backend.service.IVNPayService;
+import com.utephonehub.backend.util.SecurityUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,9 +53,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -59,6 +70,10 @@ public class OrderServiceImpl implements IOrderService {
     private final PromotionRepository promotionRepository;
     private final PaymentRepository paymentRepository;
     private final OrderMapper orderMapper;
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
+    private final IVNPayService vnPayService;
+    private final SecurityUtils securityUtils;
     
     @Override
     @Transactional(readOnly = true)
@@ -80,12 +95,13 @@ public class OrderServiceImpl implements IOrderService {
         
         // 3. Convert sang DTO bằng Mapper
         log.info("Get order {} by user {}", orderId, userId);
-        return orderMapper.toOrderResponse(order); // ✅ Dùng mapper
+        return orderMapper.toOrderResponse(order); 
     }
     
     @Override
     @Transactional
-    public CreateOrderResponse createOrder(CreateOrderRequest request, Long userId) {
+    @CacheEvict(value = "cart", key = "#userId")
+    public CreateOrderResponse createOrder(CreateOrderRequest request, Long userId, HttpServletRequest servletRequest) {
         log.info("Creating order for user: {}", userId);
         
         // 1. Validate user tồn tại
@@ -114,29 +130,64 @@ public class OrderServiceImpl implements IOrderService {
         for (OrderItemRequest item : request.getItems()) {
             Product product = productMap.get(item.getProductId());
             
+            // Calculate total stock from templates
+            int totalStock = product.getTemplates().stream()
+                    .filter(ProductTemplate::getStatus)
+                    .mapToInt(ProductTemplate::getStockQuantity)
+                    .sum();
+            
             // Kiểm tra tồn kho
-            if (product.getStockQuantity() < item.getQuantity()) {
+            if (totalStock < item.getQuantity()) {
                 throw new BadRequestException(
                     String.format("Sản phẩm '%s' chỉ còn %d sản phẩm trong kho", 
-                        product.getName(), product.getStockQuantity())
+                        product.getName(), totalStock)
                 );
             }
             
+            // Get cheapest price from active templates
+            BigDecimal price = product.getTemplates().stream()
+                    .filter(ProductTemplate::getStatus)
+                    .map(ProductTemplate::getPrice)
+                    .min(Comparator.naturalOrder())
+                    .orElse(BigDecimal.ZERO);
+            
             // Tính tổng tiền
-            BigDecimal itemTotal = product.getPrice().multiply(new BigDecimal(item.getQuantity()));
+            BigDecimal itemTotal = price.multiply(new BigDecimal(item.getQuantity()));
             totalAmount = totalAmount.add(itemTotal);
             
             validatedItems.add(item);
         }
         
-        // 5. Áp dụng promotion nếu có
+        // 5. Áp dụng promotion nếu có (2 loại: DISCOUNT/VOUCHER và FREESHIP)
         Promotion promotion = null;
+        Promotion freeshippingPromotion = null;
+        
+        // Xử lý promotion (DISCOUNT/VOUCHER)
         if (request.getPromotionId() != null) {
-            promotion = promotionRepository.findById(String.valueOf(request.getPromotionId()))
-                    .orElseThrow(() -> new ResourceNotFoundException("Promotion không tồn tại"));
-            
-            // TODO: Validate promotion còn hiệu lực, đủ điều kiện áp dụng
-            // Tính discount và trừ vào totalAmount (sẽ implement sau)
+            try {
+                promotion = promotionRepository.findById(String.valueOf(request.getPromotionId()))
+                        .orElseThrow(() -> new ResourceNotFoundException("Promotion không tồn tại"));
+                
+                // TODO: Validate promotion còn hiệu lực, đủ điều kiện áp dụng
+                // Tính discount và trừ vào totalAmount (sẽ implement sau)
+            } catch (ResourceNotFoundException e) {
+                // Nếu promotion không hợp lệ, bỏ qua và tiếp tục
+                log.warn("Invalid promotionId: {}, error: {}", request.getPromotionId(), e.getMessage());
+                promotion = null;
+            }
+        }
+        
+        // Xử lý freeship promotion (FREESHIP)
+        if (request.getFreeshippingPromotionId() != null) {
+            try {
+                freeshippingPromotion = promotionRepository.findById(String.valueOf(request.getFreeshippingPromotionId()))
+                        .orElseThrow(() -> new ResourceNotFoundException("Freeship promotion không tồn tại"));
+                
+                // TODO: Validate freeship promotion còn hiệu lực
+            } catch (ResourceNotFoundException e) {
+                log.warn("Invalid freeshippingPromotionId: {}, error: {}", request.getFreeshippingPromotionId(), e.getMessage());
+                freeshippingPromotion = null;
+            }
         }
         
         // 6. Tạo orderCode unique
@@ -162,6 +213,7 @@ public class OrderServiceImpl implements IOrderService {
                 .paymentMethod(request.getPaymentMethod())
                 .totalAmount(totalAmount)
                 .promotion(promotion)
+                .freeshippingPromotion(freeshippingPromotion)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -174,11 +226,18 @@ public class OrderServiceImpl implements IOrderService {
         for (OrderItemRequest itemReq : validatedItems) {
             Product product = productMap.get(itemReq.getProductId());
             
+            // Get cheapest price from active templates
+            BigDecimal price = product.getTemplates().stream()
+                    .filter(ProductTemplate::getStatus)
+                    .map(ProductTemplate::getPrice)
+                    .min(Comparator.naturalOrder())
+                    .orElse(BigDecimal.ZERO);
+            
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(product)
                     .quantity(itemReq.getQuantity())
-                    .price(product.getPrice())
+                    .price(price)
                     .createdAt(LocalDateTime.now())
                     .build();
             
@@ -189,8 +248,27 @@ public class OrderServiceImpl implements IOrderService {
             // 10.1. Giảm tồn kho ngay (thanh toán trực tiếp)
             for (OrderItemRequest itemReq : validatedItems) {
                 Product product = productMap.get(itemReq.getProductId());
-                product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
-                productRepository.save(product);
+                int remainingQuantity = itemReq.getQuantity();
+                
+                // Deduct stock from available templates sequentially
+                for (ProductTemplate template : product.getTemplates()) {
+                    if (!template.getStatus() || template.getStockQuantity() <= 0 || remainingQuantity <= 0) {
+                        continue;
+                    }
+                    
+                    int deductAmount = Math.min(template.getStockQuantity(), remainingQuantity);
+                    template.setStockQuantity(template.getStockQuantity() - deductAmount);
+                    remainingQuantity -= deductAmount;
+                }
+                
+                // Validate all quantity was deducted
+                if (remainingQuantity > 0) {
+                    throw new BadRequestException(
+                        "Không đủ tồn kho để hoàn tất đơn hàng cho sản phẩm: " + product.getName()
+                    );
+                }
+                
+                productRepository.save(product);  // Cascade saves templates
             }
             
             // 10.2. Tạo Payment record với status SUCCESS (đã thanh toán)
@@ -207,8 +285,34 @@ public class OrderServiceImpl implements IOrderService {
             log.info("Created payment record for COD/Bank Transfer: orderId={}, amount={}", 
                     order.getId(), totalAmount);
         }
+
+        // 11.1. AF2 – After successfully creating the order, automatically remove
+        // the corresponding CartItems in the cart (do not delete the entire cart).
+        try {
+            List<Long> orderedProductIds = validatedItems.stream()
+                    .map(OrderItemRequest::getProductId)
+                    .toList();
+
+            cartRepository.findByUserIdWithItems(userId).ifPresent(cart -> {
+                List<CartItem> toRemove = cart.getItemsInternal().stream()
+                        .filter(item -> orderedProductIds.contains(item.getProduct().getId()))
+                        .toList();
+
+                if (!toRemove.isEmpty()) {
+                    log.info("Clearing {} ordered items from cart for user {} after order {}",
+                            toRemove.size(), userId, orderCode);
+
+                    toRemove.forEach(cart::removeItem);
+                    cartItemRepository.deleteAll(toRemove);
+                    cartRepository.save(cart);
+                }
+            });
+        } catch (Exception ex) {
+            // Don't let cart clearing errors fail the order
+            log.error("Failed to clear ordered items from cart for user {} after order {}", userId, orderCode, ex);
+        }
         
-        // 11. Tạo response
+        // 12. Create response
         CreateOrderResponse response = CreateOrderResponse.builder()
                 .orderId(order.getId())
                 .orderCode(orderCode)
@@ -218,11 +322,27 @@ public class OrderServiceImpl implements IOrderService {
                 .createdAt(order.getCreatedAt())
                 .build();
         
-        // 12. Nếu thanh toán VNPay, thêm message hướng dẫn
+        // 13. If payment method is VNPay, add instruction message
         if (request.getPaymentMethod() == PaymentMethod.VNPAY) {
-            response.setMessage("Đơn hàng đã tạo. Vui lòng thanh toán qua VNPay.");
-            // TODO: Tích hợp VNPay payment URL (sẽ làm sau)
-            response.setPaymentUrl(null);
+            response.setMessage("Đơn hàng đã tạo. Đang chuyển hướng thanh toán VNPay...");
+            
+            // Tích hợp VNPay payment URL
+            try {
+                CreatePaymentRequest paymentRequest = CreatePaymentRequest.builder()
+                        .orderId(order.getId())
+                        .amount(totalAmount.longValue())
+                        .orderInfo("Thanh toan don hang " + orderCode)
+                        .locale("vn")
+                        .build();
+                
+                String ipAddress = securityUtils.getClientIp(servletRequest);
+                VNPayPaymentResponse paymentResponse = vnPayService.createPaymentUrl(paymentRequest, ipAddress);
+                response.setPaymentUrl(paymentResponse.getPaymentUrl());
+                log.info("Generated VNPay URL for order {}: {}", orderCode, paymentResponse.getPaymentUrl());
+            } catch (Exception e) {
+                log.error("Failed to generate VNPay URL for order {}", orderCode, e);
+                response.setMessage("Đơn hàng đã tạo nhưng lỗi tạo link thanh toán. Vui lòng thử lại trong lịch sử đơn hàng.");
+            }
         } else {
             response.setMessage("Đơn hàng đã được tạo thành công!");
         }

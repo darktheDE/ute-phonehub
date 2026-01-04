@@ -28,7 +28,7 @@ public class CreateOrderRequest {
     private String recipientName;
     
     @NotBlank(message = "Số điện thoại không được để trống")
-    @Pattern(regexp = "^0\\d{9,10}$", message = "Số điện thoại không hợp lệ")
+    @Pattern(regexp = "^0\\d{9,10}$", message = "Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)")
     private String phoneNumber;
     
     @NotBlank(message = "Địa chỉ giao hàng không được để trống")
@@ -43,7 +43,9 @@ public class CreateOrderRequest {
     @NotNull(message = "Phương thức thanh toán không được để trống")
     private PaymentMethod paymentMethod;
     
-    private Long promotionId; // ID của promotion (Optional)
+    private String promotionId; // UUID của promotion (DISCOUNT/VOUCHER)
+    
+    private String freeshippingPromotionId; // UUID của freeship promotion (Optional)
     
     @NotEmpty(message = "Đơn hàng phải có ít nhất 1 sản phẩm")
     @Valid

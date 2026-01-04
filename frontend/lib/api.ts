@@ -8,45 +8,95 @@ import type {
   ForgotPasswordRequest,
   VerifyOtpRequest,
   Product,
+  BrandResponse,
+  CreateBrandRequest,
+  UpdateBrandRequest,
+  CategoryResponse,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  CreateProductRequest,
   ProductResponse,
   Order,
   OrderResponse,
   RecentOrderResponse,
   DashboardOverviewResponse,
   TopProductResponse,
-} from '@/types';
+  PromotionResponse,
+  CreatePromotionRequest,
+  UpdatePromotionRequest,
+  AvailablePromotionParams,
+  CalculateDiscountParams,
+  PromotionTemplateResponse,
+  CreateTemplateRequest,
+  UpdateTemplateRequest,
+  CreateOrderRequest,
+  CreateOrderResponse,
+  PaymentMethod,
+  PaymentResponse,
+  VNPayPaymentResponse,
+  CreatePaymentRequest,
+  PaymentHistoryResponse,
+  DashboardOverview,
+  RevenueChartData,
+  OrderStatusChartData,
+  UserRegistrationChartData,
+  TopProduct,
+  RecentOrder,
+  LowStockProduct,
+  DashboardPeriod,
+  RegistrationPeriod,
+} from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
+// Cart & Promotion API response types
+import type {
+  CartResponseData,
+  CartItemResponse,
+  Promotion,
+} from "@/types/api-cart";
+
+// Ensure API_BASE_URL is always absolute
+const getApiBaseUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) return envUrl;
+
+  // Default to backend server URL
+  return "http://localhost:8081/api/v1";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Helper function to get auth token from localStorage
 export const getAuthToken = (): string | null => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('accessToken');
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("accessToken");
   }
   return null;
 };
 
 // Helper function to set auth tokens
-export const setAuthTokens = (accessToken: string, refreshToken: string): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+export const setAuthTokens = (
+  accessToken: string,
+  refreshToken: string
+): void => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
   }
 };
 
 // Helper function to clear auth tokens
 export const clearAuthTokens = (): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
   }
 };
 
 // Helper function to get stored user
 export const getStoredUser = (): User | null => {
-  if (typeof window !== 'undefined') {
-    const user = localStorage.getItem('user');
+  if (typeof window !== "undefined") {
+    const user = localStorage.getItem("user");
     return user ? JSON.parse(user) : null;
   }
   return null;
@@ -54,8 +104,8 @@ export const getStoredUser = (): User | null => {
 
 // Helper function to set stored user
 export const setStoredUser = (user: User): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('user', JSON.stringify(user));
+  if (typeof window !== "undefined") {
+    localStorage.setItem("user", JSON.stringify(user));
   }
 };
 
@@ -64,17 +114,29 @@ async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Disallow absolute URLs to avoid malformed URLs like
+  // `${API_BASE_URL}https://external.com/endpoint`
+  if (/^https?:\/\//i.test(endpoint) || endpoint.startsWith("//")) {
+    throw new Error(
+      `fetchAPI endpoint must be a relative path starting with '/', received: '${endpoint}'`
+    );
+  }
+
+  // Ensure endpoint starts with / for proper URL construction
+  const normalizedEndpoint = endpoint.startsWith("/")
+    ? endpoint
+    : `/${endpoint}`;
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
   const token = getAuthToken();
 
   const headers = new Headers(options.headers);
 
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   try {
@@ -85,9 +147,9 @@ async function fetchAPI<T>(
 
     // Try to parse JSON, but handle cases where response might not be JSON
     let data: any;
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType?.includes('application/json');
-    
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType?.includes("application/json");
+
     if (isJson) {
       try {
         data = await response.json();
@@ -106,56 +168,70 @@ async function fetchAPI<T>(
     }
 
     if (!response.ok) {
-      const errorMessage = data?.message || data?.error || `HTTP error! status: ${response.status}`;
+      const errorMessage =
+        data?.message ||
+        data?.error ||
+        (typeof data === "string" ? data : null) ||
+        `API request failed with status ${response.status} ${response.statusText}`;
+
+      // Log error for debugging
+      console.error(`API Error [${response.status}]:`, errorMessage);
+
       throw new Error(errorMessage);
     }
 
     return data;
   } catch (error) {
-    console.error('API Error:', error);
+    console.error("API Error:", error);
     throw error;
   }
 }
 
 // Auth API endpoints
 export const authAPI = {
-  login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
-    return fetchAPI<LoginResponse>('/auth/login', {
-      method: 'POST',
+  login: async (
+    credentials: LoginRequest
+  ): Promise<ApiResponse<LoginResponse>> => {
+    return fetchAPI<LoginResponse>("/auth/login", {
+      method: "POST",
       body: JSON.stringify(credentials),
     });
   },
 
   register: async (data: RegisterRequest): Promise<ApiResponse<User>> => {
-    return fetchAPI<User>('/auth/register', {
-      method: 'POST',
+    return fetchAPI<User>("/auth/register", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
 
-  forgotPassword: async (data: ForgotPasswordRequest): Promise<ApiResponse<null>> => {
-    return fetchAPI<null>('/auth/forgot-password/request', {
-      method: 'POST',
+  forgotPassword: async (
+    data: ForgotPasswordRequest
+  ): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>("/auth/forgot-password/request", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   verifyOtp: async (data: VerifyOtpRequest): Promise<ApiResponse<null>> => {
-    return fetchAPI<null>('/auth/forgot-password/verify', {
-      method: 'POST',
+    return fetchAPI<null>("/auth/forgot-password/verify", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   logout: async (): Promise<ApiResponse<null>> => {
-    return fetchAPI<null>('/auth/logout', {
-      method: 'POST',
+    return fetchAPI<null>("/auth/logout", {
+      method: "POST",
     });
   },
 
-  refresh: async (refreshToken: string): Promise<ApiResponse<LoginResponse>> => {
-    return fetchAPI<LoginResponse>('/auth/refresh', {
-      method: 'POST',
+  refresh: async (
+    refreshToken: string
+  ): Promise<ApiResponse<LoginResponse>> => {
+    return fetchAPI<LoginResponse>("/auth/refresh", {
+      method: "POST",
       body: JSON.stringify({ refreshToken }),
     });
   },
@@ -164,14 +240,14 @@ export const authAPI = {
 // User API endpoints
 export const userAPI = {
   getMe: async (): Promise<ApiResponse<User>> => {
-    return fetchAPI<User>('/user/me', {
-      method: 'GET',
+    return fetchAPI<User>("/user/me", {
+      method: "GET",
     });
   },
 
   updateProfile: async (data: Partial<User>): Promise<ApiResponse<User>> => {
-    return fetchAPI<User>('/user/profile', {
-      method: 'POST',
+    return fetchAPI<User>("/user/profile", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
@@ -181,8 +257,8 @@ export const userAPI = {
     newPassword: string;
     confirmPassword: string;
   }): Promise<ApiResponse<null>> => {
-    return fetchAPI<null>('/user/password', {
-      method: 'POST',
+    return fetchAPI<null>("/user/password", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
@@ -190,8 +266,8 @@ export const userAPI = {
 
 // Health check
 export const healthCheck = async (): Promise<ApiResponse<any>> => {
-  return fetchAPI<any>('/health', {
-    method: 'GET',
+  return fetchAPI<any>("/health", {
+    method: "GET",
   });
 };
 
@@ -199,21 +275,155 @@ export const healthCheck = async (): Promise<ApiResponse<any>> => {
 // Note: Public product endpoints don't exist yet, so using mock data in components
 // Only keeping admin endpoints that exist
 export const productAPI = {
+  // Get product by ID (Admin)
+  // GET /api/v1/admin/products/{id}
+  getById: async (id: number): Promise<ApiResponse<Product>> => {
+    return fetchAPI<Product>(`/admin/products/${id}`, {
+      method: "GET",
+    });
+  },
+
+  // Update product (Admin)
+  // PUT /api/v1/admin/products/{id}
+  update: async (
+    id: number,
+    data: Partial<Product>
+  ): Promise<ApiResponse<Product>> => {
+    return fetchAPI<Product>(`/admin/products/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Create product (Admin)
+  // POST /api/v1/admin/products
+  create: async (data: CreateProductRequest): Promise<ApiResponse<Product>> => {
+    return fetchAPI<Product>("/admin/products", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Get all products including deleted (Admin only)
+  // GET /api/v1/admin/products?page={page}&size={size}
+  getAllProducts: async (params?: {
+    page?: number;
+    size?: number;
+    keyword?: string;
+    categoryId?: number;
+    brandId?: number;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page !== undefined)
+      queryParams.append("page", String(params.page));
+    if (params?.size !== undefined)
+      queryParams.append("size", String(params.size));
+    if (params?.keyword) queryParams.append("keyword", params.keyword);
+    if (params?.categoryId !== undefined)
+      queryParams.append("categoryId", String(params.categoryId));
+    if (params?.brandId !== undefined)
+      queryParams.append("brandId", String(params.brandId));
+
+    return fetchAPI<any>(
+      `/admin/products${
+        queryParams.toString() ? `?${queryParams.toString()}` : ""
+      }`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
   // Get low stock products (for admin dashboard)
   // This endpoint exists: GET /api/v1/admin/dashboard/low-stock-products
-  getLowStockProducts: async (threshold: number = 20): Promise<ApiResponse<any[]>> => {
-    return fetchAPI<any[]>(`/admin/dashboard/low-stock-products?threshold=${threshold}`, {
-      method: 'GET',
+  getLowStockProducts: async (
+    threshold: number = 20
+  ): Promise<ApiResponse<any[]>> => {
+    return fetchAPI<any[]>(
+      `/admin/dashboard/low-stock-products?threshold=${threshold}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  // Manage product images (replace all) (Admin)
+  // POST /api/v1/admin/products/{id}/images
+  uploadImage: async (
+    productId: number,
+    requestBody: {
+      images: Array<{
+        imageUrl: string;
+        altText?: string;
+        imageOrder: number;
+        isPrimary: boolean;
+      }>;
+    }
+  ): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/products/${productId}/images`, {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+    });
+  },
+
+  // Delete a specific product image (Admin)
+  // DELETE /api/v1/admin/products/{id}/images/{imageId}
+  deleteImage: async (
+    productId: number,
+    imageId: number
+  ): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/products/${productId}/images/${imageId}`, {
+      method: "DELETE",
+    });
+  },
+};
+
+// Category API endpoints
+export const categoryAPI = {
+  // Get all categories (or by parentId)
+  // GET /api/v1/categories?parentId={parentId}
+  getCategories: async (parentId?: string): Promise<ApiResponse<any[]>> => {
+    const queryParams = parentId ? `?parentId=${parentId}` : "";
+    return fetchAPI<any[]>(`/categories${queryParams}`, {
+      method: "GET",
+    });
+  },
+
+  // Get all root categories (parentId = null)
+  getRootCategories: async (): Promise<ApiResponse<any[]>> => {
+    return fetchAPI<any[]>("/categories", {
+      method: "GET",
+    });
+  },
+};
+
+// Brand API endpoints
+export const brandAPI = {
+  // Get all brands
+  // GET /api/v1/brands
+  getAll: async (): Promise<ApiResponse<any[]>> => {
+    return fetchAPI<any[]>("/brands", {
+      method: "GET",
     });
   },
 };
 
 // Order API endpoints
 export const orderAPI = {
+  // Create new order
+  createOrder: async (
+    orderData: CreateOrderRequest
+  ): Promise<ApiResponse<CreateOrderResponse>> => {
+    return fetchAPI<CreateOrderResponse>("/orders", {
+      method: "POST",
+      body: JSON.stringify(orderData),
+    });
+  },
+
   // Get order by ID
   getById: async (orderId: number): Promise<ApiResponse<OrderResponse>> => {
     return fetchAPI<OrderResponse>(`/orders/${orderId}`, {
-      method: 'GET',
+      method: "GET",
     });
   },
 
@@ -223,10 +433,15 @@ export const orderAPI = {
 
   // Get recent orders (for admin dashboard)
   // This endpoint exists: GET /api/v1/admin/dashboard/recent-orders?limit={limit}
-  getRecentOrders: async (limit: number = 10): Promise<ApiResponse<RecentOrderResponse[]>> => {
-    return fetchAPI<RecentOrderResponse[]>(`/admin/dashboard/recent-orders?limit=${limit}`, {
-      method: 'GET',
-    });
+  getRecentOrders: async (
+    limit: number = 10
+  ): Promise<ApiResponse<RecentOrderResponse[]>> => {
+    return fetchAPI<RecentOrderResponse[]>(
+      `/admin/dashboard/recent-orders?limit=${limit}`,
+      {
+        method: "GET",
+      }
+    );
   },
 };
 
@@ -241,40 +456,646 @@ export const adminAPI = {
     search?: string;
   }): Promise<ApiResponse<any>> => {
     const queryParams = new URLSearchParams();
-    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
-    if (params?.size !== undefined) queryParams.append('size', params.size.toString());
-    if (params?.role) queryParams.append('role', params.role);
-    if (params?.status) queryParams.append('status', params.status);
-    if (params?.search) queryParams.append('search', params.search);
-    
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
+    if (params?.role) queryParams.append("role", params.role);
+    if (params?.status) queryParams.append("status", params.status);
+    if (params?.search) queryParams.append("search", params.search);
+
     const query = queryParams.toString();
-    return fetchAPI<any>(`/admin/users${query ? `?${query}` : ''}`, {
-      method: 'GET',
+    return fetchAPI<any>(`/admin/users${query ? `?${query}` : ""}`, {
+      method: "GET",
     });
   },
 
   // Dashboard
-  getDashboardOverview: async (): Promise<ApiResponse<DashboardOverviewResponse>> => {
-    return fetchAPI<DashboardOverviewResponse>('/admin/dashboard/overview', {
-      method: 'GET',
+  getDashboardOverview: async (): Promise<
+    ApiResponse<DashboardOverviewResponse>
+  > => {
+    return fetchAPI<DashboardOverviewResponse>("/admin/dashboard/overview", {
+      method: "GET",
+    });
+  },
+
+  // Categories
+  // Public list endpoint
+  // GET /api/v1/categories?parentId=
+  getAllCategories: async (
+    parentId?: number | null
+  ): Promise<ApiResponse<CategoryResponse[]>> => {
+    const query =
+      parentId === undefined || parentId === null
+        ? ""
+        : `?parentId=${encodeURIComponent(String(parentId))}`;
+
+    return fetchAPI<CategoryResponse[]>(`/categories${query}`, {
+      method: "GET",
+    });
+  },
+
+  // Admin CRUD endpoints
+  // POST /api/v1/admin/categories
+  createCategory: async (
+    data: CreateCategoryRequest
+  ): Promise<ApiResponse<CategoryResponse>> => {
+    return fetchAPI<CategoryResponse>("/admin/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // PUT /api/v1/admin/categories/{id}
+  updateCategory: async (
+    id: number,
+    data: UpdateCategoryRequest
+  ): Promise<ApiResponse<CategoryResponse>> => {
+    return fetchAPI<CategoryResponse>(`/admin/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // DELETE /api/v1/admin/categories/{id}
+  deleteCategory: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/categories/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Brands
+  // Public list endpoint
+  getAllBrands: async (): Promise<ApiResponse<BrandResponse[]>> => {
+    return fetchAPI<BrandResponse[]>("/brands", {
+      method: "GET",
+    });
+  },
+
+  // Admin CRUD endpoints
+  // POST /api/v1/admin/brands
+  createBrand: async (
+    data: CreateBrandRequest
+  ): Promise<ApiResponse<BrandResponse>> => {
+    return fetchAPI<BrandResponse>("/admin/brands", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // PUT /api/v1/admin/brands/{id}
+  updateBrand: async (
+    id: number,
+    data: UpdateBrandRequest
+  ): Promise<ApiResponse<BrandResponse>> => {
+    return fetchAPI<BrandResponse>(`/admin/brands/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // DELETE /api/v1/admin/brands/{id}
+  deleteBrand: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/brands/${id}`, {
+      method: "DELETE",
     });
   },
 
   // Products (admin management)
-  // Note: Using low-stock-products endpoint as fallback since ProductController doesn't exist
-  // TODO: Backend needs to add ProductController with GET /api/v1/admin/products endpoint
   getAllProducts: async (params?: {
+    keyword?: string;
     page?: number;
     size?: number;
     categoryId?: number;
     brandId?: number;
-    search?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sortBy?: string;
+    sortDirection?: "asc" | "desc";
   }): Promise<ApiResponse<any>> => {
-    // For now, use low-stock-products endpoint as a workaround
-    // This will return products but only low stock ones
-    return fetchAPI<any>('/admin/dashboard/low-stock-products?threshold=1000', {
-      method: 'GET',
+    const queryParams = new URLSearchParams();
+    if (params?.keyword) queryParams.append("keyword", params.keyword);
+    if (params?.categoryId !== undefined)
+      queryParams.append("categoryId", String(params.categoryId));
+    if (params?.brandId !== undefined)
+      queryParams.append("brandId", String(params.brandId));
+    if (params?.minPrice !== undefined)
+      queryParams.append("minPrice", String(params.minPrice));
+    if (params?.maxPrice !== undefined)
+      queryParams.append("maxPrice", String(params.maxPrice));
+    if (params?.sortBy) queryParams.append("sortBy", params.sortBy);
+    if (params?.sortDirection)
+      queryParams.append("sortDirection", params.sortDirection);
+    if (params?.page !== undefined)
+      queryParams.append("page", String(params.page));
+    if (params?.size !== undefined)
+      queryParams.append("size", String(params.size));
+
+    const query = queryParams.toString();
+    return fetchAPI<any>(`/admin/products${query ? `?${query}` : ""}`, {
+      method: "GET",
+    });
+  },
+
+  // Products (admin)
+  // DELETE /api/v1/admin/products/{id}
+  deleteProduct: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/admin/products/${id}`, {
+      method: "DELETE",
     });
   },
 };
 
+// Promotion API
+export const promotionAPI = {
+  // Customer: Get ALL active promotions (for /promotions page)
+  // GET /api/v1/promotions
+  getAllActivePromotions: async (): Promise<
+    ApiResponse<PromotionResponse[]>
+  > => {
+    return fetchAPI<PromotionResponse[]>("/promotions", {
+      method: "GET",
+    });
+  },
+
+  // Customer: Get available promotions based on order total
+  getAvailablePromotions: async (
+    orderTotal: number
+  ): Promise<ApiResponse<PromotionResponse[]>> => {
+    return fetchAPI<PromotionResponse[]>(
+      `/promotions/available?orderTotal=${orderTotal}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  // Customer: Calculate discount for a specific promotion
+  calculateDiscount: async (
+    promotionId: string,
+    orderTotal: number
+  ): Promise<ApiResponse<number>> => {
+    return fetchAPI<number>(
+      `/promotions/calculate?promotionId=${promotionId}&orderTotal=${orderTotal}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  // Admin: Get all promotions
+  getAllPromotions: async (): Promise<ApiResponse<PromotionResponse[]>> => {
+    return fetchAPI<PromotionResponse[]>("/admin/promotions", {
+      method: "GET",
+    });
+  },
+
+  // Admin: Get promotion details
+  getPromotionDetails: async (
+    id: string
+  ): Promise<ApiResponse<PromotionResponse>> => {
+    return fetchAPI<PromotionResponse>(`/admin/promotions/${id}`, {
+      method: "GET",
+    });
+  },
+
+  // Admin: Create new promotion
+  createPromotion: async (
+    data: CreatePromotionRequest
+  ): Promise<ApiResponse<PromotionResponse>> => {
+    return fetchAPI<PromotionResponse>("/admin/promotions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Admin: Update promotion
+  updatePromotion: async (
+    id: string,
+    data: UpdatePromotionRequest
+  ): Promise<ApiResponse<PromotionResponse>> => {
+    return fetchAPI<PromotionResponse>(`/admin/promotions/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Admin: Disable promotion
+  disablePromotion: async (id: string): Promise<ApiResponse<void>> => {
+    return fetchAPI<void>(`/admin/promotions/${id}/disable`, {
+      method: "PATCH",
+    });
+  },
+};
+
+// Promotion Template API (Admin only)
+export const templateAPI = {
+  // Get all templates
+  getAllTemplates: async (): Promise<
+    ApiResponse<PromotionTemplateResponse[]>
+  > => {
+    return fetchAPI<PromotionTemplateResponse[]>("/admin/promotion-templates", {
+      method: "GET",
+    });
+  },
+
+  // Get template by ID
+  getTemplateById: async (
+    id: string
+  ): Promise<ApiResponse<PromotionTemplateResponse>> => {
+    return fetchAPI<PromotionTemplateResponse>(
+      `/admin/promotion-templates/${id}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  // Create template
+  createTemplate: async (
+    data: CreateTemplateRequest
+  ): Promise<ApiResponse<PromotionTemplateResponse>> => {
+    return fetchAPI<PromotionTemplateResponse>("/admin/promotion-templates", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update template
+  updateTemplate: async (
+    id: string,
+    data: UpdateTemplateRequest
+  ): Promise<ApiResponse<PromotionTemplateResponse>> => {
+    return fetchAPI<PromotionTemplateResponse>(
+      `/admin/promotion-templates/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    );
+  },
+
+  // Delete template
+  deleteTemplate: async (id: string): Promise<ApiResponse<void>> => {
+    return fetchAPI<void>(`/admin/promotion-templates/${id}`, {
+      method: "DELETE",
+    });
+  },
+};
+
+// Cart API
+export const cartAPI = {
+  /**
+   * GET /api/v1/cart/me
+   */
+  getCurrentCart: async (): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>("/cart/me", { method: "GET" });
+  },
+
+  /**
+   * POST /api/v1/cart/items
+   */
+  addToCart: async (data: {
+    productId: number;
+    quantity: number;
+    color?: string;
+    storage?: string;
+  }): Promise<ApiResponse<CartItemResponse>> => {
+    return fetchAPI<CartItemResponse>("/cart/items", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * PUT /api/v1/cart/items/{itemId}
+   */
+  updateCartItem: async (
+    itemId: number,
+    data: number | { quantity?: number }
+  ): Promise<ApiResponse<CartItemResponse>> => {
+    const payload = typeof data === "number" ? { quantity: data } : data;
+    return fetchAPI<CartItemResponse>(`/cart/items/${itemId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/cart/items/{itemId}
+   */
+  removeCartItem: async (itemId: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/cart/items/${itemId}`, {
+      method: "DELETE",
+    });
+  },
+
+  /**
+   * Remove multiple cart items by ids.
+   * Backend does not expose a bulk delete, so perform parallel deletes and aggregate.
+   */
+  removeCartItems: async (itemIds: number[]): Promise<ApiResponse<null[]>> => {
+    try {
+      const results = await Promise.all(
+        itemIds.map((id) =>
+          fetchAPI<null>(`/cart/items/${id}`, { method: "DELETE" })
+        )
+      );
+      return {
+        success: true,
+        data: results.map((r) => r.data ?? null),
+      } as ApiResponse<null[]>;
+    } catch (error) {
+      console.error("Failed to remove multiple cart items:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * DELETE /api/v1/cart/clear
+   */
+  clearCart: async (): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>("/cart/clear", { method: "DELETE" });
+  },
+
+  /**
+   * POST /api/v1/cart/merge
+   */
+  mergeGuestCart: async (data: {
+    guestCartItems?: { productId: number; quantity: number }[];
+    guestCartId?: string;
+  }): Promise<ApiResponse<CartResponseData>> => {
+    return fetchAPI<CartResponseData>("/cart/merge", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Guest Cart API (Redis-backed)
+export const guestCartAPI = {
+  /**
+   * POST /api/v1/guest-cart
+   */
+  createGuestCart: async (): Promise<ApiResponse<{ guestCartId: string }>> => {
+    return fetchAPI<{ guestCartId: string }>("/guest-cart", { method: "POST" });
+  },
+
+  /**
+   * PUT /api/v1/guest-cart/{guestCartId}
+   */
+  replaceGuestCart: async (
+    guestCartId: string,
+    data: { items: { productId: number; quantity: number }[] }
+  ): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/guest-cart/{guestCartId}
+   */
+  deleteGuestCart: async (guestCartId: string): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/guest-cart/${encodeURIComponent(guestCartId)}`, {
+      method: "DELETE",
+    });
+  },
+};
+
+// Payment API
+export const paymentAPI = {
+  // GET /api/v1/payments/history?page={page}&size={size}
+  getPaymentHistory: async (
+    page: number = 0,
+    size: number = 10
+  ): Promise<ApiResponse<PaymentHistoryResponse>> => {
+    return fetchAPI<PaymentHistoryResponse>(
+      `/payments/history?page=${page}&size=${size}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  // GET /api/v1/payments/vnpay/callback?{params}
+  // Used by the frontend return page to verify/process VNPay result
+  handleVNPayCallback: async (
+    params: Record<string, string>
+  ): Promise<ApiResponse<PaymentResponse>> => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchAPI<PaymentResponse>(`/payments/vnpay/callback?${qs}`, {
+      method: "GET",
+    });
+  },
+
+  // POST /api/v1/payments/vnpay/create
+  createVNPayPayment: async (
+    data: CreatePaymentRequest
+  ): Promise<ApiResponse<VNPayPaymentResponse>> => {
+    return fetchAPI<VNPayPaymentResponse>("/payments/vnpay/create", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// ==================== DASHBOARD API ====================
+// Module M10.2 - View Dashboard
+// Comprehensive Dashboard endpoints for admin analytics
+export const dashboardAPI = {
+  /**
+   * GET /api/v1/admin/dashboard/overview
+   * Lấy 4 chỉ số tổng quan: Tổng doanh thu, Tổng đơn hàng, Tổng sản phẩm, Tổng người dùng
+   */
+  getOverview: async (): Promise<ApiResponse<DashboardOverview>> => {
+    return fetchAPI<DashboardOverview>("/admin/dashboard/overview", {
+      method: "GET",
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/revenue-chart?period=THIRTY_DAYS
+   * Lấy dữ liệu biểu đồ doanh thu theo khoảng thời gian
+   * @param period - 'SEVEN_DAYS' | 'THIRTY_DAYS' | 'THREE_MONTHS'
+   */
+  getRevenueChart: async (
+    period: DashboardPeriod = "THIRTY_DAYS"
+  ): Promise<ApiResponse<RevenueChartData>> => {
+    return fetchAPI<RevenueChartData>(
+      `/admin/dashboard/revenue-chart?period=${period}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/order-status-chart
+   * Lấy dữ liệu biểu đồ tròn về trạng thái đơn hàng
+   * Trả về labels, values, percentages, totalOrders
+   */
+  getOrderStatusChart: async (): Promise<ApiResponse<OrderStatusChartData>> => {
+    return fetchAPI<OrderStatusChartData>(
+      "/admin/dashboard/order-status-chart",
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/user-registration-chart?period=MONTHLY
+   * Lấy dữ liệu biểu đồ cột về người dùng đăng ký mới
+   * @param period - 'WEEKLY' | 'MONTHLY'
+   */
+  getUserRegistrationChart: async (
+    period: RegistrationPeriod = "WEEKLY"
+  ): Promise<ApiResponse<UserRegistrationChartData>> => {
+    return fetchAPI<UserRegistrationChartData>(
+      `/admin/dashboard/user-registration-chart?period=${period}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/top-products?limit=5
+   * Lấy danh sách Top sản phẩm bán chạy nhất
+   * @param limit - Số lượng sản phẩm cần lấy (mặc định: 5)
+   */
+  getTopProducts: async (
+    limit: number = 5
+  ): Promise<ApiResponse<TopProduct[]>> => {
+    return fetchAPI<TopProduct[]>(
+      `/admin/dashboard/top-products?limit=${limit}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/recent-orders?limit=10
+   * Lấy danh sách đơn hàng gần đây
+   * @param limit - Số lượng đơn hàng cần lấy (mặc định: 10)
+   */
+  getRecentOrders: async (
+    limit: number = 10
+  ): Promise<ApiResponse<RecentOrder[]>> => {
+    return fetchAPI<RecentOrder[]>(
+      `/admin/dashboard/recent-orders?limit=${limit}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+
+  /**
+   * GET /api/v1/admin/dashboard/low-stock-products?threshold=10
+   * Lấy danh sách sản phẩm sắp hết hàng
+   * @param threshold - Ngưỡng tồn kho cảnh báo (mặc định: 10)
+   */
+  getLowStockProducts: async (
+    threshold: number = 10
+  ): Promise<ApiResponse<LowStockProduct[]>> => {
+    return fetchAPI<LowStockProduct[]>(
+      `/admin/dashboard/low-stock-products?threshold=${threshold}`,
+      {
+        method: "GET",
+      }
+    );
+  },
+};
+
+// ============================================
+// ADMIN - USER MANAGEMENT API
+// ============================================
+export const adminUserAPI = {
+  /**
+   * GET /api/v1/admin/users
+   * Lấy danh sách users với pagination và filters
+   */
+  getUsers: async (params: {
+    page?: number;
+    size?: number;
+    role?: string;
+    status?: string;
+  }): Promise<ApiResponse<import("@/types").UsersPageResponse>> => {
+    const queryParams = new URLSearchParams();
+    if (params.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params.size !== undefined)
+      queryParams.append("size", params.size.toString());
+    if (params.role && params.role !== "ALL")
+      queryParams.append("role", params.role);
+    if (params.status && params.status !== "ALL")
+      queryParams.append("status", params.status);
+
+    const response = await fetchAPI<any>(
+      `/admin/users?${queryParams.toString()}`
+    );
+
+    // Transform backend response to match frontend type
+    if (response.success && response.data) {
+      return {
+        ...response,
+        data: {
+          users: response.data.content || [],
+          totalPages: response.data.totalPages || 0,
+          totalElements: response.data.totalElements || 0,
+          currentPage: response.data.number || 0,
+          pageSize: response.data.size || 10,
+        },
+      };
+    }
+
+    return response;
+  },
+
+  /**
+   * PUT /api/v1/admin/users/{userId}/lock
+   * Khóa tài khoản user
+   */
+  lockUser: async (userId: number): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>(`/admin/users/${userId}/lock`, {
+      method: "PUT",
+    });
+  },
+
+  /**
+   * PUT /api/v1/admin/users/{userId}/unlock
+   * Mở khóa tài khoản user
+   */
+  unlockUser: async (userId: number): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>(`/admin/users/${userId}/unlock`, {
+      method: "PUT",
+    });
+  },
+
+  /**
+   * POST /api/v1/admin/users
+   * Tạo tài khoản mới
+   */
+  createUser: async (
+    data: import("@/types").CreateUserRequest
+  ): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>("/admin/users", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * GET /api/v1/admin/users/{userId}
+   * Lấy chi tiết user
+   */
+  getUserById: async (userId: number): Promise<ApiResponse<User>> => {
+    return fetchAPI<User>(`/admin/users/${userId}`);
+  },
+};
+
+// Export default fetchAPI for use in services
+export default fetchAPI;

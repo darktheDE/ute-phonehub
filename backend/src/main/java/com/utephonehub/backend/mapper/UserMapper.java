@@ -16,8 +16,8 @@ public interface UserMapper {
      * @param user User entity
      * @return UserResponse DTO
      */
-    @Mapping(target = "role", source = "role")
-    @Mapping(target = "status", source = "status")
+    @Mapping(target = "role", expression = "java(user.getRole() != null ? user.getRole().name() : null)")
+    @Mapping(target = "status", expression = "java(user.getStatus() != null ? user.getStatus().name() : null)")
     @Mapping(target = "gender", source = "gender")
     @Mapping(target = "dateOfBirth", source = "dateOfBirth")
     UserResponse toResponse(User user);

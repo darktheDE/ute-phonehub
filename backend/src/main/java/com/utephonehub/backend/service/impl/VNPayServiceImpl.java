@@ -3,7 +3,6 @@ package com.utephonehub.backend.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.utephonehub.backend.config.VNPayConfig;
 import com.utephonehub.backend.dto.request.payment.CreatePaymentRequest;
-import com.utephonehub.backend.dto.response.payment.PaymentHistoryResponse;
 import com.utephonehub.backend.dto.response.payment.PaymentResponse;
 import com.utephonehub.backend.dto.response.payment.VNPayPaymentResponse;
 import com.utephonehub.backend.entity.Order;
@@ -11,21 +10,19 @@ import com.utephonehub.backend.entity.Payment;
 import com.utephonehub.backend.entity.PaymentCallbackLog;
 import com.utephonehub.backend.enums.EWalletProvider;
 import com.utephonehub.backend.enums.OrderStatus;
-import com.utephonehub.backend.enums.PaymentMethod;
 import com.utephonehub.backend.enums.PaymentStatus;
 import com.utephonehub.backend.exception.BadRequestException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
+import com.utephonehub.backend.mapper.PaymentMapper;
 import com.utephonehub.backend.repository.OrderRepository;
-import com.utephonehub.backend.repository.PaymentRepository;
 import com.utephonehub.backend.repository.PaymentCallbackLogRepository;
-import com.utephonehub.backend.service.IPaymentService;
+import com.utephonehub.backend.repository.PaymentRepository;
+import com.utephonehub.backend.repository.ProductRepository;
+import com.utephonehub.backend.service.IVNPayService;
 import com.utephonehub.backend.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,23 +30,27 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TimeZone;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class VNPayService implements IPaymentService {
+public class VNPayServiceImpl implements IVNPayService {
     
     private final VNPayConfig vnPayConfig;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentCallbackLogRepository callbackLogRepository;
+    private final ProductRepository productRepository;
+    private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Override
     @Transactional
-    public VNPayPaymentResponse createPayment(CreatePaymentRequest request, HttpServletRequest servletRequest) {
+    public VNPayPaymentResponse createPaymentUrl(CreatePaymentRequest request, String ipAddress) {
         log.info("Creating VNPay payment for order: {}", request.getOrderId());
         
         // 1. Validate order exists
@@ -66,6 +67,13 @@ public class VNPayService implements IPaymentService {
         long expectedAmount = order.getTotalAmount().longValue();
         if (amountInVND != expectedAmount) {
             throw new BadRequestException("Payment amount does not match order total");
+        }
+        
+        // 3.1. Check if PENDING payment already exists for this order (prevent duplicates)
+        Payment existingPayment = paymentRepository.findByOrderId(order.getId()).orElse(null);
+        if (existingPayment != null && existingPayment.getStatus() == PaymentStatus.PENDING) {
+            log.info("PENDING payment already exists for order: {}. Skipping duplicate creation.", order.getOrderCode());
+            // Note: We still generate a new URL because the old one may have expired
         }
         
         try {
@@ -90,7 +98,7 @@ public class VNPayService implements IPaymentService {
             vnpParams.put("vnp_Locale", locale);
             
             vnpParams.put("vnp_ReturnUrl", vnPayConfig.getReturnUrl());
-            vnpParams.put("vnp_IpAddr", getIpAddress(servletRequest));
+            vnpParams.put("vnp_IpAddr", ipAddress);
             
             // 5. Set create date and expire date (Vietnam time GMT+7)
             Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
@@ -117,7 +125,28 @@ public class VNPayService implements IPaymentService {
             log.info("Secure Hash: {}", vnpSecureHash);
             log.info("========================");
             
-            // 8. Final payment URL
+            // 8. Create or reuse Payment record with PENDING status
+            Payment payment;
+            if (existingPayment != null && existingPayment.getStatus() == PaymentStatus.PENDING) {
+                // Reuse existing PENDING payment (don't create duplicate)
+                payment = existingPayment;
+                log.info("Reusing existing PENDING payment for order: {}", order.getOrderCode());
+            } else {
+                // Create new Payment record
+                payment = Payment.builder()
+                        .order(order)
+                        .provider(EWalletProvider.VNPAY)
+                        .transactionId(null)  // Will be updated in callback
+                        .amount(order.getTotalAmount())
+                        .status(PaymentStatus.PENDING)
+                        .note("Waiting for VNPay payment confirmation")
+                        .reconciled(false)
+                        .build();
+                paymentRepository.save(payment);
+                log.info("Created Payment record with PENDING status for order: {}", order.getOrderCode());
+            }
+            
+            // 9. Final payment URL
             String paymentUrl = vnPayConfig.getVnpayUrl() + "?" + queryUrl + "&vnp_SecureHash=" + vnpSecureHash;
             
             log.info("VNPay payment URL created successfully for order: {}", order.getOrderCode());
@@ -136,7 +165,7 @@ public class VNPayService implements IPaymentService {
     
     @Override
     @Transactional
-    public PaymentResponse handlePaymentCallback(HttpServletRequest request) {
+    public PaymentResponse handleCallback(HttpServletRequest request) {
         log.info("Handling VNPay payment callback");
         
         // 1. Get all parameters from VNPay
@@ -189,12 +218,69 @@ public class VNPayService implements IPaymentService {
             throw new BadRequestException("Invalid payment signature");
         }
         
-        // 8. Update payment and order status based on VNPay response
+        // 8. CHỈ XỬ LÝ NÊU ĐƠN HÀNG CHƯA ĐƯỢC CONFIRMED (Tránh trừ tồn kho 2 lần)
+        if (order.getStatus() == OrderStatus.CONFIRMED) {
+            log.info("Order {} already confirmed. Skipping payment processing to avoid duplicate stock deduction.", order.getOrderCode());
+            // Chỉ cập nhật payment record nếu chưa có transaction ID
+            if (payment.getTransactionId() == null || payment.getTransactionId().isEmpty()) {
+                payment.setTransactionId(vnpTransactionNo);
+                paymentRepository.save(payment);
+            }
+            return paymentMapper.toPaymentResponse(payment);
+        }
+        
+        // 8.1. Update payment and order status based on VNPay response
         if ("00".equals(vnpResponseCode) && "00".equals(vnpTransactionStatus)) {
             // Payment successful
             payment.setStatus(PaymentStatus.SUCCESS);
-            order.setStatus(OrderStatus.CONFIRMED);
-            log.info("Payment successful for order: {}", order.getOrderCode());
+            
+            // 8.2. Validate stock availability before confirming
+            // Stock is at ProductTemplate level, calculate total available stock per product
+            boolean allStockAvailable = true;
+            for (var orderItem : order.getItems()) {
+                var product = orderItem.getProduct();
+                int totalAvailableStock = product.getTemplates().stream()
+                        .filter(t -> t.getStatus() != null && t.getStatus())
+                        .mapToInt(t -> t.getStockQuantity() != null ? t.getStockQuantity() : 0)
+                        .sum();
+                if (totalAvailableStock < orderItem.getQuantity()) {
+                    allStockAvailable = false;
+                    break;
+                }
+            }
+            
+            if (allStockAvailable) {
+                order.setStatus(OrderStatus.CONFIRMED);
+                // Reduce stock from templates sequentially (same pattern as OrderServiceImpl)
+                for (var orderItem : order.getItems()) {
+                    var product = orderItem.getProduct();
+                    int remainingQuantity = orderItem.getQuantity();
+                    
+                    // Deduct stock from available templates sequentially
+                    for (var template : product.getTemplates()) {
+                        if (template.getStatus() == null || !template.getStatus() 
+                                || template.getStockQuantity() == null || template.getStockQuantity() <= 0 
+                                || remainingQuantity <= 0) {
+                            continue;
+                        }
+                        
+                        int deductAmount = Math.min(template.getStockQuantity(), remainingQuantity);
+                        int oldStock = template.getStockQuantity();
+                        template.setStockQuantity(oldStock - deductAmount);
+                        remainingQuantity -= deductAmount;
+                        log.info("Reduced stock for product {} template {}: {} -> {}", 
+                            product.getId(), template.getSku(), oldStock, template.getStockQuantity());
+                    }
+                    
+                    productRepository.save(product); // Cascade saves templates
+                }
+                log.info("Payment successful and stock reduced for order: {}", order.getOrderCode());
+            } else {
+                // Handle out of stock scenario: Cancel order but keep payment success (for refund)
+                order.setStatus(OrderStatus.CANCELLED);
+                payment.setNote("Payment successful but out of stock. Refund required.");
+                log.warn("Order {} paid but out of stock. Cancelled for refund.", order.getOrderCode());
+            }
         } else {
             // Payment failed
             payment.setStatus(PaymentStatus.FAILED);
@@ -205,7 +291,7 @@ public class VNPayService implements IPaymentService {
         paymentRepository.save(payment);
         orderRepository.save(order);
         
-        // 8.1. LƯU CALLBACK LOG SAU KHI PAYMENT ĐÃ CÓ ID (Audit trail)
+        // 9. LƯU CALLBACK LOG SAU KHI PAYMENT ĐÃ CÓ ID (Audit trail)
         try {
             PaymentCallbackLog callbackLog = PaymentCallbackLog.builder()
                     .payment(payment)
@@ -223,49 +309,26 @@ public class VNPayService implements IPaymentService {
             // Không throw exception để không ảnh hưởng flow chính
         }
         
-        // 9. Return payment response
-        return PaymentResponse.builder()
-                .id(payment.getId())
-                .orderId(order.getId())
-                .provider(payment.getProvider() != null ? payment.getProvider().name() : null)
-                .transactionId(payment.getTransactionId())
-                .amount(payment.getAmount().longValue())
-                .status(payment.getStatus().name())
-                .createdAt(payment.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .build();
+        // 10. Return payment response
+        return paymentMapper.toPaymentResponse(payment);
     }
     
+    /**
+     * Get payment status without processing (for return URL)
+     * This method only queries existing payment status without triggering any business logic
+     */
     @Override
-    public PaymentHistoryResponse getCustomerPaymentHistory(Long userId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Payment> paymentPage = paymentRepository.findByUserId(userId, pageable);
+    @Transactional(readOnly = true)
+    public PaymentResponse getPaymentStatus(String orderCode) {
+        log.info("Getting payment status for order: {}", orderCode);
         
-        List<PaymentResponse> payments = paymentPage.getContent().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with code: " + orderCode));
         
-        return PaymentHistoryResponse.builder()
-                .payments(payments)
-                .currentPage(paymentPage.getNumber())
-                .pageSize(paymentPage.getSize())
-                .totalElements(paymentPage.getTotalElements())
-                .totalPages(paymentPage.getTotalPages())
-                .hasNext(paymentPage.hasNext())
-                .hasPrevious(paymentPage.hasPrevious())
-                .build();
-    }
-    
-    private PaymentResponse mapToResponse(Payment payment) {
-        return PaymentResponse.builder()
-                .id(payment.getId())
-                .orderId(payment.getOrder().getId())
-                .paymentMethod(payment.getOrder().getPaymentMethod().name())
-                .provider(payment.getProvider() != null ? payment.getProvider().name() : null)
-                .transactionId(payment.getTransactionId())
-                .amount(payment.getAmount().longValue())
-                .status(payment.getStatus().name())
-                .createdAt(payment.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .build();
+        Payment payment = paymentRepository.findByOrderId(order.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found for order: " + orderCode));
+        
+        return paymentMapper.toPaymentResponse(payment);
     }
     
     private String getIpAddress(HttpServletRequest request) {

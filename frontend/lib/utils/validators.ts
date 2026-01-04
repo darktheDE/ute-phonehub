@@ -43,6 +43,15 @@ export const validatePassword = (password: string): ValidationResult => {
 };
 
 /**
+ * Check if a URL is a remote image (http/https)
+ */
+export const isRemoteImageUrl = (value: unknown): boolean => {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  return /^(https?:)?\.\/\//i.test(trimmed);
+};
+
+/**
  * Validate username format
  */
 export const validateUsername = (username: string): ValidationResult => {
@@ -69,9 +78,11 @@ export const validatePhoneNumber = (phone: string): ValidationResult => {
     return { isValid: false, error: 'Số điện thoại là bắt buộc' };
   }
   
-  const phoneRegex = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
+  // Support Vietnamese phone numbers: 10-11 digits starting with 0
+  // Covers both mobile (10 digits) and landline (10-11 digits)
+  const phoneRegex = /^0\d{9,10}$/;
   if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-    return { isValid: false, error: 'Số điện thoại không hợp lệ' };
+    return { isValid: false, error: 'Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)' };
   }
   
   return { isValid: true };

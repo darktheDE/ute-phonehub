@@ -231,14 +231,29 @@ public class OrderController {
         };
     }
     
-    private String getStatusDescription(OrderStatus status) {
-        return switch (status) {
-            case PENDING -> "Đơn hàng đang chờ xác nhận từ cửa hàng.  Bạn có thể hủy đơn hàng trong trạng thái này.";
-            case CONFIRMED -> "Đơn hàng đã được xác nhận và đang chuẩn bị giao hàng.";
-            case SHIPPING -> "Đơn hàng đang được giao đến địa chỉ của bạn.";
-            case DELIVERED -> "Đơn hàng đã được giao thành công.";
-            case CANCELLED -> "Đơn hàng đã bị hủy. ";
-        };
+    /**
+     * POST /api/v1/orders
+     * Tạo đơn hàng mới
+     */
+    @PostMapping
+    @Operation(
+        summary = "Tạo đơn hàng mới",
+        description = "Tạo đơn hàng với danh sách sản phẩm. Hỗ trợ COD, VNPay, Bank Transfer."
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<CreateOrderResponse>> createOrder(
+            @Valid @RequestBody CreateOrderRequest request,
+            HttpServletRequest httpRequest) {
+        
+        // Lấy userId từ JWT token
+        Long userId = securityUtils.getCurrentUserId(httpRequest);
+        
+        // Gọi service tạo đơn hàng
+        CreateOrderResponse response = orderService.createOrder(request, userId, httpRequest);
+        
+        // Trả về response với status 201 Created
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.created("Tạo đơn hàng thành công", response));
     }
 
 }
