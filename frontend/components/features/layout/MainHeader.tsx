@@ -12,7 +12,7 @@ import {
   ShoppingCart,
   Search,
   User,
-  Heart,
+  Bot,
   Menu,
 } from "lucide-react";
 import { MobileMenu } from "./MobileMenu";
@@ -62,11 +62,11 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             </button>
 
             <Link
-              href="#"
+              href="/chatbot-assistant-demo"
               className="hidden sm:flex items-center gap-1 text-primary-foreground hover:opacity-80 transition-opacity"
             >
-              <Heart className="w-5 h-5" />
-              <span className="hidden lg:inline text-sm">Yêu thích</span>
+              <Bot className="w-5 h-5" />
+              <span className="hidden lg:inline text-sm">Chatbot</span>
             </Link>
 
             <Link
