@@ -33,6 +33,10 @@ import java.util.List;
  * - Trước: ~80 queries, 500ms response time
  * - Sau: ~5 queries, 50ms response time
  * - Batch load ratings, reviews, sold counts trong 1 query
+ * Không yêu cầu authentication (public access)
+ * 
+ * @author UTE Phone Hub Team
+ * @version 1.0
  */
 @RestController
 @RequestMapping("/api/v1/products")
@@ -61,6 +65,11 @@ public class ProductViewController {
  * - Batch load ratings/reviews/sold counts
  * - Response time: ~50ms cho 20 sản phẩm
  */
+    // ========== SEARCH & FILTER ENDPOINTS ==========
+
+    /**
+     * Tìm kiếm và lọc sản phẩm với nhiều tiêu chí
+     */
 @GetMapping("/search")
 @Operation(
         summary = "Tìm kiếm sản phẩm theo từ khóa",
@@ -183,6 +192,8 @@ public ResponseEntity<ApiResponse<ProductDetailViewResponse>> getProductDetail(
         return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết sản phẩm thành công", result));
 }
 
+    // ========== CATEGORY & RELATED ENDPOINTS ==========
+
 /**
  * GET /api/v1/products/category/{categoryId}
  * Lấy danh sách sản phẩm theo danh mục
@@ -231,6 +242,8 @@ public ResponseEntity<ApiResponse<CategoryProductsResponse>> getProductsByCatego
         
         return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm theo danh mục thành công", result));
 }
+
+    // ========== COMPARISON & RECOMMENDATIONS ==========
 
 /**
  * POST /api/v1/products/compare

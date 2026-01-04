@@ -3,8 +3,10 @@ package com.utephonehub.backend.service.impl;
 import com.utephonehub.backend.dto.request.PromotionRequest;
 import com.utephonehub.backend.dto.response.PromotionResponse;
 import com.utephonehub.backend.entity.Promotion;
+import com.utephonehub.backend.entity.PromotionTarget;
 import com.utephonehub.backend.entity.PromotionTemplate;
 import com.utephonehub.backend.enums.EPromotionStatus;
+import com.utephonehub.backend.enums.EPromotionTemplateType;
 import com.utephonehub.backend.exception.promotion.PromotionNotFoundException;
 import com.utephonehub.backend.mapper.PromotionMapper;
 import com.utephonehub.backend.repository.PromotionRepository;
@@ -91,6 +93,9 @@ public class PromotionServiceImpl implements IPromotionService {
     // --- 5. GET ALL PROMOTIONS ---
     @Override
     public List<PromotionResponse> getAllPromotions() {
+        // Auto-update expired promotions status
+        updateExpiredPromotionsStatus();
+        
         List<Promotion> promotions = promotionRepository.findAll();
         return promotionMapper.toResponseList(promotions);
     }
@@ -98,11 +103,16 @@ public class PromotionServiceImpl implements IPromotionService {
     // --- PUBLIC: GET ALL ACTIVE ---
     @Override
     public List<PromotionResponse> getAllActivePromotions() {
+        // Auto-update expired promotions status
+        updateExpiredPromotionsStatus();
+        
         LocalDateTime now = LocalDateTime.now();
         List<Promotion> promotions = promotionRepository.findByEffectiveDateBeforeAndExpirationDateAfter(now, now);
         
         return promotions.stream()
                 .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                // Filter out DISCOUNT promotions - they auto-apply to products, not for user selection
+                .filter(p -> p.getTemplate().getType() != EPromotionTemplateType.DISCOUNT)
                 .map(promotionMapper::toResponse)
                 .collect(Collectors.toList());
     }
@@ -110,11 +120,16 @@ public class PromotionServiceImpl implements IPromotionService {
     // --- 6. CHECK AVAILABLE ---
     @Override
     public List<PromotionResponse> checkAndGetAvailablePromotions(Double orderTotal) {
+        // Auto-update expired promotions status
+        updateExpiredPromotionsStatus();
+        
         LocalDateTime now = LocalDateTime.now();
         List<Promotion> promotions = promotionRepository.findByEffectiveDateBeforeAndExpirationDateAfter(now, now);
 
         return promotions.stream()
                 .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                // Filter out DISCOUNT promotions - they auto-apply to products, not for user selection
+                .filter(p -> p.getTemplate().getType() != EPromotionTemplateType.DISCOUNT)
                 .filter(p -> isMinValueMet(p, orderTotal))
                 .map(promotionMapper::toResponse)
                 .collect(Collectors.toList());
@@ -202,5 +217,96 @@ public class PromotionServiceImpl implements IPromotionService {
     private boolean isMinValueMet(Promotion promotion, Double orderTotal) {
         return promotion.getMinValueToBeApplied() == null 
                 || orderTotal >= promotion.getMinValueToBeApplied();
+    }
+
+    /**
+     * Auto-update expired promotions status
+     * Changes status from ACTIVE to INACTIVE for expired promotions
+     * Does NOT change the promotion title - only updates status
+     * Follows Single Responsibility - focused on status management
+     */
+    @Transactional
+    private void updateExpiredPromotionsStatus() {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Find all ACTIVE promotions that have expired
+        List<Promotion> expiredPromotions = promotionRepository.findAll().stream()
+                .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                .filter(p -> now.isAfter(p.getExpirationDate()))
+                .collect(Collectors.toList());
+        
+        // Update status to INACTIVE (keep original title)
+        if (!expiredPromotions.isEmpty()) {
+            expiredPromotions.forEach(promotion -> {
+                promotion.setStatus(EPromotionStatus.INACTIVE);
+            });
+            promotionRepository.saveAll(expiredPromotions);
+        }
+    }
+
+    /**
+     * Get the best active DISCOUNT promotion for a product
+     * Automatically applies to products based on PRODUCT/CATEGORY/BRAND targets
+     * Returns highest discount percentage among applicable promotions
+     * 
+     * @param productId Product ID
+     * @param categoryId Category ID of the product
+     * @param brandId Brand ID of the product
+     * @return Best discount percentage (0-100), or null if no discount
+     */
+    @Override
+    public Double getBestDiscountForProduct(Long productId, Long categoryId, Long brandId) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Get all active DISCOUNT promotions
+        List<Promotion> activeDiscounts = promotionRepository.findAll().stream()
+                .filter(p -> p.getStatus() == EPromotionStatus.ACTIVE)
+                .filter(p -> p.getTemplate().getType() == EPromotionTemplateType.DISCOUNT)
+                .filter(p -> now.isAfter(p.getEffectiveDate()) && now.isBefore(p.getExpirationDate()))
+                .collect(Collectors.toList());
+        
+        // Find applicable promotions and collect their discount percentages
+        Double maxDiscount = activeDiscounts.stream()
+                .filter(promotion -> isPromotionApplicableToProduct(promotion, productId, categoryId, brandId))
+                .map(Promotion::getPercentDiscount)
+                .filter(discount -> discount != null && discount > 0)
+                .max(Double::compare)
+                .orElse(null);
+        
+        return maxDiscount;
+    }
+
+    /**
+     * Check if a promotion is applicable to a specific product
+     * Checks if promotion targets include the product's ID, category, or brand
+     */
+    private boolean isPromotionApplicableToProduct(Promotion promotion, Long productId, Long categoryId, Long brandId) {
+        if (promotion.getTargets() == null || promotion.getTargets().isEmpty()) {
+            return false;
+        }
+        
+        for (PromotionTarget target : promotion.getTargets()) {
+            Long targetId = target.getApplicableObjectId();
+            
+            switch (target.getType()) {
+                case PRODUCT:
+                    if (productId != null && productId.equals(targetId)) {
+                        return true;
+                    }
+                    break;
+                case CATEGORY:
+                    if (categoryId != null && categoryId.equals(targetId)) {
+                        return true;
+                    }
+                    break;
+                case BRAND:
+                    if (brandId != null && brandId.equals(targetId)) {
+                        return true;
+                    }
+                    break;
+            }
+        }
+        
+        return false;
     }
 }

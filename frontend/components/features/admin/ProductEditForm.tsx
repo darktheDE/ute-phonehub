@@ -12,6 +12,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
+// Type Definitions
+interface Category {
+  id: number;
+  name: string;
+}
+
+interface Brand {
+  id: number;
+  name: string;
+}
+
+interface FormData {
+  name: string;
+  description: string;
+  categoryId: number;
+  brandId: number;
+}
+
 interface ProductEditFormProps {
   product: Product;
   onSuccess?: () => void;
@@ -19,10 +37,10 @@ interface ProductEditFormProps {
 }
 
 export function ProductEditForm({ product, onSuccess, onCancel }: ProductEditFormProps) {
-  const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([]);
-  const [brands, setBrands] = useState<Array<{ id: number; name: string }>>([]);
-  const [formData, setFormData] = useState({
+  const [loading, setLoading] = useState<boolean>(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [formData, setFormData] = useState<FormData>({
     name: product.name,
     description: product.description || '',
     categoryId: product.categoryId,
@@ -31,7 +49,7 @@ export function ProductEditForm({ product, onSuccess, onCancel }: ProductEditFor
 
   // Load categories and brands on mount
   useEffect(() => {
-    const loadData = async () => {
+    const loadData = async (): Promise<void> => {
       try {
         const [catsRes, brandsRes] = await Promise.all([
           adminAPI.getAllCategories(),
@@ -40,7 +58,11 @@ export function ProductEditForm({ product, onSuccess, onCancel }: ProductEditFor
         if (catsRes.success && catsRes.data) setCategories(catsRes.data);
         if (brandsRes.success && brandsRes.data) setBrands(brandsRes.data);
       } catch (err) {
-        console.error('Failed to load categories/brands:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Không thể tải dữ liệu';
+        console.error('Failed to load categories/brands:', errorMessage);
+        toast.error('Lỗi tải dữ liệu', {
+          description: errorMessage,
+        });
       }
     };
     loadData();

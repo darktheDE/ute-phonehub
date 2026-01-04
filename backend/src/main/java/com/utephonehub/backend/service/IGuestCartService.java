@@ -1,9 +1,9 @@
 package com.utephonehub.backend.service;
 
-import com.utephonehub.backend.dto.request.guestcart.GuestCartUpdateRequest;
-import com.utephonehub.backend.dto.request.cart.MergeGuestCartRequest;
-
 import java.util.List;
+
+import com.utephonehub.backend.dto.request.cart.MergeGuestCartRequest;
+import com.utephonehub.backend.dto.request.guestcart.GuestCartUpdateRequest;
 
 public interface IGuestCartService {
 
