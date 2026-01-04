@@ -77,8 +77,6 @@ export const CATEGORY_METADATA: Record<string, MetadataField[]> = {
     { name: 'weight', label: 'Trọng lượng (g)', type: 'number', group: 'Thiết kế', placeholder: '477', min: 1, max: 5000 },
     { name: 'material', label: 'Chất liệu', type: 'text', group: 'Thiết kế', placeholder: 'Nhôm' },
     
-    // Phụ kiện - Backend additionalSpecs
-    { name: 'additionalSpecs', label: 'Hỗ trợ bút & Phụ kiện', type: 'textarea', group: 'Phụ kiện', placeholder: 'Apple Pencil (USB-C), Magic Keyboard...' },
   ],
 
   'Laptop': [

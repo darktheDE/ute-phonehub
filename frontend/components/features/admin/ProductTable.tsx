@@ -7,6 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Product } from '@/types';
+import type { CategoryResponse } from '@/types/category';
+import type { BrandResponse } from '@/types/brand';
 import { 
   getAllProductsAdmin, 
   deleteProduct, 
@@ -16,6 +18,9 @@ import { adminAPI, productAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+
+// Constants
+const EXCLUDED_CATEGORY = 'Phụ kiện';
 
 interface ProductTableProps {
   filters?: {
@@ -30,8 +35,7 @@ interface ProductTableProps {
 }
 
 export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) {
-  console.log('ProductTable received onEdit:', typeof onEdit, onEdit);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -76,13 +80,16 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
           adminAPI.getAllBrands()
         ]);
         if (catsRes.data) {
-          setCategories(catsRes.data.map((c: any) => ({ id: c.id, name: c.name })));
+          // Filter out excluded category
+          const filteredCategories = catsRes.data.filter((c: CategoryResponse) => c.name !== EXCLUDED_CATEGORY);
+          setCategories(filteredCategories.map((c: CategoryResponse) => ({ id: c.id, name: c.name })));
         }
         if (brandsRes.data) {
-          setBrands(brandsRes.data.map((b: any) => ({ id: b.id, name: b.name })));
+          setBrands(brandsRes.data.map((b: BrandResponse) => ({ id: b.id, name: b.name })));
         }
       } catch (err) {
-        console.error('Failed to load filters:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Không thể tải bộ lọc';
+        console.error('Failed to load filters:', errorMessage);
       }
     };
     
@@ -94,13 +101,10 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Loading products with API filters');
-      
       let response;
 
       // Use different endpoint for deleted products (Trash tab)
       if (filters?.deletedStatus === 'deleted') {
-        console.log('🗑️ Fetching DELETED products from /deleted endpoint');
         const { getDeletedProducts } = await import('@/services/product.service');
         
         // Only send keyword if it has at least 2 characters
@@ -127,22 +131,16 @@ export function ProductTable({ filters, onEdit, onRefresh }: ProductTableProps) 
           includeDeleted: filters?.includeDeleted,
         };
         
-        console.log('📡 Calling API with filters:', apiFilters);
-        console.log('🔢 Sort params:', { sortBy, sortDirection });
         response = await getAllProductsAdmin(apiFilters);
-        console.log('📥 API Response:', response);
-        console.log('📦 First 3 products:', response.data?.slice(0, 3).map(p => ({ 
-          name: p.name, 
-          price: p.price, 
-          stock: p.stockQuantity 
-        })));
       }
       
       if (response.success && response.data) {
         setProducts(response.data as unknown as Product[]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi khi tải danh sách sản phẩm');
+      const errorMessage = err instanceof Error ? err.message : 'Lỗi khi tải danh sách sản phẩm';
+      setError(errorMessage);
+      console.error('Error loading products:', errorMessage);
     } finally {
       setLoading(false);
     }

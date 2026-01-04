@@ -23,6 +23,9 @@ import java.util.List;
  * REST Controller cho ProductView API
  * API dành cho client-side: hiển thị, tìm kiếm, lọc, so sánh sản phẩm
  * Không yêu cầu authentication (public access)
+ * 
+ * @author UTE Phone Hub Team
+ * @version 1.0
  */
 @RestController
 @RequestMapping("/api/v1/products")
@@ -31,11 +34,13 @@ import java.util.List;
 @Tag(name = "ProductView API", description = "API dùng để hiển thị sản phẩm client và tương tác - Tham quan, tìm kiếm, lọc, sắp xếp, so sánh sản phẩm")
 public class ProductViewController {
 
-private final IProductViewService productViewService;
+    private final IProductViewService productViewService;
 
-/**
- * Tìm kiếm và lọc sản phẩm với nhiều tiêu chí
- */
+    // ========== SEARCH & FILTER ENDPOINTS ==========
+
+    /**
+     * Tìm kiếm và lọc sản phẩm với nhiều tiêu chí
+     */
 @GetMapping("/search")
 @Operation(
         summary = "Tìm kiếm và lọc sản phẩm",
@@ -118,6 +123,8 @@ public ResponseEntity<ApiResponse<ProductDetailViewResponse>> getProductDetail(
         return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết sản phẩm thành công", result));
 }
 
+    // ========== CATEGORY & RELATED ENDPOINTS ==========
+
 /**
  * Lấy danh sách sản phẩm theo danh mục
  */
@@ -162,6 +169,8 @@ public ResponseEntity<ApiResponse<CategoryProductsResponse>> getProductsByCatego
         
         return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm theo danh mục thành công", result));
 }
+
+    // ========== COMPARISON & RECOMMENDATIONS ==========
 
 /**
  * So sánh nhiều sản phẩm (tối đa 4)
@@ -225,6 +234,8 @@ public ResponseEntity<ApiResponse<List<ProductViewResponse>>> getRelatedProducts
         List<ProductViewResponse> result = productViewService.getRelatedProducts(id, limit);
 
         return ResponseEntity.ok(ApiResponse.success("Lấy sản phẩm liên quan thành công", result));
+    // ========== FEATURED PRODUCTS ENDPOINTS ==========
+
 }
 
 /**

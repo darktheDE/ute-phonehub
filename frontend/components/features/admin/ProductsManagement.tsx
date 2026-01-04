@@ -7,7 +7,12 @@ import { ProductImagesTable } from './ProductImagesTable';
 import { Plus, Package, Trash2, Images } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Type Definitions
 type TabType = 'all' | 'trash' | 'images';
+
+interface ProductFilters {
+  deletedStatus?: 'all' | 'active' | 'deleted';
+}
 
 export function ProductsManagement() {
   const router = useRouter();
