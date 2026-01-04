@@ -27,6 +27,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     
     Page<Product> findByStatusTrueAndIsDeletedFalse(Pageable pageable);
     
+    List<Product> findByStatusTrueAndIsDeletedFalse();
+    
     // Category & Brand queries
     List<Product> findByCategoryIdAndIsDeletedFalse(Long categoryId);
     
@@ -131,5 +133,95 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "HAVING COALESCE(SUM(CASE WHEN t.status = true THEN t.stockQuantity ELSE 0 END), 0) <= :threshold " +
            "ORDER BY COALESCE(SUM(CASE WHEN t.status = true THEN t.stockQuantity ELSE 0 END), 0) ASC")
     List<Product> findByStockQuantityLessThanEqualAndStatusTrueOrderByStockQuantityAsc(@Param("threshold") Integer threshold);
+    
+    // ==================== PRODUCTVIEW OPTIMIZED QUERIES ====================
+    
+    /**
+     * Query tối ưu cho ProductView - JOIN FETCH để tránh N+1 problem
+     * Load sẵn category, brand, templates, images, metadata trong 1 query
+     */
+    @Query(value = "SELECT DISTINCT p FROM Product p " +
+           "LEFT JOIN FETCH p.category " +
+           "LEFT JOIN FETCH p.brand " +
+           "WHERE p.status = true AND p.isDeleted = false " +
+           "ORDER BY p.createdAt DESC",
+           countQuery = "SELECT COUNT(DISTINCT p) FROM Product p WHERE p.status = true AND p.isDeleted = false")
+    Page<Product> findAllForProductView(Pageable pageable);
+    
+    /**
+     * Search ProductView bằng đối sánh chuỗi con cơ bản để tránh lỗi HQL phức tạp
+     */
+    @Query(value = """
+               SELECT DISTINCT p FROM Product p
+               LEFT JOIN FETCH p.category c
+               LEFT JOIN FETCH p.brand b
+               WHERE p.status = true
+               AND p.isDeleted = false
+               AND (
+                      :keyword IS NULL OR :keyword = ''
+                      OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               )
+               """,
+               countQuery = """
+               SELECT COUNT(DISTINCT p) FROM Product p
+               LEFT JOIN p.category c
+               LEFT JOIN p.brand b
+               WHERE p.status = true
+               AND p.isDeleted = false
+               AND (
+                      :keyword IS NULL OR :keyword = ''
+                      OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                      OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               )
+               """)
+    Page<Product> searchProductsOptimized(@Param("keyword") String keyword, Pageable pageable);
+    
+    /**
+     * Filter by category với JOIN FETCH
+     */
+    @Query(value = "SELECT DISTINCT p FROM Product p " +
+           "LEFT JOIN FETCH p.category " +
+           "LEFT JOIN FETCH p.brand " +
+           "WHERE p.status = true AND p.isDeleted = false " +
+           "AND p.category.id = :categoryId",
+           countQuery = "SELECT COUNT(DISTINCT p) FROM Product p WHERE p.status = true AND p.isDeleted = false AND p.category.id = :categoryId")
+    Page<Product> findByCategoryIdOptimized(@Param("categoryId") Long categoryId, Pageable pageable);
+    
+    /**
+     * Advanced filter với JOIN FETCH và price range
+     * Hỗ trợ lọc đa category và đa brand với logic OR
+     */
+    @Query(value = "SELECT DISTINCT p FROM Product p " +
+           "LEFT JOIN FETCH p.category " +
+           "LEFT JOIN FETCH p.brand " +
+           "LEFT JOIN p.templates t " +
+           "WHERE p.isDeleted = false " +
+           "AND p.status = true " +
+           "AND (:categoryIds IS NULL OR p.category.id IN :categoryIds) " +
+           "AND (:brandIds IS NULL OR p.brand.id IN :brandIds) " +
+           "AND ((:minPrice IS NULL AND :maxPrice IS NULL) " +
+           "OR (t.status = true " +
+           "AND (:minPrice IS NULL OR t.price >= :minPrice) " +
+           "AND (:maxPrice IS NULL OR t.price <= :maxPrice)))",
+           countQuery = "SELECT COUNT(DISTINCT p) FROM Product p " +
+                       "LEFT JOIN p.templates t " +
+                       "WHERE p.isDeleted = false AND p.status = true " +
+                       "AND (:categoryIds IS NULL OR p.category.id IN :categoryIds) " +
+                       "AND (:brandIds IS NULL OR p.brand.id IN :brandIds) " +
+                       "AND ((:minPrice IS NULL AND :maxPrice IS NULL) " +
+                       "OR (t.status = true " +
+                       "AND (:minPrice IS NULL OR t.price >= :minPrice) " +
+                       "AND (:maxPrice IS NULL OR t.price <= :maxPrice)))")
+    Page<Product> filterProductsOptimized(
+            @Param("categoryIds") List<Long> categoryIds,
+            @Param("brandIds") List<Long> brandIds,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            Pageable pageable);
 }
 

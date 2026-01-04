@@ -37,8 +37,8 @@ public class UserResponse {
                 .phoneNumber(user.getPhoneNumber())
                 .gender(user.getGender())
                 .dateOfBirth(user.getDateOfBirth())
-                .role(user.getRole().name())
-                .status(user.getStatus().name())
+                .role(user.getRole() != null ? user.getRole().name() : null)
+                .status(user.getStatus() != null ? user.getStatus().name() : null)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

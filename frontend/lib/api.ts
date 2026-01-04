@@ -1096,3 +1096,6 @@ export const adminUserAPI = {
     return fetchAPI<User>(`/admin/users/${userId}`);
   },
 };
+
+// Export default fetchAPI for use in services
+export default fetchAPI;

@@ -21,6 +21,18 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
         port: '8081',
       },
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**', // Allow all HTTPS images
+      },
+      {
+        protocol: 'http',
+        hostname: '**', // Allow all HTTP images (for development)
+      },
     ],
   },
 };
