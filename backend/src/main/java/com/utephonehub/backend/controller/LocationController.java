@@ -1,5 +1,6 @@
 package com.utephonehub.backend.controller;
 
+import com.utephonehub.backend.dto.ApiResponse;
 import com.utephonehub.backend.dto.response.location.ProvinceResponse;
 import com.utephonehub.backend.dto.response.location.WardResponse;
 import com.utephonehub.backend.service.ILocationService;
@@ -39,9 +40,9 @@ public class LocationController {
             summary = "Lấy danh sách tỉnh/thành phố",
             description = "Trả về danh sách tất cả tỉnh/thành phố Việt Nam, sắp xếp theo tên"
     )
-    public ResponseEntity<List<ProvinceResponse>> getAllProvinces() {
+    public ResponseEntity<ApiResponse<List<ProvinceResponse>>> getAllProvinces() {
         List<ProvinceResponse> provinces = locationService.getAllProvinces();
-        return ResponseEntity.ok(provinces);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách tỉnh/thành phố thành công", provinces));
     }
 
     /**
@@ -56,11 +57,11 @@ public class LocationController {
             summary = "Lấy chi tiết tỉnh/thành phố",
             description = "Trả về thông tin chi tiết của một tỉnh/thành phố theo mã province_code"
     )
-    public ResponseEntity<ProvinceResponse> getProvinceByCode(
+    public ResponseEntity<ApiResponse<ProvinceResponse>> getProvinceByCode(
             @Parameter(description = "Mã tỉnh/thành phố (VD: 01, 79, 48)")
             @PathVariable String provinceCode) {
         ProvinceResponse province = locationService.getProvinceByCode(provinceCode);
-        return ResponseEntity.ok(province);
+        return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết tỉnh/thành phố thành công", province));
     }
 
     /**
@@ -76,9 +77,9 @@ public class LocationController {
             summary = "Lấy danh sách tất cả phường/xã",
             description = "Trả về danh sách tất cả phường/xã Việt Nam, sắp xếp theo tên"
     )
-    public ResponseEntity<List<WardResponse>> getAllWards() {
+    public ResponseEntity<ApiResponse<List<WardResponse>>> getAllWards() {
         List<WardResponse> wards = locationService.getAllWards();
-        return ResponseEntity.ok(wards);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách phường/xã thành công", wards));
     }
 
     /**
@@ -94,11 +95,11 @@ public class LocationController {
             summary = "Lấy danh sách phường/xã theo tỉnh",
             description = "Trả về danh sách tất cả phường/xã thuộc một tỉnh/thành phố, sắp xếp theo tên"
     )
-    public ResponseEntity<List<WardResponse>> getWardsByProvinceCode(
+    public ResponseEntity<ApiResponse<List<WardResponse>>> getWardsByProvinceCode(
             @Parameter(description = "Mã tỉnh/thành phố (VD: 01, 79, 48)")
             @PathVariable String provinceCode) {
         List<WardResponse> wards = locationService.getWardsByProvinceCode(provinceCode);
-        return ResponseEntity.ok(wards);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách phường/xã theo tỉnh thành công", wards));
     }
 
     /**
@@ -113,11 +114,11 @@ public class LocationController {
             summary = "Lấy chi tiết phường/xã",
             description = "Trả về thông tin chi tiết của một phường/xã theo mã ward_code"
     )
-    public ResponseEntity<WardResponse> getWardByCode(
+    public ResponseEntity<ApiResponse<WardResponse>> getWardByCode(
             @Parameter(description = "Mã phường/xã (VD: 00070, 00073)")
             @PathVariable String wardCode) {
         WardResponse ward = locationService.getWardByCode(wardCode);
-        return ResponseEntity.ok(ward);
+        return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết phường/xã thành công", ward));
     }
 
     /**
@@ -133,11 +134,11 @@ public class LocationController {
             summary = "Kiểm tra mã tỉnh hợp lệ",
             description = "Kiểm tra xem mã tỉnh/thành phố có tồn tại trong hệ thống hay không"
     )
-    public ResponseEntity<Boolean> validateProvinceCode(
+    public ResponseEntity<ApiResponse<Boolean>> validateProvinceCode(
             @Parameter(description = "Mã tỉnh/thành phố cần kiểm tra")
             @PathVariable String provinceCode) {
         boolean isValid = locationService.isValidProvinceCode(provinceCode);
-        return ResponseEntity.ok(isValid);
+        return ResponseEntity.ok(ApiResponse.success("Kiểm tra mã tỉnh thành công", isValid));
     }
 
     /**
@@ -149,10 +150,10 @@ public class LocationController {
             summary = "Kiểm tra mã phường/xã hợp lệ",
             description = "Kiểm tra xem mã phường/xã có tồn tại trong hệ thống hay không"
     )
-    public ResponseEntity<Boolean> validateWardCode(
+    public ResponseEntity<ApiResponse<Boolean>> validateWardCode(
             @Parameter(description = "Mã phường/xã cần kiểm tra")
             @PathVariable String wardCode) {
         boolean isValid = locationService.isValidWardCode(wardCode);
-        return ResponseEntity.ok(isValid);
+        return ResponseEntity.ok(ApiResponse.success("Kiểm tra mã phường/xã thành công", isValid));
     }
 }
