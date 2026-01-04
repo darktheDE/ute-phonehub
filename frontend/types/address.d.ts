@@ -43,3 +43,34 @@ export interface AddressFormData {
   wardName: string;
   streetAddress?: string;
 }
+
+/**
+ * Address Response từ Backend API
+ */
+export interface AddressResponse {
+  id: number;
+  recipientName: string;
+  phoneNumber: string;
+  streetAddress: string;
+  ward: string;
+  wardCode: string;
+  province: string;
+  provinceCode: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Address Request để gửi lên Backend API
+ */
+export interface AddressRequest {
+  recipientName: string;
+  phoneNumber: string;
+  streetAddress: string;
+  ward: string;
+  wardCode?: string;
+  province: string;
+  provinceCode?: string;
+  isDefault?: boolean;
+}

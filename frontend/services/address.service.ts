@@ -56,6 +56,19 @@ export const getWardByCode = async (code: number): Promise<Ward | null> => {
 };
 
 /**
+ * Lấy danh sách phường/xã theo tỉnh/thành phố
+ */
+export const getWardsByProvinceCode = async (provinceCode: string | number): Promise<Ward[]> => {
+  try {
+    const response = await fetchAPI<Ward[]>(`${LOCATION_BASE_URL}/provinces/${provinceCode}/wards`);
+    return response.data || [];
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phường/xã theo tỉnh:', error);
+    return [];
+  }
+};
+
+/**
  * Lấy danh sách toàn bộ cấp hành chính
  */
 export const listAllDivisions = async (depth?: number): Promise<Province[]> => {

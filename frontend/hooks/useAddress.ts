@@ -5,6 +5,7 @@ import {
   getProvinceByCode,
   listWards,
   getWardByCode,
+  getWardsByProvinceCode,
 } from '@/services/address.service';
 
 interface UseAddressReturn {
@@ -49,24 +50,29 @@ export const useAddress = (): UseAddressReturn => {
     loadProvinces();
   }, []);
 
-  // Tải danh sách phường khi component mount
-  useEffect(() => {
-    const loadWards = async () => {
-      setLoadingWards(true);
-      try {
-        const data = await listWards();
-        setWards(data);
-      } finally {
-        setLoadingWards(false);
-      }
-    };
-    loadWards();
-  }, []);
+  // Không load tất cả wards khi mount - chỉ load khi chọn tỉnh
+  // useEffect để load wards đã được xóa - sẽ load khi selectProvince được gọi
 
   // Chọn tỉnh
   const selectProvince = useCallback(async (code: number) => {
-    const province = await getProvinceByCode(code);
-    setSelectedProvince(province);
+    setLoadingWards(true);
+    try {
+      const province = await getProvinceByCode(code);
+      setSelectedProvince(province);
+      
+      // Load wards theo tỉnh đã chọn
+      if (province) {
+        const wardsData = await getWardsByProvinceCode(province.code);
+        setWards(wardsData);
+      } else {
+        setWards([]);
+      }
+    } catch (error) {
+      console.error('Error selecting province:', error);
+      setWards([]);
+    } finally {
+      setLoadingWards(false);
+    }
   }, []);
 
   // Chọn phường/xã
@@ -96,10 +102,8 @@ export const useAddress = (): UseAddressReturn => {
     try {
       // Đầu tiên load wards của province đó
       setLoadingWards(true);
-      const data = await listWards();
-      // Filter wards theo province code nếu API hỗ trợ
-      const filteredWards = data; // API trả tất cả, có thể cần filter
-      setWards(filteredWards);
+      const data = await getWardsByProvinceCode(provinceCode);
+      setWards(data);
       
       // Sau đó select ward
       const ward = await getWardByCode(wardCode);
