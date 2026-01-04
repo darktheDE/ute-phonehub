@@ -269,20 +269,65 @@ public class IProductRecommendationService {
             JsonNode rootNode = objectMapper.readTree(responseJson);
             List<ChatbotAssistantUserResponse.RecommendedProductDTO> products = new ArrayList<>();
             
-            // Xử lý response (có thể là mảng hoặc object.data)
-            JsonNode dataNode = rootNode.isArray() ? rootNode : rootNode.path("data");
+            // Xử lý response (có thể là mảng, object.data, hoặc object.data.content nếu là Page)
+            JsonNode dataNode;
+            if (rootNode.isArray()) {
+                dataNode = rootNode;
+            } else if (rootNode.has("data")) {
+                JsonNode data = rootNode.path("data");
+                // Nếu data có "content" thì là Page object
+                if (data.has("content") && data.path("content").isArray()) {
+                    dataNode = data.path("content");
+                } else if (data.isArray()) {
+                    dataNode = data;
+                } else {
+                    dataNode = data;
+                }
+            } else {
+                dataNode = rootNode;
+            }
             
             dataNode.forEach(productNode -> {
+                // Lấy giá: ưu tiên discountedPrice, nếu không có thì dùng minPrice, cuối cùng là originalPrice
+                double price = 0.0;
+                if (productNode.has("discountedPrice") && !productNode.path("discountedPrice").isNull()) {
+                    price = productNode.path("discountedPrice").asDouble();
+                } else if (productNode.has("minPrice") && !productNode.path("minPrice").isNull()) {
+                    price = productNode.path("minPrice").asDouble();
+                } else if (productNode.has("originalPrice") && !productNode.path("originalPrice").isNull()) {
+                    price = productNode.path("originalPrice").asDouble();
+                }
+                
+                // Lấy rating và review count
+                double rating = productNode.has("averageRating") && !productNode.path("averageRating").isNull()
+                    ? productNode.path("averageRating").asDouble(0.0)
+                    : 0.0;
+                int reviewCount = productNode.has("totalReviews") && !productNode.path("totalReviews").isNull()
+                    ? productNode.path("totalReviews").asInt(0)
+                    : 0;
+                
+                // Lấy image URL
+                String imageUrl = productNode.has("thumbnailUrl") && !productNode.path("thumbnailUrl").isNull()
+                    ? productNode.path("thumbnailUrl").asText()
+                    : "";
+                
+                // Lấy category name
+                String categoryName = productNode.has("categoryName") && !productNode.path("categoryName").isNull()
+                    ? productNode.path("categoryName").asText()
+                    : (productNode.has("category") && productNode.path("category").has("name")
+                        ? productNode.path("category").path("name").asText()
+                        : "");
+                
                 ChatbotAssistantUserResponse.RecommendedProductDTO product = 
                     ChatbotAssistantUserResponse.RecommendedProductDTO.builder()
                         .id(productNode.path("id").asLong())
                         .name(productNode.path("name").asText())
-                        .description(productNode.path("description").asText())
-                        .price(productNode.path("price").asDouble())
-                        .rating(productNode.path("rating").asDouble(0.0))
-                        .reviewCount(productNode.path("reviewCount").asInt(0))
-                        .imageUrl(productNode.path("imageUrl").asText())
-                        .categoryName(productNode.path("category").path("name").asText())
+                        .description(productNode.has("description") ? productNode.path("description").asText() : "")
+                        .price(price)
+                        .rating(rating)
+                        .reviewCount(reviewCount)
+                        .imageUrl(imageUrl)
+                        .categoryName(categoryName)
                         .productUrl("/products/" + productNode.path("id").asLong())
                         .build();
                 products.add(product);

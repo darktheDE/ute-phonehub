@@ -140,9 +140,9 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
                         📦 Sản phẩm gợi ý ({message.response.recommendedProducts.length}):
                       </p>
                       <div className="grid grid-cols-1 gap-2">
-                        {message.response.recommendedProducts.map((product) => (
+                        {message.response.recommendedProducts.map((product, index) => (
                           <a
-                            key={product.id}
+                            key={product.id ? `${product.id}-${index}` : `product-${index}`}
                             href={product.productUrl || `/products/${product.id}`}
                             className="block p-3 rounded-md bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group"
                           >
