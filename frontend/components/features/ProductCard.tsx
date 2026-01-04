@@ -1,22 +1,26 @@
-'use client';
+"use client";
 
-import { Heart, Star, ShoppingCart } from 'lucide-react';
-import { formatPrice } from '@/lib/utils';
-import { useAuth } from '@/hooks';
-import { useCartStore } from '@/store';
-import { cartAPI } from '@/lib/api';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { Heart, Star, ShoppingCart } from "lucide-react";
+import { formatPrice } from "@/lib/utils";
+import { useAuth } from "@/hooks";
+import { useCartStore } from "@/store";
+import { cartAPI } from "@/lib/api";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface ProductCardProps {
   id: number;
   name: string;
   image: string;
-  originalPrice: number;
-  salePrice: number;
+  // Support both mock data format and backend format
+  originalPrice?: number; // Mock data
+  salePrice?: number; // Mock data
+  price?: number; // Backend: original price
+  discountPercent?: number; // Backend: discount % (0-100)
+  discountedPrice?: number; // Backend: price after discount
   rating: number;
   reviews: number;
-  discount: number;
+  discount?: number; // Mock data discount
   isNew?: boolean;
 }
 
@@ -26,6 +30,9 @@ export function ProductCard({
   image,
   originalPrice,
   salePrice,
+  price,
+  discountPercent,
+  discountedPrice,
   rating,
   reviews,
   discount,
@@ -36,32 +43,41 @@ export function ProductCard({
   const isAuthenticated = !!user;
   const { addItem, setItems } = useCartStore();
 
+  // Determine actual prices based on available data
+  // Priority: Backend data (price/discountedPrice) > Mock data (originalPrice/salePrice)
+  const actualOriginalPrice = price ?? originalPrice ?? 0;
+  const actualDiscountPercent = discountPercent ?? discount ?? 0;
+  const actualFinalPrice = discountedPrice ?? salePrice ?? actualOriginalPrice;
+  const hasDiscount = actualDiscountPercent > 0;
+
   const isValidImage = (src: unknown) => {
-    if (!src || typeof src !== 'string') return false;
+    if (!src || typeof src !== "string") return false;
     return /^(https?:\/\/|\/|data:|blob:)/i.test(src);
   };
 
   const handleBuyNow = async (e?: any) => {
     e?.stopPropagation?.();
     await handleAddToCart();
-    router.push('/checkout');
+    try {
+      router.push("/checkout");
+    } catch {
+      // noop
+    }
   };
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
       // Add to local cart store for guest
-      // compute applied price when discount present
-      const appliedPrice = discount && discount > 0 ? Math.round(salePrice * (100 - discount) / 100) : salePrice;
       addItem({
         productId: id,
         productName: name,
-        productImage: isValidImage(image) ? image : '',
-        price: salePrice,
-        discountPercent: discount > 0 ? discount : undefined,
-        appliedPrice: appliedPrice,
+        productImage: isValidImage(image) ? image : "",
+        price: actualOriginalPrice,
+        discountPercent: hasDiscount ? actualDiscountPercent : undefined,
+        appliedPrice: actualFinalPrice,
         quantity: 1,
       } as any);
-      toast.success('Đã thêm vào giỏ (khách) — đăng nhập để đồng bộ');
+      toast.success("Đã thêm vào giỏ (khách) — đăng nhập để đồng bộ");
       return;
     }
 
@@ -72,13 +88,24 @@ export function ProductCard({
         try {
           const cartResp = await cartAPI.getCurrentCart();
           if (cartResp && cartResp.success && cartResp.data) {
-            const backendItems = Array.isArray(cartResp.data.items) ? cartResp.data.items : [];
+            const backendItems = Array.isArray(cartResp.data.items)
+              ? cartResp.data.items
+              : [];
             const mappedItems = backendItems.map((obj: any) => ({
               id: Number(obj.id ?? 0),
               productId: Number(obj.productId ?? 0),
-              productName: typeof obj.productName === 'string' ? obj.productName : (obj.product?.name ?? 'Unknown Product'),
-              productImage: typeof obj.productImage === 'string' ? obj.productImage : (obj.productThumbnailUrl ?? obj.product?.thumbnailUrl ?? ''),
-              price: typeof obj.price === 'number' ? obj.price : (obj.unitPrice ?? obj.product?.salePrice ?? 0),
+              productName:
+                typeof obj.productName === "string"
+                  ? obj.productName
+                  : obj.product?.name ?? "Unknown Product",
+              productImage:
+                typeof obj.productImage === "string"
+                  ? obj.productImage
+                  : obj.productThumbnailUrl ?? obj.product?.thumbnailUrl ?? "",
+              price:
+                typeof obj.price === "number"
+                  ? obj.price
+                  : obj.unitPrice ?? obj.product?.salePrice ?? 0,
               quantity: Number(obj.quantity ?? 0),
               color: obj.color,
               storage: obj.storage,
@@ -87,16 +114,19 @@ export function ProductCard({
             setItems(mappedItems as any);
           }
         } catch (syncErr) {
-          console.warn('ProductCard: failed to refresh cart after addToCart', syncErr);
+          console.warn(
+            "ProductCard: failed to refresh cart after addToCart",
+            syncErr
+          );
         }
 
-        toast.success('Đã thêm vào giỏ hàng');
+        toast.success("Đã thêm vào giỏ hàng");
       } else {
-        throw new Error(resp?.message || 'Không thể thêm vào giỏ');
+        throw new Error(resp?.message || "Không thể thêm vào giỏ");
       }
     } catch (e: any) {
-      console.error('Add to cart failed:', e);
-      toast.error(e?.message || 'Lỗi khi thêm vào giỏ');
+      console.error("Add to cart failed:", e);
+      toast.error(e?.message || "Lỗi khi thêm vào giỏ");
     }
   };
   return (
@@ -110,9 +140,9 @@ export function ProductCard({
             Mới
           </span>
         )}
-        {discount > 0 && (
+        {hasDiscount && (
           <span className="absolute top-2 right-2 bg-primary text-primary-foreground text-[11px] font-semibold px-2 py-1 rounded-md shadow-sm">
-            -{discount}%
+            -{Math.round(actualDiscountPercent)}%
           </span>
         )}
 
@@ -148,10 +178,11 @@ export function ProductCard({
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
-              className={`w-3 h-3 ${i < Math.floor(rating)
-                ? 'fill-primary text-primary'
-                : 'fill-gray-200 text-gray-200'
-                }`}
+              className={`w-3 h-3 ${
+                i < Math.floor(rating)
+                  ? "fill-primary text-primary"
+                  : "fill-gray-200 text-gray-200"
+              }`}
             />
           ))}
           <span className="text-xs text-muted-foreground ml-1">
@@ -160,11 +191,13 @@ export function ProductCard({
         </div>
         <div className="flex flex-col">
           <span className="text-base md:text-lg font-bold text-primary">
-            {formatPrice(salePrice)}
+            {formatPrice(actualFinalPrice)}
           </span>
-          <span className="text-xs md:text-sm text-muted-foreground line-through">
-            {formatPrice(originalPrice)}
-          </span>
+          {hasDiscount && (
+            <span className="text-xs md:text-sm text-muted-foreground line-through">
+              {formatPrice(actualOriginalPrice)}
+            </span>
+          )}
         </div>
         <div className="mt-3 flex items-center gap-2">
           <button

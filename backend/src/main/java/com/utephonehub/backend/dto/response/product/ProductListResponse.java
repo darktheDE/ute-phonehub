@@ -29,6 +29,20 @@ public class ProductListResponse {
     private BigDecimal price;
     
     /**
+     * Discount percentage from active DISCOUNT promotions (0-100)
+     * Automatically calculated based on PRODUCT/CATEGORY/BRAND targets
+     * Null if no discount applies
+     */
+    private Double discountPercent;
+    
+    /**
+     * Price after discount applied
+     * Calculated as: price * (1 - discountPercent/100)
+     * Same as price if no discount
+     */
+    private BigDecimal discountedPrice;
+    
+    /**
      * Total stock quantity across all templates
      * Calculated from SUM(ProductTemplate.stockQuantity)
      */

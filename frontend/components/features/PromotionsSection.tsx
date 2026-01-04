@@ -32,7 +32,9 @@ export function PromotionsSection() {
             error instanceof Error ? error.message : error
           );
         } else {
-          console.warn("[PromotionsSection] Promotions are temporarily unavailable.");
+          console.warn(
+            "[PromotionsSection] Promotions are temporarily unavailable."
+          );
         }
         // Silently fail - don't show error to user, just hide section
         setPromotions([]);
@@ -95,16 +97,21 @@ export function PromotionsSection() {
   };
 
   return (
-    <section className="py-8 bg-gradient-to-br from-orange-50 to-red-50">
-      <div className="max-w-7xl mx-auto px-4">
+    <section className="py-12 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Tag className="w-6 h-6 text-orange-600" />
-            <h2 className="text-2xl font-bold">Khuyến Mãi Đặc Biệt</h2>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Tag className="w-7 h-7 text-orange-600 dark:text-orange-500" />
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Khuyến Mãi Đặc Biệt
+            </h2>
           </div>
           <Link href="/promotions">
-            <Button variant="outline" className="gap-2">
+            <Button
+              variant="outline"
+              className="gap-2 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+            >
               Xem tất cả
               <ArrowRight className="w-4 h-4" />
             </Button>
@@ -112,62 +119,67 @@ export function PromotionsSection() {
         </div>
 
         {/* Promotions Grid */}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {promotions.map((promotion) => (
             <div
               key={promotion.id}
-              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border-l-4 border-orange-500"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-6 border-l-4 border-orange-500 dark:border-orange-600"
             >
               {/* Promotion Header */}
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <span className="inline-block px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded mb-2">
+                  <span className="inline-block px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-semibold rounded-full mb-3">
                     {getPromotionTypeLabel(promotion.templateType)}
                   </span>
-                  <h3 className="font-bold text-lg text-gray-900 line-clamp-2">
+                  <h3 className="font-bold text-xl text-gray-900 dark:text-white line-clamp-2 leading-tight">
                     {promotion.title}
                   </h3>
                 </div>
               </div>
 
               {/* Discount Info */}
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-lg p-3 mb-3">
+              <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-red-500 rounded-xl p-4 mb-4 shadow-md">
                 <div className="text-center">
                   {promotion.templateType !== "FREE_SHIPPING" &&
                     promotion.percentDiscount > 0 && (
                       <div className="text-white">
-                        <span className="text-3xl font-bold">
+                        <span className="text-4xl font-extrabold drop-shadow-md">
                           {promotion.percentDiscount}%
                         </span>
-                        <span className="text-sm block mt-1">Giảm giá</span>
+                        <span className="text-sm font-medium block mt-2">
+                          Giảm giá
+                        </span>
                       </div>
                     )}
                   {promotion.templateType === "FREE_SHIPPING" && (
-                      <div className="text-white">
-                        <Package className="w-8 h-8 mx-auto mb-1" />
-                        <span className="text-sm">Miễn phí vận chuyển</span>
-                      </div>
-                    )}
+                    <div className="text-white">
+                      <Package className="w-10 h-10 mx-auto mb-2 drop-shadow-md" />
+                      <span className="text-sm font-medium">
+                        Miễn phí vận chuyển
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Conditions */}
-              <div className="space-y-2 text-sm text-gray-600 mb-3">
-                {promotion.minValueToBeApplied !== null && promotion.minValueToBeApplied > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-gray-400" />
-                    <span>
-                      Đơn tối thiểu:{" "}
-                      {formatCurrency(promotion.minValueToBeApplied)}
-                    </span>
-                  </div>
-                )}
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                {promotion.minValueToBeApplied !== null &&
+                  promotion.minValueToBeApplied > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-gray-400" />
+                      <span>
+                        Đơn tối thiểu:{" "}
+                        {formatCurrency(promotion.minValueToBeApplied)}
+                      </span>
+                    </div>
+                  )}
               </div>
 
               {/* Date Range */}
-              <div className="flex items-center gap-2 text-xs text-gray-500 pt-3 border-t">
-                <Calendar className="w-4 h-4" />
-                <span>
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <Calendar className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">
                   {formatDate(promotion.effectiveDate)} -{" "}
                   {formatDate(promotion.expirationDate)}
                 </span>

@@ -27,6 +27,7 @@ import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.repository.ProductTemplateRepository;
 import com.utephonehub.backend.repository.UserRepository;
 import com.utephonehub.backend.service.IProductService;
+import com.utephonehub.backend.service.IPromotionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -64,6 +65,9 @@ public class ProductServiceImpl implements IProductService {
     
     // EntityManager for flushing in template updates
     private final jakarta.persistence.EntityManager entityManager;
+    
+    // PromotionService for calculating product discounts
+    private final IPromotionService promotionService;
 
     @Override
     public ProductDetailResponse createProduct(CreateProductRequest request, Long userId) {
@@ -542,8 +546,10 @@ public class ProductServiceImpl implements IProductService {
     
     /**
      * Enriches ProductListResponse with price and stock calculated from templates
+     * Also applies active DISCOUNT promotions automatically
      * Price = lowest price among active templates
      * Stock = sum of stockQuantity across all active templates
+     * Discount = best DISCOUNT promotion applicable to this product
      */
     private void enrichListResponseWithTemplateData(ProductListResponse response, Product product) {
         List<ProductTemplate> activeTemplates = product.getTemplates().stream()
@@ -553,6 +559,8 @@ public class ProductServiceImpl implements IProductService {
         if (activeTemplates.isEmpty()) {
             response.setPrice(null);
             response.setStockQuantity(null);
+            response.setDiscountPercent(null);
+            response.setDiscountedPrice(null);
             return;
         }
         
@@ -569,5 +577,28 @@ public class ProductServiceImpl implements IProductService {
         
         response.setPrice(lowestPrice);
         response.setStockQuantity(totalStock);
+        
+        // Calculate and apply active DISCOUNT promotions
+        Long categoryId = product.getCategory() != null ? product.getCategory().getId() : null;
+        Long brandId = product.getBrand() != null ? product.getBrand().getId() : null;
+        
+        Double discountPercent = promotionService.getBestDiscountForProduct(
+                product.getId(),
+                categoryId,
+                brandId
+        );
+        
+        if (discountPercent != null && discountPercent > 0) {
+            response.setDiscountPercent(discountPercent);
+            
+            // Calculate discounted price
+            BigDecimal discountMultiplier = BigDecimal.valueOf(1.0 - (discountPercent / 100.0));
+            BigDecimal discountedPrice = lowestPrice.multiply(discountMultiplier)
+                    .setScale(0, java.math.RoundingMode.HALF_UP); // Round to nearest integer
+            response.setDiscountedPrice(discountedPrice);
+        } else {
+            response.setDiscountPercent(null);
+            response.setDiscountedPrice(lowestPrice); // No discount, same as original price
+        }
     }
 }
