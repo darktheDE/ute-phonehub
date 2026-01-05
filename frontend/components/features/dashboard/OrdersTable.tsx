@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { Eye } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { getOrderStatus } from '@/lib/constants';
@@ -16,6 +17,8 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders, isAdmin = false }: OrdersTableProps) {
+  const router = useRouter();
+
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
       <div className="overflow-x-auto">
@@ -62,6 +65,7 @@ export function OrdersTable({ orders, isAdmin = false }: OrdersTableProps) {
                     <button
                       className="rounded-lg p-2 text-blue-600 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={`Xem chi tiết đơn hàng ${order.id}`}
+                      onClick={() => router.push(`/orders/${order.id}`)}
                     >
                       <Eye className="w-4 h-4" />
                     </button>

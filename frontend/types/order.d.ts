@@ -42,6 +42,28 @@ export interface Order {
   itemCount?: number;
 }
 
+// Admin order list response (mapping từ AdminOrderListResponse backend)
+export interface AdminOrderListResponse {
+  id: number;
+  orderCode: string;
+  customerId?: number | null;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  recipientName: string;
+  recipientPhone: string;
+  status: OrderStatus;
+  statusDisplay: string;
+  paymentMethod: PaymentMethod;
+  totalAmount: number;
+  shippingFee: number;
+  shippingAddress: string;
+  createdAt: string;
+  updatedAt: string;
+  itemCount: number;
+  note?: string | null;
+}
+
 export interface OrderResponse {
   id: number;
   orderCode: string;

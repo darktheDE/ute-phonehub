@@ -41,7 +41,6 @@ import {
 import { ProductsManagement } from "@/components/features/admin/ProductsManagement";
 import { Sidebar } from "@/components/features/layout/Sidebar";
 import { useOrders } from "@/hooks";
-import { MOCK_ORDERS } from "@/lib/mockData";
 
 type TabType =
   | "dashboard"
@@ -222,51 +221,13 @@ export default function ManagePageClient() {
           {activeTab === "templates" && isAdmin && <TemplatesTable />}
 
           {/* Orders */}
-          {activeTab === "orders" &&
-            (isAdmin ? (
-              // Admin: Use real API - GET /api/v1/admin/dashboard/recent-orders exists
-              ordersLoading ? (
-                <div className="bg-card rounded-xl border border-border p-6 animate-pulse h-64" />
-              ) : (
-                <OrdersTable orders={orders} isAdmin={isAdmin} />
-              )
+          {activeTab === "orders" && (
+            ordersLoading ? (
+              <div className="bg-card rounded-xl border border-border p-6 animate-pulse h-64" />
             ) : (
-              // Customer: Use mock data - GET /api/v1/orders (list) doesn't exist
-              <OrdersTable
-                orders={MOCK_ORDERS.map((mockOrder) => {
-                  // Map mock status to OrderStatus from @/types
-                  const statusMap: Record<
-                    string,
-                    | "PENDING"
-                    | "CONFIRMED"
-                    | "SHIPPING"
-                    | "DELIVERED"
-                    | "CANCELLED"
-                  > = {
-                    pending: "PENDING",
-                    processing: "CONFIRMED",
-                    shipped: "SHIPPING",
-                    delivered: "DELIVERED",
-                    cancelled: "CANCELLED",
-                  };
-
-                  return {
-                    id: mockOrder.id,
-                    orderCode: `ORD-${mockOrder.id}`,
-                    email: user?.email || "",
-                    recipientName: mockOrder.customer,
-                    phoneNumber: "",
-                    shippingAddress: "",
-                    status: statusMap[mockOrder.status] || "PENDING",
-                    paymentMethod: "COD",
-                    totalAmount: mockOrder.total,
-                    createdAt: new Date(mockOrder.date).toISOString(),
-                    updatedAt: new Date(mockOrder.date).toISOString(),
-                  };
-                })}
-                isAdmin={isAdmin}
-              />
-            ))}
+              <OrdersTable orders={orders} isAdmin={isAdmin} />
+            )
+          )}
 
           {/* Users Management (Admin Only) */}
           {activeTab === "users" && isAdmin && <UsersManagement />}
