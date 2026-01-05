@@ -48,10 +48,10 @@ export function PromotionsSection() {
 
   if (loading) {
     return (
-      <section className="py-8 bg-gradient-to-br from-orange-50 to-red-50">
+      <section className="py-8 bg-background">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-center gap-2 mb-6">
-            <Tag className="w-6 h-6 text-orange-600" />
+            <Tag className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-bold">Khuyến Mãi Đặc Biệt</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-4">
@@ -97,12 +97,12 @@ export function PromotionsSection() {
   };
 
   return (
-    <section className="py-12 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20">
+  <section className="py-12 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Tag className="w-7 h-7 text-orange-600 dark:text-orange-500" />
+            <Tag className="w-7 h-7 text-primary" />
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
               Khuyến Mãi Đặc Biệt
             </h2>
@@ -138,11 +138,11 @@ export function PromotionsSection() {
               </div>
 
               {/* Discount Info */}
-              <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-red-500 rounded-xl p-4 mb-4 shadow-md">
+              <div className="bg-secondary rounded-xl p-4 mb-4 shadow-md">
                 <div className="text-center">
                   {promotion.templateType !== "FREE_SHIPPING" &&
                     promotion.percentDiscount > 0 && (
-                      <div className="text-white">
+                      <div className="text-foreground">
                         <span className="text-4xl font-extrabold drop-shadow-md">
                           {promotion.percentDiscount}%
                         </span>
@@ -152,7 +152,7 @@ export function PromotionsSection() {
                       </div>
                     )}
                   {promotion.templateType === "FREE_SHIPPING" && (
-                    <div className="text-white">
+                    <div className="text-foreground">
                       <Package className="w-10 h-10 mx-auto mb-2 drop-shadow-md" />
                       <span className="text-sm font-medium">
                         Miễn phí vận chuyển

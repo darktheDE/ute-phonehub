@@ -191,14 +191,16 @@ export function CategoriesTable({ categories, onEdit, onDelete, onAddChild, sear
           {/* Actions */}
           <td className="py-3 px-4">
             <div className="flex gap-1">
-              {/* Add child button - text instead of icon */}
-              <button
-                onClick={() => onAddChild(category)}
-                className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary whitespace-nowrap"
-                title="Thêm danh mục con"
-              >
-                Thêm danh mục con
-              </button>
+              {/* Add child button - CHỈ hiển thị cho root categories (level === 0) */}
+              {level === 0 && (
+                <button
+                  onClick={() => onAddChild(category)}
+                  className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary whitespace-nowrap"
+                  title="Thêm danh mục con"
+                >
+                  Thêm danh mục con
+                </button>
+              )}
               {/* Edit button */}
               <button
                 onClick={() => onEdit(category)}

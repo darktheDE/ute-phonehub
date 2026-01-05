@@ -363,8 +363,16 @@ public class OrderServiceImpl implements IOrderService {
                         .orderInfo("Thanh toan don hang " + orderCode)
                         .locale("vn")
                         .build();
-                
-                String ipAddress = securityUtils.getClientIp(servletRequest);
+
+                // Lấy IP client phục vụ VNPay; nếu servletRequest null thì fallback về 127.0.0.1
+                String ipAddress;
+                if (servletRequest != null) {
+                    ipAddress = securityUtils.getClientIp(servletRequest);
+                } else {
+                    log.warn("HttpServletRequest is null when creating VNPay URL for order {}. Using fallback IP 127.0.0.1", orderCode);
+                    ipAddress = "127.0.0.1";
+                }
+
                 VNPayPaymentResponse paymentResponse = vnPayService.createPaymentUrl(paymentRequest, ipAddress);
                 response.setPaymentUrl(paymentResponse.getPaymentUrl());
                 log.info("Generated VNPay URL for order {}: {}", orderCode, paymentResponse.getPaymentUrl());

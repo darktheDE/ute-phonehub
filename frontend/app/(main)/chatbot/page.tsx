@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  HeroBanner,
-  FeaturesSection,
-  FlashSaleSection,
-  FeaturedProducts,
-  PromotionsSection,
-} from "@/components/features";
+import { ChatbotAssistant } from "@/components/common/ChatbotAssistant";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCategories } from "@/hooks/useCategories";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Laptop, Headphones, Watch, Tablet, Package } from "lucide-react";
+import {
+  Smartphone,
+  Laptop,
+  Headphones,
+  Watch,
+  Tablet,
+  Package,
+} from "lucide-react";
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "điện thoại": Smartphone,
@@ -37,10 +39,22 @@ const getCategoryIcon = (categoryName: string) => {
   return Package;
 };
 
-export default function HomePage() {
+/**
+ * Trang chatbot tư vấn sản phẩm
+ * Route: /chatbot
+ * Sử dụng MainLayout (Header + Footer) qua route group (main)
+ */
+export default function ChatbotPage() {
   const router = useRouter();
   const { categories } = useCategories({ parentId: null });
   const [activeTab, setActiveTab] = useState<string>("all");
+
+  // Đảm bảo khi vào /chatbot luôn scroll lên đầu trang
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    }
+  }, []);
 
   const handleCategoryClick = (categoryId: string) => {
     setActiveTab(categoryId);
@@ -94,11 +108,43 @@ export default function HomePage() {
         </div>
       </section>
 
-      <HeroBanner />
-      <FeaturesSection />
-      <PromotionsSection />
-      <FlashSaleSection />
-      <FeaturedProducts />
+      <div className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
+        {/* Tiêu đề trang */}
+        <div className="mb-6 flex flex-col gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Chatbot tư vấn sản phẩm
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            Tìm nhanh điện thoại phù hợp với nhu cầu và ngân sách của bạn, chatbot sẽ gợi ý
+            một vài lựa chọn nổi bật trong hệ thống.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
+          {/* Khu chat chính */}
+          <ChatbotAssistant className="h-[560px]" />
+
+          {/* Sidebar: hướng dẫn ngắn cho người dùng */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Gợi ý câu hỏi</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <p>Bạn có thể thử một số câu như:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>“Cho tôi xem sản phẩm nổi bật”</li>
+                  <li>“Điện thoại bán chạy trong tầm 10 triệu”</li>
+                  <li>“Máy có camera tốt để chụp đêm”</li>
+                  <li>“Điện thoại mới ra mắt gần đây”</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
+
+

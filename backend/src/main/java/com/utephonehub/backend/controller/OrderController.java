@@ -66,8 +66,8 @@ public class OrderController {
 		// Lấy userId từ JWT token
 		Long userId = securityUtils.getCurrentUserId(httpRequest);
 
-		// Gọi service tạo đơn hàng
-		CreateOrderResponse response = orderService.createOrder(request, userId);
+		// Gọi service tạo đơn hàng, truyền kèm HttpServletRequest để lấy IP client (phục vụ VNPay)
+		CreateOrderResponse response = orderService.createOrder(request, userId, httpRequest);
 
 		// Trả về response với status 201 Created
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created("Tạo đơn hàng thành công", response));

@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Smartphone,
@@ -26,7 +27,24 @@ interface MainHeaderProps {
 
 export function MainHeader({ user, onLogout }: MainHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const { totalItems } = useCartStore();
+  const router = useRouter();
+
+  const handleSearchSubmit = () => {
+    const keyword = searchKeyword.trim();
+    if (!keyword) return;
+
+    const params = new URLSearchParams();
+    params.set("keyword", keyword);
+    router.push(`/products?${params.toString()}`);
+  };
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      handleSearchSubmit();
+    }
+  };
 
   return (
     <header className="bg-primary sticky top-0 z-50 shadow-md">
@@ -49,9 +67,18 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
               <input
                 type="text"
                 placeholder="Bạn cần tìm gì?"
+                value={searchKeyword}
+                onChange={(event) => setSearchKeyword(event.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 className="w-full px-4 py-2.5 pl-10 rounded-lg bg-white text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <button
+                type="button"
+                onClick={handleSearchSubmit}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <Search className="w-5 h-5" />
+              </button>
             </div>
           </div>
 
@@ -62,7 +89,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             </button>
 
             <Link
-              href="/chatbot-assistant-demo"
+              href="/chatbot"
               className="hidden sm:flex items-center gap-1 text-primary-foreground hover:opacity-80 transition-opacity"
             >
               <Bot className="w-5 h-5" />
@@ -76,7 +103,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
               <ShoppingCart className="w-5 h-5" />
               <span className="hidden lg:inline text-sm">Giỏ hàng</span>
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 lg:-top-1 lg:right-8 bg-destructive text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-semibold">
+                <span className="absolute -top-2 -right-2 bg-destructive text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center font-semibold px-1">
                   {totalItems > 99 ? '99+' : totalItems}
                 </span>
               )}
