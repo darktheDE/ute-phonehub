@@ -21,7 +21,7 @@ export function FeaturedProducts() {
             </p>
           </div>
           <Link
-            href="/products?sort=featured"
+            href="/products"
             className="text-primary hover:underline flex items-center gap-1 text-sm font-semibold"
           >
             Xem tất cả <ChevronRight className="w-4 h-4" />

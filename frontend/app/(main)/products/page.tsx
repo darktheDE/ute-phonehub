@@ -409,16 +409,6 @@ function ProductsPageContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-            Khám Phá Sản Phẩm
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Tìm kiếm và khám phá hàng ngàn sản phẩm công nghệ với giá tốt nhất
-          </p>
-        </div>
-
         {/* Category Tabs */}
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/50 rounded-lg">

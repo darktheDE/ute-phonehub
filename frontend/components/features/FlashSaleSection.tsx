@@ -23,7 +23,7 @@ export function FlashSaleSection() {
             </div>
           </div>
           <Link
-            href="#"
+            href="/products"
             className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
           >
             Xem tất cả <ChevronRight className="w-4 h-4" />
