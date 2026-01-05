@@ -35,16 +35,19 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     setError('');
     setSuccess('');
 
-    const emailError = validateEmail(email);
-    if (emailError) {
-      setError(emailError.error || 'Email không hợp lệ');
+    // Trim email before validation
+    const trimmedEmail = email.trim();
+    
+    const emailValidation = validateEmail(trimmedEmail);
+    if (!emailValidation.isValid) {
+      setError(emailValidation.error || 'Email không hợp lệ');
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await authAPI.forgotPassword({ email });
+      const response = await authAPI.forgotPassword({ email: trimmedEmail });
 
       if (response.success && response.status === 200) {
         setSuccess('Mã OTP đã được gửi đến email của bạn');
@@ -93,9 +96,9 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     setError('');
     setSuccess('');
 
-    const passwordError = validatePassword(newPassword);
-    if (passwordError) {
-      setError(passwordError.error || 'Mật khẩu không hợp lệ');
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.error || 'Mật khẩu không hợp lệ');
       return;
     }
 

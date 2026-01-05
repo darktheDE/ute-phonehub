@@ -15,9 +15,25 @@ export const validateEmail = (email: string): ValidationResult => {
     return { isValid: false, error: 'Email là bắt buộc' };
   }
   
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return { isValid: false, error: 'Vui lòng nhập địa chỉ email hợp lệ' };
+  // Trim whitespace
+  const trimmedEmail = email.trim();
+  
+  if (!trimmedEmail) {
+    return { isValid: false, error: 'Email là bắt buộc' };
+  }
+  
+  // Improved email regex: more permissive but still valid
+  // Allows: user@domain.com, user.name@domain.co.uk, user+tag@domain.com
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  if (!emailRegex.test(trimmedEmail)) {
+    return { isValid: false, error: 'Email không hợp lệ' };
+  }
+  
+  // Additional check: must have at least one dot after @
+  const parts = trimmedEmail.split('@');
+  if (parts.length !== 2 || !parts[1].includes('.')) {
+    return { isValid: false, error: 'Email không hợp lệ' };
   }
   
   return { isValid: true };
