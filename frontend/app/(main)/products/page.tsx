@@ -114,34 +114,78 @@ function ProductsPageContent() {
     performFilter,
     clearResults,
   } = useProductDiscovery();
+
+  // Track URL keyword changes for search from header
+  const urlKeyword = searchParams.get('keyword') || '';
+  
+  // Handle URL keyword changes (when searching from header while on products page)
+  useEffect(() => {
+    if (isInitialized && urlKeyword) {
+      // URL keyword changed, perform new search
+      setSearchKeyword(urlKeyword);
+      const [sortBy, sortDirection] = currentSort.split(':') as [string, 'asc' | 'desc'];
+      performSearch({
+        keyword: urlKeyword,
+        sortBy,
+        sortDirection,
+        page: 0,
+        size: 20,
+      });
+    } else if (isInitialized && !urlKeyword && searchKeyword) {
+      // URL keyword removed, clear search and go back to filter
+      setSearchKeyword('');
+      clearResults();
+      performFilter(currentFilters);
+    }
+  }, [urlKeyword]);
   
   // Find "Điện thoại" category and set as default on initial load
+  // OR perform search if keyword is provided in URL
   useEffect(() => {
-    if (!isInitialized && categories.length > 0 && !initialCategoryId) {
-      // Find the phone category (Điện thoại)
-      const phoneCategory = categories.find(cat => 
-        cat.name.toLowerCase().includes('điện thoại') || 
-        cat.name.toLowerCase().includes('phone') ||
-        cat.name.toLowerCase().includes('smartphone')
-      );
-      
-      if (phoneCategory) {
-        // Set phone category as default
-        setActiveTab(String(phoneCategory.id));
-        const newFilters: ProductFilterRequest = {
-          ...currentFilters,
-          categoryIds: [phoneCategory.id],
+    if (!isInitialized && categories.length > 0) {
+      // If keyword is provided, perform search instead of filter
+      if (initialKeyword) {
+        const [sortBy, sortDirection] = currentSort.split(':') as [string, 'asc' | 'desc'];
+        performSearch({
+          keyword: initialKeyword,
+          sortBy,
+          sortDirection,
           page: 0,
-        };
-        setCurrentFilters(newFilters);
-        performFilter(newFilters);
+          size: 20,
+        });
+        setIsInitialized(true);
+        return;
+      }
+      
+      if (!initialCategoryId) {
+        // Find the phone category (Điện thoại)
+        const phoneCategory = categories.find(cat => 
+          cat.name.toLowerCase().includes('điện thoại') || 
+          cat.name.toLowerCase().includes('phone') ||
+          cat.name.toLowerCase().includes('smartphone')
+        );
+        
+        if (phoneCategory) {
+          // Set phone category as default
+          setActiveTab(String(phoneCategory.id));
+          const newFilters: ProductFilterRequest = {
+            ...currentFilters,
+            categoryIds: [phoneCategory.id],
+            page: 0,
+          };
+          setCurrentFilters(newFilters);
+          performFilter(newFilters);
+        } else {
+          // If no phone category found, load all products
+          performFilter(currentFilters);
+        }
       } else {
-        // If no phone category found, load all products
+        // Use the category from URL
         performFilter(currentFilters);
       }
       setIsInitialized(true);
     }
-  }, [categories, isInitialized, initialCategoryId]);
+  }, [categories, isInitialized, initialCategoryId, initialKeyword]);
 
 // Auto-filter when filters change (from user interaction)
   useEffect(() => {

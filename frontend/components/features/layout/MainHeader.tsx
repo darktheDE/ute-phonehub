@@ -4,8 +4,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,11 +18,13 @@ import {
   Menu,
   Heart,
   X,
+  Loader2,
 } from "lucide-react";
 import { MobileMenu } from "./MobileMenu";
 import { ROUTES } from "@/lib/constants";
 import { useCartStore, useWishlistStore } from "@/store";
 import { cn } from "@/lib/utils";
+import { searchProducts, type ProductCardResponse } from "@/services/new-product.service";
 
 interface MainHeaderProps {
   user: any | null;
@@ -32,14 +35,87 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [suggestions, setSuggestions] = useState<ProductCardResponse[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const { totalItems: cartItems } = useCartStore();
   const { totalItems: wishlistItems } = useWishlistStore();
   const router = useRouter();
+  const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced search for suggestions
+  const fetchSuggestions = useCallback(async (keyword: string) => {
+    if (!keyword.trim() || keyword.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const result = await searchProducts({
+        keyword: keyword.trim(),
+        page: 0,
+        size: 5, // Only show top 5 suggestions
+      });
+      setSuggestions(result.content || []);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error('Search suggestions error:', error);
+      setSuggestions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Handle input change with debounce
+  const handleSearchChange = (value: string) => {
+    setSearchKeyword(value);
+    
+    // Clear previous debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Debounce 300ms
+    debounceRef.current = setTimeout(() => {
+      fetchSuggestions(value);
+    }, 300);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current && 
+        !searchRef.current.contains(event.target as Node) &&
+        mobileSearchRef.current &&
+        !mobileSearchRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   const handleSearchSubmit = () => {
     const keyword = searchKeyword.trim();
     if (!keyword) return;
 
+    setShowSuggestions(false);
     const params = new URLSearchParams();
     params.set("keyword", keyword);
     router.push(`/products?${params.toString()}`);
@@ -49,7 +125,76 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       handleSearchSubmit();
+    } else if (event.key === "Escape") {
+      setShowSuggestions(false);
     }
+  };
+
+  const handleSuggestionClick = (productId: number) => {
+    setShowSuggestions(false);
+    setSearchKeyword("");
+    router.push(`/products/${productId}`);
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+    }).format(price);
+  };
+
+  // Suggestion dropdown component
+  const SuggestionDropdown = () => {
+    if (!showSuggestions) return null;
+
+    return (
+      <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
+        {isSearching ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <span className="ml-2 text-sm text-muted-foreground">Đang tìm kiếm...</span>
+          </div>
+        ) : suggestions.length > 0 ? (
+          <>
+            {suggestions.map((product) => (
+              <button
+                key={product.id}
+                onClick={() => handleSuggestionClick(product.id)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+              >
+                <div className="w-12 h-12 relative flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
+                  <Image
+                    src={product.thumbnailUrl || '/placeholder-product.png'}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    sizes="48px"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {product.name}
+                  </p>
+                  <p className="text-sm text-primary font-semibold">
+                    {formatPrice(product.discountedPrice || product.originalPrice)}
+                  </p>
+                </div>
+              </button>
+            ))}
+            <button
+              onClick={handleSearchSubmit}
+              className="w-full py-2.5 text-center text-sm font-medium text-primary hover:bg-primary/5 border-t border-gray-100 transition-colors"
+            >
+              Xem tất cả kết quả cho "{searchKeyword}"
+            </button>
+          </>
+        ) : searchKeyword.trim().length >= 2 ? (
+          <div className="py-4 text-center text-sm text-muted-foreground">
+            Không tìm thấy sản phẩm phù hợp
+          </div>
+        ) : null}
+      </div>
+    );
   };
 
   return (
@@ -68,15 +213,20 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
           </Link>
 
           {/* Search Bar - Desktop */}
-          <div className="flex-1 max-w-2xl hidden md:block">
+          <div className="flex-1 max-w-2xl hidden md:block" ref={searchRef}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Tìm kiếm điện thoại, phụ kiện..."
                 value={searchKeyword}
-                onChange={(event) => setSearchKeyword(event.target.value)}
+                onChange={(event) => handleSearchChange(event.target.value)}
                 onKeyDown={handleSearchKeyDown}
+                onFocus={() => {
+                  if (searchKeyword.trim().length >= 2 && suggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
                 className="w-full px-4 py-2.5 pl-10 pr-20 rounded-full bg-white text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
               />
               <button
@@ -86,6 +236,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
               >
                 Tìm
               </button>
+              <SuggestionDropdown />
             </div>
           </div>
 
@@ -186,15 +337,20 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
 
         {/* Mobile Search Bar */}
         {mobileSearchOpen && (
-          <div className="md:hidden pt-3 pb-1 animate-in slide-in-from-top duration-200">
+          <div className="md:hidden pt-3 pb-1 animate-in slide-in-from-top duration-200" ref={mobileSearchRef}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Tìm kiếm sản phẩm..."
                 value={searchKeyword}
-                onChange={(event) => setSearchKeyword(event.target.value)}
+                onChange={(event) => handleSearchChange(event.target.value)}
                 onKeyDown={handleSearchKeyDown}
+                onFocus={() => {
+                  if (searchKeyword.trim().length >= 2 && suggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
                 autoFocus
                 className="w-full px-4 py-2.5 pl-10 pr-16 rounded-full bg-white text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
@@ -205,6 +361,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
               >
                 Tìm
               </button>
+              <SuggestionDropdown />
             </div>
           </div>
         )}
