@@ -31,6 +31,7 @@ import com.utephonehub.backend.repository.PaymentRepository;
 import com.utephonehub.backend.repository.ProductRepository;
 import com.utephonehub.backend.repository.PromotionRepository;
 import com.utephonehub.backend.repository.UserRepository;
+import com.utephonehub.backend.service.IEmailService;
 import com.utephonehub.backend.service.IOrderService;
 import com.utephonehub.backend.service.IVNPayService;
 import com.utephonehub.backend.util.SecurityUtils;
@@ -74,6 +75,7 @@ public class OrderServiceImpl implements IOrderService {
     private final CartItemRepository cartItemRepository;
     private final IVNPayService vnPayService;
     private final SecurityUtils securityUtils;
+    private final IEmailService emailService;
     
     @Override
     @Transactional(readOnly = true)
@@ -291,6 +293,26 @@ public class OrderServiceImpl implements IOrderService {
             paymentRepository.save(payment);
             log.info("Created payment record for COD/Bank Transfer: orderId={}, amount={}", 
                     order.getId(), totalAmount);
+            
+            // Send order confirmation email for COD/Bank Transfer (payment already successful)
+            try {
+                String paymentMethodName = request.getPaymentMethod() == PaymentMethod.COD 
+                    ? "Thanh toán khi nhận hàng" 
+                    : "Chuyển khoản ngân hàng";
+                
+                emailService.sendOrderPaymentSuccessEmail(
+                    order.getEmail(),
+                    order.getOrderCode(),
+                    order.getTotalAmount(),
+                    order.getRecipientName(),
+                    paymentMethodName
+                );
+                log.info("Order confirmation email sent for COD/Bank Transfer order: {}", order.getOrderCode());
+            } catch (Exception e) {
+                log.error("Failed to send order confirmation email for order {}: {}", 
+                         order.getOrderCode(), e.getMessage());
+                // Không throw exception để không ảnh hưởng order creation
+            }
         }
 
         // 11.1. AF2 – After successfully creating the order, automatically remove

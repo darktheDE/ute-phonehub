@@ -170,13 +170,13 @@ public class UserServiceImpl implements IUserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        // Check if already active
-        if (user.getStatus() == UserStatus.ACTIVE) {
+        // Check if already active (ACTIVE or EMAIL_VERIFIED)
+        if (user.getStatus() == UserStatus.ACTIVE || user.getStatus() == UserStatus.EMAIL_VERIFIED) {
             log.info("User is already active - userId: {}", userId);
             throw new BadRequestException("Tài khoản đang hoạt động, không cần mở khóa");
         }
 
-        // Unlock the account
+        // Unlock the account - set to ACTIVE (user can verify email later if needed)
         user.setStatus(UserStatus.ACTIVE);
         user = userRepository.save(user);
 

@@ -42,6 +42,7 @@ public class AuthServiceImpl implements IAuthService {
     private final UserMapper userMapper;
 
     private static final String OTP_PREFIX = "otp:";
+    private static final String REGISTER_OTP_PREFIX = "verify_email:";
     private static final long OTP_EXPIRATION_MINUTES = 5;
 
     @Override
@@ -87,6 +88,29 @@ public class AuthServiceImpl implements IAuthService {
         cartRepository.save(cart);
 
         log.info("User registered successfully with id: {}", user.getId());
+
+        // Generate OTP for email verification
+        String otp = otpGenerator.generateOtp();
+        String verifyOtpKey = REGISTER_OTP_PREFIX + user.getEmail();
+
+        // Store OTP in Redis with expiration
+        redisTemplate.opsForValue().set(
+                verifyOtpKey,
+                otp,
+                OTP_EXPIRATION_MINUTES,
+                TimeUnit.MINUTES
+        );
+
+        // Send registration OTP email (async, không block registration flow)
+        try {
+            log.info("Attempting to send registration OTP email to: {}", user.getEmail());
+            emailService.sendRegistrationOtpEmail(user.getEmail(), user.getFullName(), otp);
+            log.info("Registration OTP email sent successfully to: {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send registration OTP email to {}: {}", 
+                     user.getEmail(), e.getMessage(), e);
+            // Không throw exception để không ảnh hưởng registration
+        }
 
         return userMapper.toResponse(user);
     }
@@ -145,6 +169,13 @@ public class AuthServiceImpl implements IAuthService {
         // Check if account is locked
         if (user.getStatus() == UserStatus.LOCKED) {
             throw new UnauthorizedException("Tài khoản của bạn đã bị khóa");
+        }
+
+        // Allow login for both ACTIVE and EMAIL_VERIFIED status
+        // ACTIVE = newly registered but not verified email yet
+        // EMAIL_VERIFIED = email has been verified
+        if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.EMAIL_VERIFIED) {
+            throw new UnauthorizedException("Tài khoản của bạn không ở trạng thái hoạt động");
         }
 
         // Verify password
@@ -275,7 +306,45 @@ public class AuthServiceImpl implements IAuthService {
 
         // Delete OTP from Redis
         redisTemplate.delete(otpKey);
-
+        
         log.info("Password reset successfully for user id: {}", user.getId());
+        
+        // Send password reset confirmation email (async, không block flow)
+        try {
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName());
+        } catch (Exception e) {
+            log.error("Failed to send password reset email to {}: {}", 
+                     user.getEmail(), e.getMessage());
+            // Không throw exception
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public void verifyRegistrationOtp(VerifyRegistrationOtpRequest request) {
+        log.info("Verifying registration OTP for email: {}", request.getEmail());
+
+        String otpKey = REGISTER_OTP_PREFIX + request.getEmail();
+        String storedOtp = redisTemplate.opsForValue().get(otpKey);
+
+        if (storedOtp == null || !storedOtp.equals(request.getOtp())) {
+            throw new UnauthorizedException("Mã OTP không hợp lệ hoặc đã hết hạn");
+        }
+
+        // Find user and update status to EMAIL_VERIFIED
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+
+        // Update user status to EMAIL_VERIFIED after successful email verification
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            user.setStatus(UserStatus.EMAIL_VERIFIED);
+            userRepository.save(user);
+            log.info("User status updated to EMAIL_VERIFIED for email: {}", request.getEmail());
+        }
+
+        // Delete OTP from Redis (one-time use)
+        redisTemplate.delete(otpKey);
+
+        log.info("Registration OTP verified successfully for email: {}", request.getEmail());
     }
 }

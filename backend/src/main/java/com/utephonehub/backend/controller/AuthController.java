@@ -121,6 +121,19 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Mật khẩu đã được đặt lại thành công", null));
     }
 
+    @PostMapping("/verify-email")
+    @Operation(summary = "Xác thực email đăng ký", description = "Xác thực email bằng mã OTP được gửi sau khi đăng ký")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Xác thực email thành công"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "OTP không hợp lệ hoặc đã hết hạn")
+    })
+    public ResponseEntity<ApiResponse<?>> verifyRegistrationOtp(
+            @Valid @RequestBody VerifyRegistrationOtpRequest request) {
+        log.info("Verify registration OTP for email: {}", request.getEmail());
+        authService.verifyRegistrationOtp(request);
+        return ResponseEntity.ok(ApiResponse.success("Email đã được xác thực thành công", null));
+    }
+
     @GetMapping("/login/google")
     @Operation(summary = "Bắt đầu đăng nhập bằng Google", description = "Redirect người dùng tới Google OAuth2 login")
     @ApiResponses(value = {

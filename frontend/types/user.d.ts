@@ -10,7 +10,7 @@ export interface User {
   gender: 'MALE' | 'FEMALE' | 'OTHER' | null;
   dateOfBirth: string | null;
   role: 'CUSTOMER' | 'ADMIN';
-  status: 'ACTIVE' | 'LOCKED';
+  status: 'ACTIVE' | 'LOCKED' | 'EMAIL_VERIFIED';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -59,6 +59,6 @@ export interface CreateUserRequest {
 
 export interface UserFilters {
   role?: 'CUSTOMER' | 'ADMIN' | 'ALL';
-  status?: 'ACTIVE' | 'LOCKED' | 'ALL';
+  status?: 'ACTIVE' | 'LOCKED' | 'EMAIL_VERIFIED' | 'ALL';
   keyword?: string;
 }

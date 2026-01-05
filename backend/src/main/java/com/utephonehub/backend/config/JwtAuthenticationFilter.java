@@ -46,7 +46,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 User user = userRepository.findById(userId).orElse(null);
 
-                if (user != null && user.getStatus() == UserStatus.ACTIVE) {
+                // Allow both ACTIVE and EMAIL_VERIFIED users to authenticate
+                if (user != null && (user.getStatus() == UserStatus.ACTIVE || user.getStatus() == UserStatus.EMAIL_VERIFIED)) {
                     // Add "ROLE_" prefix for hasRole() to work correctly
                     SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
 

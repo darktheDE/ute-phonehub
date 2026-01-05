@@ -18,6 +18,7 @@ import com.utephonehub.backend.repository.OrderRepository;
 import com.utephonehub.backend.repository.PaymentCallbackLogRepository;
 import com.utephonehub.backend.repository.PaymentRepository;
 import com.utephonehub.backend.repository.ProductRepository;
+import com.utephonehub.backend.service.IEmailService;
 import com.utephonehub.backend.service.IVNPayService;
 import com.utephonehub.backend.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,6 +47,7 @@ public class VNPayServiceImpl implements IVNPayService {
     private final PaymentCallbackLogRepository callbackLogRepository;
     private final ProductRepository productRepository;
     private final PaymentMapper paymentMapper;
+    private final IEmailService emailService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Override
@@ -275,6 +277,21 @@ public class VNPayServiceImpl implements IVNPayService {
                     productRepository.save(product); // Cascade saves templates
                 }
                 log.info("Payment successful and stock reduced for order: {}", order.getOrderCode());
+                
+                // Send payment success email (async, không block payment flow)
+                try {
+                    emailService.sendOrderPaymentSuccessEmail(
+                        order.getEmail(),
+                        order.getOrderCode(),
+                        order.getTotalAmount(),
+                        order.getRecipientName(),
+                        order.getPaymentMethod() != null ? order.getPaymentMethod().toString() : "VNPay"
+                    );
+                } catch (Exception e) {
+                    log.error("Failed to send payment success email for order {}: {}", 
+                             order.getOrderCode(), e.getMessage());
+                    // Không throw exception
+                }
             } else {
                 // Handle out of stock scenario: Cancel order but keep payment success (for refund)
                 order.setStatus(OrderStatus.CANCELLED);
