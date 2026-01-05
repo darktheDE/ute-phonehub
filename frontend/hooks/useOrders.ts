@@ -1,8 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { orderAPI } from '@/lib/api';
-import type { Order, OrderResponse, RecentOrderResponse } from '@/types';
+import { useState, useEffect } from "react";
+import { orderAPI, adminAPI } from "@/lib/api";
+import type {
+  Order,
+  OrderResponse,
+  RecentOrderResponse,
+  AdminOrderListResponse,
+} from "@/types";
 
 export function useOrders(isAdmin: boolean = false) {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -16,36 +21,68 @@ export function useOrders(isAdmin: boolean = false) {
         setError(null);
         
         if (isAdmin) {
-          // Admin: Use real API - GET /api/v1/admin/dashboard/recent-orders exists
-          const response = await orderAPI.getRecentOrders(20);
+          // Admin: dùng API quản lý đơn hàng: GET /api/v1/admin/orders
+          const response = await adminAPI.getOrders({
+            page: 0,
+            size: 20,
+            sortBy: "createdAt",
+            sortDirection: "desc",
+          });
           if (response.success && response.data) {
-            // Transform RecentOrderResponse to Order format
-            const transformedOrders: Order[] = response.data.map((item) => ({
-              id: item.orderId,
+            const pageData = response.data;
+            const transformedOrders: Order[] = (pageData.content ||
+              []).map((item: AdminOrderListResponse) => ({
+              id: item.id,
               orderCode: item.orderCode,
-              customer: item.customerName,
+              customer: item.customerName || item.recipientName,
               total: item.totalAmount,
               totalAmount: item.totalAmount,
               status: item.status,
-              date: new Date(item.createdAt).toLocaleDateString('vi-VN'),
+              date: new Date(item.createdAt).toLocaleDateString("vi-VN"),
               createdAt: item.createdAt,
-              updatedAt: item.createdAt,
-              email: '',
-              recipientName: item.customerName,
-              phoneNumber: '',
-              shippingAddress: '',
-              paymentMethod: '',
+              updatedAt: item.updatedAt,
+              email: item.customerEmail || "",
+              recipientName: item.recipientName,
+              phoneNumber: item.recipientPhone || "",
+              shippingAddress: item.shippingAddress,
+              paymentMethod: item.paymentMethod,
               items: [],
-              itemCount: 1,
+              itemCount: item.itemCount,
             }));
             setOrders(transformedOrders);
           }
         } else {
-          // Customer: Endpoint GET /api/v1/orders (list) doesn't exist
-          // Component will use mock data instead, so return empty here
-          setOrders([]);
-          setLoading(false);
-          return;
+          // Customer: dùng API /api/v1/orders/my-orders
+          const response = await orderAPI.getMyOrders();
+          if (response.success && Array.isArray(response.data)) {
+            const transformedOrders: Order[] = response.data.map(
+              (item: OrderResponse) => ({
+                id: item.id,
+                orderCode: item.orderCode,
+                email: item.email,
+                recipientName: item.recipientName,
+                phoneNumber: item.phoneNumber,
+                shippingAddress: item.shippingAddress,
+                shippingFee: item.shippingFee,
+                shippingUnit: item.shippingUnit,
+                note: item.note,
+                status: item.status,
+                paymentMethod: item.paymentMethod,
+                totalAmount: item.totalAmount,
+                promotionId: item.promotionId,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+                items: item.items,
+                customer: item.recipientName,
+                total: item.totalAmount,
+                date: new Date(item.createdAt).toLocaleDateString("vi-VN"),
+                itemCount: item.items?.length ?? 0,
+              })
+            );
+            setOrders(transformedOrders);
+          } else {
+            setOrders([]);
+          }
         }
       } catch (err) {
         console.error('Error fetching orders:', err);
@@ -66,34 +103,66 @@ export function useOrders(isAdmin: boolean = false) {
         setError(null);
         
         if (isAdmin) {
-          // Admin: Use real API
-          const response = await orderAPI.getRecentOrders(20);
+          const response = await adminAPI.getOrders({
+            page: 0,
+            size: 20,
+            sortBy: "createdAt",
+            sortDirection: "desc",
+          });
           if (response.success && response.data) {
-            const transformedOrders: Order[] = response.data.map((item) => ({
-              id: item.orderId,
+            const pageData = response.data;
+            const transformedOrders: Order[] = (pageData.content ||
+              []).map((item: AdminOrderListResponse) => ({
+              id: item.id,
               orderCode: item.orderCode,
-              customer: item.customerName,
+              customer: item.customerName || item.recipientName,
               total: item.totalAmount,
               totalAmount: item.totalAmount,
               status: item.status,
-              date: new Date(item.createdAt).toLocaleDateString('vi-VN'),
+              date: new Date(item.createdAt).toLocaleDateString("vi-VN"),
               createdAt: item.createdAt,
-              updatedAt: item.createdAt,
-              email: '',
-              recipientName: item.customerName,
-              phoneNumber: '',
-              shippingAddress: '',
-              paymentMethod: '',
+              updatedAt: item.updatedAt,
+              email: item.customerEmail || "",
+              recipientName: item.recipientName,
+              phoneNumber: item.recipientPhone || "",
+              shippingAddress: item.shippingAddress,
+              paymentMethod: item.paymentMethod,
               items: [],
-              itemCount: 1,
+              itemCount: item.itemCount,
             }));
             setOrders(transformedOrders);
           }
         } else {
-          // Customer: Endpoint doesn't exist, return empty
-          setOrders([]);
-          setLoading(false);
-          return;
+          const response = await orderAPI.getMyOrders();
+          if (response.success && Array.isArray(response.data)) {
+            const transformedOrders: Order[] = response.data.map(
+              (item: OrderResponse) => ({
+                id: item.id,
+                orderCode: item.orderCode,
+                email: item.email,
+                recipientName: item.recipientName,
+                phoneNumber: item.phoneNumber,
+                shippingAddress: item.shippingAddress,
+                shippingFee: item.shippingFee,
+                shippingUnit: item.shippingUnit,
+                note: item.note,
+                status: item.status,
+                paymentMethod: item.paymentMethod,
+                totalAmount: item.totalAmount,
+                promotionId: item.promotionId,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+                items: item.items,
+                customer: item.recipientName,
+                total: item.totalAmount,
+                date: new Date(item.createdAt).toLocaleDateString("vi-VN"),
+                itemCount: item.items?.length ?? 0,
+              })
+            );
+            setOrders(transformedOrders);
+          } else {
+            setOrders([]);
+          }
         }
       } catch (err) {
         console.error('Error fetching orders:', err);

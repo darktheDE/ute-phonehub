@@ -68,6 +68,7 @@ export type {
   CreateOrderResponse,
   PaymentMethod,
   RecentOrderResponse,
+  AdminOrderListResponse,
 } from "./order";
 
 // Dashboard types

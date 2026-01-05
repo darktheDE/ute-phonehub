@@ -129,7 +129,8 @@ public class SecurityConfig {
                 // ========================================
                 
                 // Admin Order Management (Module 07 - Admin)
-                .requestMatchers("/api/v1/admin/orders/**").hasAuthority("ADMIN")
+                // Sử dụng hasRole(\"ADMIN\") để đồng bộ với các endpoint admin khác (ROLE_ADMIN)
+                .requestMatchers("/api/v1/admin/orders/**").hasRole("ADMIN")
                 
                 // Other admin endpoints
                 . requestMatchers(

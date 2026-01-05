@@ -501,10 +501,13 @@ export const orderAPI = {
       method: "GET",
     });
   },
-
-  // Get user's orders (for customer)
-  // Note: Endpoint GET /api/v1/orders (list) doesn't exist
-  // Components will use mock data instead
+  // Get current user's orders (simple list, no pagination)
+  // GET /api/v1/orders/my-orders
+  getMyOrders: async (): Promise<ApiResponse<OrderResponse[]>> => {
+    return fetchAPI<OrderResponse[]>("/orders/my-orders", {
+      method: "GET",
+    });
+  },
 
   // Get recent orders (for admin dashboard)
   // This endpoint exists: GET /api/v1/admin/dashboard/recent-orders?limit={limit}
@@ -541,6 +544,62 @@ export const adminAPI = {
 
     const query = queryParams.toString();
     return fetchAPI<any>(`/admin/users${query ? `?${query}` : ""}`, {
+      method: "GET",
+    });
+  },
+
+  // Orders (Admin management)
+  // GET /api/v1/admin/orders
+  getOrders: async (params?: {
+    search?: string;
+    status?: string;
+    paymentMethod?: string;
+    customerId?: number;
+    customerEmail?: string;
+    fromDate?: string;
+    toDate?: string;
+    minAmount?: string;
+    maxAmount?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDirection?: "asc" | "desc";
+  }): Promise<ApiResponse<{
+    content: import("@/types").AdminOrderListResponse[];
+    totalPages: number;
+    totalElements: number;
+    number: number;
+    size: number;
+  }>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append("search", params.search);
+    if (params?.status) queryParams.append("status", params.status);
+    if (params?.paymentMethod)
+      queryParams.append("paymentMethod", params.paymentMethod);
+    if (params?.customerId !== undefined)
+      queryParams.append("customerId", String(params.customerId));
+    if (params?.customerEmail)
+      queryParams.append("customerEmail", params.customerEmail);
+    if (params?.fromDate) queryParams.append("fromDate", params.fromDate);
+    if (params?.toDate) queryParams.append("toDate", params.toDate);
+    if (params?.minAmount) queryParams.append("minAmount", params.minAmount);
+    if (params?.maxAmount) queryParams.append("maxAmount", params.maxAmount);
+    if (params?.page !== undefined)
+      queryParams.append("page", String(params.page));
+    if (params?.size !== undefined)
+      queryParams.append("size", String(params.size));
+    if (params?.sortBy) queryParams.append("sortBy", params.sortBy);
+    if (params?.sortDirection)
+      queryParams.append("sortDirection", params.sortDirection);
+
+    const query = queryParams.toString();
+    return fetchAPI<{
+      content: import("@/types").AdminOrderListResponse[];
+      totalPages: number;
+      totalElements: number;
+      number: number;
+      size: number;
+    }>(`/admin/orders${query ? `?${query}` : ""}`, {
       method: "GET",
     });
   },
