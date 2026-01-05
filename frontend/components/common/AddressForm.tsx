@@ -2,13 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAddress } from '@/hooks/useAddress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -37,8 +31,8 @@ interface AddressFormProps {
 
 /**
  * Component form địa chỉ
- * Hiển thị dropdown chọn tỉnh/thành phố và phường/xã
- * Khi người dùng thay đổi lựa chọn, gọi callback onAddressChange
+ * Sử dụng Combobox cho tỉnh/thành phố và phường/xã
+ * Cho phép người dùng tự nhập HOẶC chọn từ dropdown
  */
 export const AddressForm: React.FC<AddressFormProps> = ({
   onAddressChange,
@@ -64,6 +58,8 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   } = useAddress();
 
   const [streetAddress, setStreetAddress] = useState(defaultValue?.streetAddress || '');
+  const [provinceInput, setProvinceInput] = useState('');
+  const [wardInput, setWardInput] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Khởi tạo giá trị mặc định
@@ -83,42 +79,127 @@ export const AddressForm: React.FC<AddressFormProps> = ({
     initializeDefaultValues();
   }, [defaultValue, isInitialized, fetchProvinceByCode, fetchWardByCode]);
 
+  // Sync province input với selectedProvince
+  useEffect(() => {
+    if (selectedProvince) {
+      setProvinceInput(selectedProvince.name);
+    }
+  }, [selectedProvince]);
+
+  // Sync ward input với selectedWard
+  useEffect(() => {
+    if (selectedWard) {
+      setWardInput(selectedWard.name);
+    }
+  }, [selectedWard]);
+
   // Thông báo component cha khi địa chỉ thay đổi
   useEffect(() => {
-    if (onAddressChange && selectedProvince && selectedWard) {
-      onAddressChange({
-        provinceCode: selectedProvince.code,
-        provinceName: selectedProvince.name,
-        wardCode: selectedWard.code,
-        wardName: selectedWard.name,
-        streetAddress: streetAddress.trim() || undefined,
-      });
+    if (onAddressChange) {
+      // Nếu có selectedProvince và selectedWard (chọn từ dropdown)
+      if (selectedProvince && selectedWard) {
+        onAddressChange({
+          provinceCode: selectedProvince.code,
+          provinceName: selectedProvince.name,
+          wardCode: selectedWard.code,
+          wardName: selectedWard.name,
+          streetAddress: streetAddress.trim() || undefined,
+        });
+      }
+      // Nếu người dùng tự nhập (không có selectedProvince/selectedWard nhưng có input)
+      else if (provinceInput.trim() && wardInput.trim()) {
+        // Tìm province và ward từ input
+        const province = provinces.find(
+          (p) => p.name.toLowerCase() === provinceInput.toLowerCase()
+        );
+        const ward = wards.find(
+          (w) => w.name.toLowerCase() === wardInput.toLowerCase()
+        );
+
+        onAddressChange({
+          provinceCode: province?.code || 0,
+          provinceName: provinceInput.trim(),
+          wardCode: ward?.code || 0,
+          wardName: wardInput.trim(),
+          streetAddress: streetAddress.trim() || undefined,
+        });
+      }
     }
-  }, [selectedProvince, selectedWard, streetAddress, onAddressChange]);
+  }, [selectedProvince, selectedWard, provinceInput, wardInput, streetAddress, onAddressChange, provinces, wards]);
 
-  const handleProvinceChange = useCallback((code: string) => {
-    selectProvince(Number(code));
-    // Reset street address when province changes
-    setStreetAddress('');
-  }, [selectProvince]);
+  // Xử lý chọn tỉnh từ dropdown
+  const handleProvinceSelect = useCallback(
+    async (option: ComboboxOption) => {
+      if (option.code) {
+        await selectProvince(Number(option.code));
+      }
+    },
+    [selectProvince]
+  );
 
-  const handleWardChange = useCallback((code: string) => {
-    selectWard(Number(code));
-  }, [selectWard]);
+  // Xử lý thay đổi input tỉnh (tự nhập)
+  const handleProvinceChange = useCallback(
+    async (value: string) => {
+      setProvinceInput(value);
+      // Reset ward khi thay đổi tỉnh
+      setWardInput('');
+      reset();
+
+      // Nếu người dùng nhập đúng tên tỉnh, tự động load wards
+      const matchedProvince = provinces.find(
+        (p) => p.name.toLowerCase() === value.toLowerCase()
+      );
+      if (matchedProvince) {
+        await selectProvince(matchedProvince.code);
+      }
+    },
+    [reset, provinces, selectProvince]
+  );
+
+  // Xử lý chọn phường từ dropdown
+  const handleWardSelect = useCallback(
+    async (option: ComboboxOption) => {
+      if (option.code && selectedProvince) {
+        await selectWard(Number(option.code));
+      }
+    },
+    [selectWard, selectedProvince]
+  );
+
+  // Xử lý thay đổi input phường (tự nhập)
+  const handleWardChange = useCallback((value: string) => {
+    setWardInput(value);
+  }, []);
 
   const handleReset = useCallback(() => {
     reset();
     setStreetAddress('');
+    setProvinceInput('');
+    setWardInput('');
   }, [reset]);
 
   const handleStreetAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setStreetAddress(e.target.value);
   }, []);
 
+  // Convert provinces to ComboboxOptions
+  const provinceOptions: ComboboxOption[] = provinces.map((p) => ({
+    value: p.code.toString(),
+    label: p.name,
+    code: p.code,
+  }));
+
+  // Convert wards to ComboboxOptions
+  const wardOptions: ComboboxOption[] = wards.map((w) => ({
+    value: w.code.toString(),
+    label: w.name,
+    code: w.code,
+  }));
+
   // Tính trạng thái validation
-  const isValid = selectedProvince && selectedWard;
-  const isProvinceSelected = !!selectedProvince;
-  const isWardDisabled = disabled || !selectedProvince || loadingWards;
+  const isValid = (selectedProvince && selectedWard) || (provinceInput.trim() && wardInput.trim());
+  const isProvinceSelected = !!selectedProvince || !!provinceInput.trim();
+  const isWardDisabled = disabled || (!selectedProvince && !provinceInput.trim()) || loadingWards;
 
   // Hiển thị skeleton khi loading
   if (loadingProvinces && provinces.length === 0) {
@@ -147,7 +228,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
       {/* Tỉnh/Thành phố */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="province-select" className="text-sm font-medium flex items-center gap-1">
+          <Label htmlFor="province-combobox" className="text-sm font-medium flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" />
             Tỉnh/Thành phố
             {required && <span className="text-red-500">*</span>}
@@ -159,106 +240,56 @@ export const AddressForm: React.FC<AddressFormProps> = ({
             </div>
           )}
         </div>
-        <Select
-          value={selectedProvince?.code.toString() || ''}
-          onValueChange={handleProvinceChange}
-          disabled={disabled || loadingProvinces}
-        >
-          <SelectTrigger
-            id="province-select"
-            className={cn(
-              'w-full transition-all',
-              disabled && 'opacity-50 cursor-not-allowed',
-              error && 'border-red-500 focus:ring-red-500',
-              isProvinceSelected && 'border-green-500'
-            )}
-          >
-            <SelectValue
-              placeholder={
-                loadingProvinces
-                  ? 'Đang tải dữ liệu...'
-                  : 'Chọn tỉnh/thành phố'
-              }
-            />
-          </SelectTrigger>
-          <SelectContent className="max-h-64">
-            {provinces.length === 0 ? (
-              <div className="py-6 text-center text-gray-500">
-                Không có dữ liệu
-              </div>
-            ) : (
-              provinces.map((province) => (
-                <SelectItem 
-                  key={province.code} 
-                  value={province.code.toString()}
-                  className="hover:bg-gray-50"
-                >
-                  {province.name}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
+        <Combobox
+          options={provinceOptions}
+          value={provinceInput}
+          onChange={handleProvinceChange}
+          onSelect={handleProvinceSelect}
+          placeholder={
+            loadingProvinces
+              ? 'Đang tải dữ liệu...'
+              : 'Nhập hoặc chọn tỉnh/thành phố'
+          }
+          loading={loadingProvinces}
+          disabled={disabled}
+          error={error && !provinceInput.trim() ? error : undefined}
+          allowCustomInput={true}
+        />
       </div>
 
       {/* Phường/Xã */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="ward-select" className="text-sm font-medium">
+          <Label htmlFor="ward-combobox" className="text-sm font-medium">
             Phường/Xã
             {required && <span className="text-red-500">*</span>}
           </Label>
-          {selectedWard && (
+          {(selectedWard || wardInput.trim()) && (
             <div className="flex items-center gap-1 text-xs text-green-600">
               <CheckCircle2 className="h-3 w-3" />
               Đã chọn
             </div>
           )}
         </div>
-        <Select
-          value={selectedWard?.code.toString() || ''}
-          onValueChange={handleWardChange}
+        <Combobox
+          options={wardOptions}
+          value={wardInput}
+          onChange={handleWardChange}
+          onSelect={handleWardSelect}
+          placeholder={
+            !selectedProvince && !provinceInput.trim()
+              ? 'Vui lòng nhập tỉnh/thành phố trước'
+              : loadingWards
+                ? 'Đang tải dữ liệu...'
+                : wards.length === 0
+                  ? 'Không có phường/xã'
+                  : 'Nhập hoặc chọn phường/xã'
+          }
+          loading={loadingWards}
           disabled={isWardDisabled}
-        >
-          <SelectTrigger
-            id="ward-select"
-            className={cn(
-              'w-full transition-all',
-              (!selectedProvince || disabled) && 'opacity-50 cursor-not-allowed',
-              error && 'border-red-500 focus:ring-red-500',
-              selectedWard && 'border-green-500'
-            )}
-          >
-            <SelectValue
-              placeholder={
-                !selectedProvince
-                  ? 'Vui lòng chọn tỉnh/thành phố trước'
-                  : loadingWards
-                    ? 'Đang tải dữ liệu...'
-                    : wards.length === 0
-                      ? 'Không có phường/xã'
-                      : 'Chọn phường/xã'
-              }
-            />
-          </SelectTrigger>
-          <SelectContent className="max-h-64">
-            {wards.length === 0 ? (
-              <div className="py-6 text-center text-gray-500">
-                {selectedProvince ? 'Không có dữ liệu phường/xã' : 'Chọn tỉnh/thành phố trước'}
-              </div>
-            ) : (
-              wards.map((ward) => (
-                <SelectItem 
-                  key={ward.code} 
-                  value={ward.code.toString()}
-                  className="hover:bg-gray-50"
-                >
-                  {ward.name}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
+          error={error && !wardInput.trim() ? error : undefined}
+          allowCustomInput={true}
+        />
       </div>
 
       {/* Số nhà, tên đường (tùy chọn) */}
@@ -297,7 +328,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
       )}
 
       {/* Hiển thị địa chỉ đã chọn */}
-      {selectedProvince && selectedWard && (
+      {isValid && (
         <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-md space-y-2 animate-in fade-in duration-300">
           <div className="flex items-center justify-between">
             <p className="text-blue-900 font-medium text-sm flex items-center gap-2">
@@ -319,26 +350,40 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                   <span className="text-gray-500 mx-2">•</span>
                 </>
               )}
-              <span className="text-blue-700">{selectedWard.name}</span>
+              <span className="text-blue-700">
+                {selectedWard?.name || wardInput.trim()}
+              </span>
               <span className="text-gray-500 mx-2">•</span>
-              <span className="text-blue-900 font-semibold">{selectedProvince.name}</span>
+              <span className="text-blue-900 font-semibold">
+                {selectedProvince?.name || provinceInput.trim()}
+              </span>
             </p>
-            <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
-              <div className="flex items-center gap-1">
-                <span className="font-medium">Mã tỉnh:</span>
-                <code className="bg-gray-100 px-1.5 py-0.5 rounded">{selectedProvince.code}</code>
+            {(selectedProvince || selectedWard) && (
+              <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
+                {selectedProvince && (
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">Mã tỉnh:</span>
+                    <code className="bg-gray-100 px-1.5 py-0.5 rounded">
+                      {selectedProvince.code}
+                    </code>
+                  </div>
+                )}
+                {selectedWard && (
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">Mã phường:</span>
+                    <code className="bg-gray-100 px-1.5 py-0.5 rounded">
+                      {selectedWard.code}
+                    </code>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1">
-                <span className="font-medium">Mã phường:</span>
-                <code className="bg-gray-100 px-1.5 py-0.5 rounded">{selectedWard.code}</code>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Nút xóa lựa chọn */}
-      {(selectedProvince || streetAddress) && (
+      {(selectedProvince || provinceInput || streetAddress) && (
         <div className="flex gap-2">
           <Button
             type="button"

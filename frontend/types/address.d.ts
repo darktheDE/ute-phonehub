@@ -1,23 +1,26 @@
 /**
- * Tỉnh/Thành phố
+ * Tỉnh/Thành phố - Response từ Backend API
  */
 export interface Province {
-  code: number;
+  id: number;
+  provinceCode: string;
   name: string;
-  codename: string;
-  division_type: string;
-  phone_code?: number;
+  placeType: string;
+  country: string;
+  // Alias cho tương thích với code cũ
+  code: number; // Mapped từ provinceCode (parseInt)
 }
 
 /**
- * Phường/Xã
+ * Phường/Xã - Response từ Backend API
  */
 export interface Ward {
-  code: number;
+  id: number;
+  wardCode: string;
   name: string;
-  codename: string;
-  division_type: string;
-  district_code: number;
+  provinceCode: string;
+  // Alias cho tương thích với code cũ
+  code: number; // Mapped từ wardCode (parseInt)
 }
 
 export interface AddressOpenAPIResponse<T> {
@@ -42,4 +45,35 @@ export interface AddressFormData {
   wardCode: number;
   wardName: string;
   streetAddress?: string;
+}
+
+/**
+ * Address Response từ Backend API
+ */
+export interface AddressResponse {
+  id: number;
+  recipientName: string;
+  phoneNumber: string;
+  streetAddress: string;
+  ward: string;
+  wardCode: string;
+  province: string;
+  provinceCode: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Address Request để gửi lên Backend API
+ */
+export interface AddressRequest {
+  recipientName: string;
+  phoneNumber: string;
+  streetAddress: string;
+  ward: string;
+  wardCode?: string;
+  province: string;
+  provinceCode?: string;
+  isDefault?: boolean;
 }
