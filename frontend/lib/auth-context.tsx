@@ -43,8 +43,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ user, isLoading, logout, setUser: updateUser }}>
       {children}
       <CartSyncRunner />
+      <WishlistSyncRunner />
     </AuthContext.Provider>
   );
+}
+
+// Mounts `useWishlistSync` inside the provider so wishlist is synced when user changes
+function WishlistSyncRunner() {
+  const [SyncComponent, setSyncComponent] = useState<React.ComponentType | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const mod = await import('@/hooks/useWishlistSync');
+        if (!mounted) return;
+        const Comp = (mod && (mod.WishlistSyncClient)) as React.ComponentType | undefined;
+        if (Comp) setSyncComponent(() => Comp);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load WishlistSyncClient dynamically', e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (SyncComponent) return <SyncComponent />;
+  return null;
 }
 
 // Mounts `useCartSync` inside the provider so it can read auth state and run when user logs in
