@@ -3,18 +3,25 @@ package com.utephonehub.backend.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.utephonehub.backend.dto.response.ChatbotAssistantUserResponse;
+import com.utephonehub.backend.dto.response.productview.ProductCardResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Service gọi ProductView API để lấy sản phẩm
- * Tối ưu: Cache, batch loading, limit depth
+ * Service gọi ProductView API để lấy sản phẩm cho Chatbot
+ * 
+ * OPTIMIZATION v2.0:
+ * - Gọi trực tiếp IProductViewService thay vì HTTP API (giảm overhead)
+ * - Sử dụng @Cacheable với Redis (thay vì in-memory cache)
+ * - Lazy conversion từ ProductCardResponse -> RecommendedProductDTO
  */
 @Service
 @RequiredArgsConstructor
@@ -24,45 +31,131 @@ public class IProductRecommendationService {
     private final RestTemplate restTemplate;
     private final IGeminiEmbeddingService embeddingService;
     private final ObjectMapper objectMapper;
+    private final IProductViewService productViewService;
     
     @Value("${api.product.base-url:http://localhost:8081/api/v1/products}")
     private String productApiBaseUrl;
     
-    // Cache sản phẩm (lưu 1 giờ)
+    // Fallback in-memory cache (khi Redis không available)
     private final Map<String, CachedProducts> productCache = new HashMap<>();
     private static final long CACHE_EXPIRY_MS = 3600000; // 1 giờ
     
     /**
-     * Lấy sản phẩm nổi bật (tối ưu chi phí - ưu tiên gọi API trước)
+     * Lấy sản phẩm nổi bật (GỌI TRỰC TIẾP SERVICE - không qua HTTP)
      */
+    @Cacheable(value = "chatbotFeaturedProducts", unless = "#result == null || #result.isEmpty()")
     public List<ChatbotAssistantUserResponse.RecommendedProductDTO> getFeaturedProducts() {
-        return getProductsFromCache("featured", () -> {
-            log.info("📊 Gọi API /featured để lấy sản phẩm nổi bật");
-            String url = productApiBaseUrl + "/featured";
-            return fetchProductsFromApi(url);
-        });
+        log.info("⭐ Chatbot: Lấy sản phẩm nổi bật (CACHE MISS)");
+        try {
+            List<ProductCardResponse> products = productViewService.getFeaturedProducts(10);
+            return convertToRecommendedProducts(products);
+        } catch (Exception e) {
+            log.error("❌ Lỗi lấy featured products: {}", e.getMessage());
+            return fallbackToHttpApi("featured");
+        }
     }
     
     /**
-     * Lấy sản phẩm bán chạy
+     * Lấy sản phẩm bán chạy (GỌI TRỰC TIẾP SERVICE)
      */
+    @Cacheable(value = "chatbotBestSellingProducts", unless = "#result == null || #result.isEmpty()")
     public List<ChatbotAssistantUserResponse.RecommendedProductDTO> getBestSellingProducts() {
-        return getProductsFromCache("best-selling", () -> {
-            log.info("📊 Gọi API /best-selling để lấy sản phẩm bán chạy");
-            String url = productApiBaseUrl + "/best-selling";
-            return fetchProductsFromApi(url);
-        });
+        log.info("🔥 Chatbot: Lấy sản phẩm bán chạy (CACHE MISS)");
+        try {
+            List<ProductCardResponse> products = productViewService.getBestSellingProducts(10);
+            return convertToRecommendedProducts(products);
+        } catch (Exception e) {
+            log.error("❌ Lỗi lấy best selling products: {}", e.getMessage());
+            return fallbackToHttpApi("best-selling");
+        }
     }
     
     /**
-     * Lấy sản phẩm mới nhất
+     * Lấy sản phẩm mới nhất (GỌI TRỰC TIẾP SERVICE)
      */
+    @Cacheable(value = "chatbotNewArrivals", unless = "#result == null || #result.isEmpty()")
     public List<ChatbotAssistantUserResponse.RecommendedProductDTO> getNewArrivalsProducts() {
-        return getProductsFromCache("new-arrivals", () -> {
-            log.info("📊 Gọi API /new-arrivals để lấy sản phẩm mới");
-            String url = productApiBaseUrl + "/new-arrivals";
-            return fetchProductsFromApi(url);
-        });
+        log.info("🆕 Chatbot: Lấy sản phẩm mới (CACHE MISS)");
+        try {
+            List<ProductCardResponse> products = productViewService.getNewArrivals(10);
+            return convertToRecommendedProducts(products);
+        } catch (Exception e) {
+            log.error("❌ Lỗi lấy new arrivals: {}", e.getMessage());
+            return fallbackToHttpApi("new-arrivals");
+        }
+    }
+    
+    /**
+     * Convert ProductCardResponse -> RecommendedProductDTO
+     * Tối ưu: batch conversion với stream
+     */
+    private List<ChatbotAssistantUserResponse.RecommendedProductDTO> convertToRecommendedProducts(
+            List<ProductCardResponse> cards) {
+        if (cards == null || cards.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return cards.stream()
+            .map(this::convertCard)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Convert single ProductCardResponse -> RecommendedProductDTO
+     */
+    private ChatbotAssistantUserResponse.RecommendedProductDTO convertCard(ProductCardResponse card) {
+        double price = card.getDiscountedPrice() != null 
+            ? card.getDiscountedPrice().doubleValue()
+            : (card.getMinPrice() != null ? card.getMinPrice().doubleValue() : 0.0);
+        
+        Double originalPrice = card.getOriginalPrice() != null 
+            ? card.getOriginalPrice().doubleValue() : null;
+        
+        Integer discountPercent = null;
+        if (originalPrice != null && price < originalPrice && originalPrice > 0) {
+            discountPercent = (int) Math.round((1 - price / originalPrice) * 100);
+        }
+        
+        // Build description từ specs
+        StringBuilder desc = new StringBuilder();
+        if (card.getRam() != null) desc.append("RAM ").append(card.getRam());
+        if (card.getStorage() != null) {
+            if (desc.length() > 0) desc.append(", ");
+            desc.append(card.getStorage());
+        }
+        if (card.getBatteryCapacity() != null) {
+            if (desc.length() > 0) desc.append(", ");
+            desc.append(card.getBatteryCapacity()).append("mAh");
+        }
+        
+        return ChatbotAssistantUserResponse.RecommendedProductDTO.builder()
+            .id(card.getId())
+            .name(card.getName())
+            .description(desc.length() > 0 ? desc.toString() : card.getName())
+            .price(price)
+            .originalPrice(originalPrice)
+            .rating(card.getAverageRating())
+            .reviewCount(card.getTotalReviews())
+            .imageUrl(card.getThumbnailUrl())
+            .categoryName(card.getCategoryName())
+            .productUrl("/products/" + card.getId())
+            .ram(card.getRam())
+            .storage(card.getStorage())
+            .batteryCapacity(card.getBatteryCapacity())
+            .operatingSystem(card.getOperatingSystem())
+            .brandName(card.getBrandName())
+            .discountPercent(discountPercent)
+            .hasDiscount(card.getHasDiscount())
+            .inStock(card.getInStock() != null ? card.getInStock() : true)
+            .build();
+    }
+    
+    /**
+     * Fallback: Gọi HTTP API khi service call fail
+     */
+    private List<ChatbotAssistantUserResponse.RecommendedProductDTO> fallbackToHttpApi(String endpoint) {
+        log.warn("⚠️ Fallback to HTTP API for: {}", endpoint);
+        String url = productApiBaseUrl + "/" + endpoint;
+        return fetchProductsFromApi(url);
     }
     
     /**

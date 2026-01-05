@@ -35,5 +35,29 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
            "WHERE r.product.id IN :productIds " +
            "GROUP BY r.product.id")
     List<Object[]> getReviewStatsByProductIds(List<Long> productIds);
+    
+    /**
+     * Lấy danh sách product IDs có rating >= minRating
+     * Dùng cho Featured Products - KHÔNG BỎ SÓT
+     * Sắp xếp theo avgRating DESC, reviewCount DESC
+     */
+    @Query("SELECT r.product.id, AVG(r.rating) as avgRating, COUNT(r) as reviewCount " +
+           "FROM Review r " +
+           "WHERE r.product.status = true AND r.product.isDeleted = false " +
+           "GROUP BY r.product.id " +
+           "HAVING AVG(r.rating) >= :minRating " +
+           "ORDER BY avgRating DESC, reviewCount DESC")
+    List<Object[]> findProductIdsWithHighRating(Double minRating);
+    
+    /**
+     * Lấy TOP sản phẩm có rating cao nhất (không cần threshold)
+     * Returns: [productId, avgRating, reviewCount]
+     */
+    @Query("SELECT r.product.id, AVG(r.rating) as avgRating, COUNT(r) as reviewCount " +
+           "FROM Review r " +
+           "WHERE r.product.status = true AND r.product.isDeleted = false " +
+           "GROUP BY r.product.id " +
+           "ORDER BY avgRating DESC, reviewCount DESC")
+    List<Object[]> findTopRatedProductIds();
 }
 

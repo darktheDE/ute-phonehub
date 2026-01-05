@@ -132,6 +132,9 @@ public class SecurityConfig {
                 // Sử dụng hasRole(\"ADMIN\") để đồng bộ với các endpoint admin khác (ROLE_ADMIN)
                 .requestMatchers("/api/v1/admin/orders/**").hasRole("ADMIN")
                 
+                // Admin Chatbot Management - Bật/tắt chatbot (phòng tấn công/tốn request)
+                .requestMatchers("/api/v1/admin/chatbot/**").hasRole("ADMIN")
+                
                 // Other admin endpoints
                 . requestMatchers(
                     "/api/v1/admin/users/**",

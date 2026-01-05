@@ -6,11 +6,11 @@ import { useBrands } from '@/hooks/useBrands';
 import { useCategories } from '@/hooks/useCategories';
 import { ProductCard, ProductCardSkeleton } from '@/components/features/products/NewProductCard';
 import { NewProductFilterSidebar } from '@/components/features/products/NewProductFilterSidebar';
+import { QuickLinksBar } from '@/components/features';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -30,17 +30,11 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   Search,
-  Smartphone,
-  Laptop,
-  Headphones,
-  Watch,
-  Tablet,
   Grid3x3,
   LayoutGrid,
   GitCompare,
   SlidersHorizontal,
   X,
-  Package
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
@@ -61,31 +55,6 @@ const SORT_OPTIONS = [
   { value: 'name:asc', label: 'Tên: A-Z', sortBy: 'name', sortDirection: 'asc' as const },
   { value: 'name:desc', label: 'Tên: Z-A', sortBy: 'name', sortDirection: 'desc' as const },
 ];
-
-// Category tab icons mapping (for common categories)
-const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  'điện thoại': Smartphone,
-  'phone': Smartphone,
-  'smartphone': Smartphone,
-  'laptop': Laptop,
-  'tai nghe': Headphones,
-  'headphones': Headphones,
-  'đồng hồ': Watch,
-  'watch': Watch,
-  'tablet': Tablet,
-  'máy tính bảng': Tablet,
-};
-
-// Get icon for category by name
-const getCategoryIcon = (categoryName: string) => {
-  const lowerName = categoryName.toLowerCase();
-  for (const [key, Icon] of Object.entries(CATEGORY_ICONS)) {
-    if (lowerName.includes(key)) {
-      return Icon;
-    }
-  }
-  return Package; // Default icon
-};
 
 function ProductsPageContent() {
   const router = useRouter();
@@ -327,11 +296,6 @@ function ProductsPageContent() {
     });
   };
 
-  const handleQuickView = (productId: number) => {
-    // Navigate to product detail page
-    router.push(`/products/${productId}`);
-  };
-
   const handleToggleWishlist = (productId: number) => {
     const product = currentProducts.find(p => p.id === productId);
     if (!product) return;
@@ -408,43 +372,10 @@ function ProductsPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Category Tabs */}
+      <div className="container mx-auto px-4 py-6">
+        {/* Quick Links Bar */}
         <div className="mb-6">
-          <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/50 rounded-lg">
-            {/* All products tab */}
-            <Button
-              variant={activeTab === 'all' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleCategoryTabChange('all')}
-              className="flex items-center gap-2"
-            >
-              <Package className="w-4 h-4" />
-              <span>Tất cả</span>
-            </Button>
-            
-            {/* Category tabs from API */}
-            {categories.map((category) => {
-              const Icon = getCategoryIcon(category.name);
-              return (
-                <Button
-                  key={category.id}
-                  variant={activeTab === String(category.id) ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => handleCategoryTabChange(String(category.id))}
-                  className="flex items-center gap-2"
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{category.name}</span>
-                  {category.productCount > 0 && (
-                    <Badge variant="secondary" className="ml-1 text-xs">
-                      {category.productCount}
-                    </Badge>
-                  )}
-                </Button>
-              );
-            })}
-          </div>
+          <QuickLinksBar />
         </div>
 
         {/* Search and Controls Bar */}
@@ -549,7 +480,7 @@ function ProductsPageContent() {
           {/* Products Grid */}
           <div className="flex-1">
             {/* Results info */}
-            {(filterResults || searchResults) && (
+            {currentProducts.length > 0 && (
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-muted-foreground">
                   Tìm thấy <strong>{totalElements.toLocaleString('vi-VN')}</strong> sản phẩm
@@ -614,7 +545,6 @@ function ProductsPageContent() {
                       key={product.id}
                       product={product}
                       onAddToCart={handleAddToCart}
-                      onQuickView={handleQuickView}
                       compareMode={compareMode}
                       isSelected={selectedForCompare.has(product.id)}
                       onSelectForCompare={handleSelectForCompare}

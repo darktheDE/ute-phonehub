@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,22 @@ const renderStars = (rating: number) => {
     </div>
   );
 };
+
+// Product Image component with error handling
+function ProductImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [imageSrc, setImageSrc] = useState(src);
+
+  return (
+    <Image
+      src={imageSrc}
+      alt={alt}
+      fill
+      className={className}
+      unoptimized={true}
+      onError={() => setImageSrc('/placeholder-product.svg')}
+    />
+  );
+}
 
 export function ComparisonTable({ products, onRemoveProduct }: ComparisonTableProps) {
   const specRows = [
@@ -84,10 +100,9 @@ export function ComparisonTable({ products, onRemoveProduct }: ComparisonTablePr
 
                 <CardHeader className="text-center pb-4">
                   <div className="relative aspect-square w-32 mx-auto rounded-lg overflow-hidden bg-gray-50">
-                    <Image
+                    <ProductImage
                       src={product.thumbnailUrl || '/placeholder-product.svg'}
                       alt={product.name}
-                      fill
                       className="object-cover"
                     />
                     {discount > 0 && (

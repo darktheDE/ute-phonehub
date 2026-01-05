@@ -16,7 +16,18 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
+/**
+ * Redis Cache Configuration
+ * 
+ * Cache TTL Strategy:
+ * - Featured/BestSelling products: 15 minutes (homepage sections)
+ * - New Arrivals: 10 minutes (changes more frequently)
+ * - Products On Sale: 5 minutes (flash sale needs fresh data)
+ * - Chatbot recommendations: 30 minutes (less critical)
+ */
 @Configuration
 @EnableCaching
 public class CacheConfig {
@@ -36,14 +47,32 @@ public class CacheConfig {
 
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(30)) // Cache TTL: 30 minutes
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(30)) // Default TTL: 30 minutes
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
                 .disableCachingNullValues();
 
+        // Custom TTL for specific caches
+        Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+        
+        // ProductView caches (Homepage sections)
+        cacheConfigurations.put("newArrivals", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        cacheConfigurations.put("featuredProducts", defaultConfig.entryTtl(Duration.ofMinutes(15)));
+        cacheConfigurations.put("bestSellingProducts", defaultConfig.entryTtl(Duration.ofMinutes(15)));
+        cacheConfigurations.put("productsOnSale", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        
+        // Chatbot caches
+        cacheConfigurations.put("chatbotFeaturedProducts", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        cacheConfigurations.put("chatbotBestSellingProducts", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        cacheConfigurations.put("chatbotNewArrivals", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        
+        // Promotion caches
+        cacheConfigurations.put("promotions", defaultConfig.entryTtl(Duration.ofMinutes(15)));
+
         return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(config)
+                .cacheDefaults(defaultConfig)
+                .withInitialCacheConfigurations(cacheConfigurations)
                 .transactionAware()
                 .build();
     }

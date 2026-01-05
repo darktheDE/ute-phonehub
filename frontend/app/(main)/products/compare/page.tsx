@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { compareProducts } from '@/services/product-view.service';
 import type { ProductComparisonResponse } from '@/types/product-view';
@@ -53,6 +53,23 @@ const renderStars = (rating: number, size = 'sm') => {
     </div>
   );
 };
+
+// Product Image component with error handling
+function ProductImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [imageSrc, setImageSrc] = useState(src);
+
+  return (
+    <Image
+      src={imageSrc}
+      alt={alt}
+      fill
+      className={className}
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+      unoptimized={true}
+      onError={() => setImageSrc('/placeholder-product.svg')}
+    />
+  );
+}
 
 const ComparisonSkeleton = ({ count }: { count: number }) => (
   <div className="container mx-auto px-4 py-8">
@@ -123,12 +140,10 @@ const ProductCard = ({
       <CardHeader className="pb-4">
         {/* Product Image */}
         <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-50">
-          <Image
+          <ProductImage
             src={product.thumbnailUrl || '/placeholder-product.svg'}
             alt={product.name}
-            fill
             className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
           />
           {discount > 0 && (
             <Badge className="absolute top-2 left-2 bg-red-500 text-white">
@@ -312,7 +327,10 @@ const ProductCard = ({
 function ProductCompareContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const productIds = searchParams.get('ids')?.split(',').map(Number).filter(Boolean) || [];
+  const productIds = useMemo(() => 
+    searchParams.get('ids')?.split(',').map(Number).filter(Boolean) || [],
+    [searchParams]
+  );
   
   const [comparisonData, setComparisonData] = useState<ProductComparisonResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -354,7 +372,7 @@ function ProductCompareContent() {
     };
 
     fetchComparisonData();
-  }, [searchParams, productIds]);
+  }, [productIds]);
 
   const removeProduct = (productId: number) => {
     const newIds = productIds.filter(id => id !== productId);

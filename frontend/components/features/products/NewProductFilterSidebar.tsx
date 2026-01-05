@@ -70,10 +70,10 @@ export function NewProductFilterSidebar({
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Price range helpers
-  const formatPrice = (price: number) => {
+  // Price range helpers - format cho slider
+  const formatSliderPrice = (price: number) => {
     if (price >= 1000000) {
-      return `${(price / 1000000).toFixed(1)}M`;
+      return `${(price / 1000000).toFixed(1)} triệu`;
     }
     if (price >= 1000) {
       return `${(price / 1000).toFixed(0)}K`;
@@ -314,8 +314,8 @@ export function NewProductFilterSidebar({
                   className="w-full"
                 />
                 <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
-                  <span>{formatPrice(getPriceRange()[0])}đ</span>
-                  <span>{formatPrice(getPriceRange()[1])}đ</span>
+                  <span>{formatSliderPrice(getPriceRange()[0])}</span>
+                  <span>{formatSliderPrice(getPriceRange()[1])}</span>
                 </div>
               </div>
             </CollapsibleContent>
