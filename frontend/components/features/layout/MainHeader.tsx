@@ -89,7 +89,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             </button>
 
             <Link
-              href="/chatbot-assistant-demo"
+              href="/chatbot"
               className="hidden sm:flex items-center gap-1 text-primary-foreground hover:opacity-80 transition-opacity"
             >
               <Bot className="w-5 h-5" />
