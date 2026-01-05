@@ -10,6 +10,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { PaymentMethodSelector } from "@/components/features/payment";
+import { AddressSelector } from "@/components/features/checkout/AddressSelector";
 import { orderAPI, userAPI, cartAPI, getAuthToken } from "@/lib/api";
 import type { PaymentMethod, CreateOrderRequest } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -259,6 +260,10 @@ function CheckoutContent() {
   const [recipientName, setRecipientName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
+  const [province, setProvince] = useState("");
+  const [provinceCode, setProvinceCode] = useState("");
+  const [ward, setWard] = useState("");
+  const [wardCode, setWardCode] = useState("");
   const [note, setNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("COD");
 
@@ -327,6 +332,31 @@ function CheckoutContent() {
     loadUserProfile();
   }, []);
 
+  // Xử lý thay đổi địa chỉ từ AddressSelector
+  const handleAddressChange = (address: {
+    recipientName: string;
+    phoneNumber: string;
+    streetAddress: string;
+    province: string;
+    provinceCode: string;
+    ward: string;
+    wardCode: string;
+  }) => {
+    setRecipientName(address.recipientName);
+    setPhoneNumber(address.phoneNumber);
+    // Tạo địa chỉ đầy đủ từ các thành phần
+    const fullAddress = [
+      address.streetAddress,
+      address.ward,
+      address.province
+    ].filter(Boolean).join(', ');
+    setShippingAddress(fullAddress);
+    setProvince(address.province);
+    setProvinceCode(address.provinceCode);
+    setWard(address.ward);
+    setWardCode(address.wardCode);
+  };
+
   // Validation
   const validateStep1 = (): boolean => {
     setError("");
@@ -352,6 +382,10 @@ function CheckoutContent() {
     }
     if (!shippingAddress.trim()) {
       setError("Vui lòng nhập địa chỉ giao hàng");
+      return false;
+    }
+    if (!province || !ward) {
+      setError("Vui lòng chọn tỉnh/thành phố và phường/xã");
       return false;
     }
     return true;
@@ -541,46 +575,15 @@ function CheckoutContent() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Họ và tên người nhận{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Nguyễn Văn A"
-                      value={recipientName}
-                      onChange={(e) => setRecipientName(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Số điện thoại <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      className="w-full px-4 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="0901234567"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Địa chỉ giao hàng chi tiết{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      className="w-full px-4 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      rows={3}
-                      placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
-                      value={shippingAddress}
-                      onChange={(e) => setShippingAddress(e.target.value)}
-                    />
-                  </div>
+                  {/* Address Selector Component */}
+                  <AddressSelector
+                    onAddressChange={handleAddressChange}
+                    defaultValue={{
+                      recipientName,
+                      phoneNumber,
+                    }}
+                    error={error && (!recipientName || !phoneNumber || !shippingAddress) ? error : undefined}
+                  />
 
                   <div>
                     <label className="block text-sm font-medium mb-2">

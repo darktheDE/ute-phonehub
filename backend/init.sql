@@ -339,7 +339,7 @@ INSERT INTO product_metadata (product_id, import_price, sale_price, screen_resol
 (35, 4500000.00, 6490000.00, NULL, NULL, NULL, NULL, 'Apple H2', NULL, NULL, NULL, NULL, 6, 20, 'Wireless', 50.8, '30.9x21.8x24.0mm', 'Plastic', 'N/A'),
 (36, 4000000.00, 5490000.00, NULL, NULL, NULL, NULL, 'Samsung chip', NULL, NULL, NULL, NULL, 5, 15, 'Wireless', 57.5, '27.8x20.4x24.2mm', 'Plastic', 'N/A'),
 (37, 800000.00, 1290000.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 20000, 20, 'USB-C', 420.0, '148x68.2x25.5mm', 'Plastic', 'N/A'),
-(38, 600000.00, 990000.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 65, 'USB-C GaN', 80.0, '53x53x30mm', 'Plastic', 'N/A'),
+(38, 600000.00, 990000.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 65, 65, 'USB-C GaN', 80.0, '53x53x30mm', 'Plastic', 'N/A'),
 (39, 200000.00, 490000.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 30.0, '164x77x10mm', 'TPU', 'N/A'),
 (40, 800000.00, 1290000.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 60.0, '170x80x15mm', 'Polycarbonate', 'N/A');
 -- Table: product_images
@@ -797,7 +797,8 @@ INSERT INTO provinces (id, province_code, name, place_type, country) VALUES
 (31, '86', 'Vĩnh Long', 'Tỉnh', 'VN'),
 (32, '91', 'An Giang', 'Tỉnh', 'VN'),
 (33, '92', 'Thành phố Cần Thơ', 'Thành phố Trung Ương', 'VN'),
-(34, '96', 'Cà Mau', 'Tỉnh', 'VN');
+(34, '96', 'Cà Mau', 'Tỉnh', 'VN')
+ON CONFLICT (province_code) DO NOTHING;
 
 
 INSERT INTO wards (id, ward_code, name, province_code) VALUES
@@ -4121,7 +4122,8 @@ INSERT INTO wards (id, ward_code, name, province_code) VALUES
 (3318, '31882', 'Xã Vĩnh Thanh', '96'),
 (3319, '31900', 'Xã Vĩnh Lợi', '96'),
 (3320, '31906', 'Xã Hưng Hội', '96'),
-(3321, '31894', 'Xã Châu Thới', '96');
+(3321, '31894', 'Xã Châu Thới', '96')
+ON CONFLICT (ward_code) DO NOTHING;
 
 -- Reset sequences for PostgreSQL
 SELECT setval('provinces_id_seq', (SELECT MAX(id) FROM provinces));

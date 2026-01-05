@@ -60,9 +60,10 @@ export const useAddress = (): UseAddressReturn => {
       const province = await getProvinceByCode(code);
       setSelectedProvince(province);
       
-      // Load wards theo tỉnh đã chọn
+      // Load wards theo tỉnh đã chọn - dùng provinceCode (string) thay vì code (number)
       if (province) {
-        const wardsData = await getWardsByProvinceCode(province.code);
+        const provinceCode = province.provinceCode || code.toString().padStart(2, '0');
+        const wardsData = await getWardsByProvinceCode(provinceCode);
         setWards(wardsData);
       } else {
         setWards([]);
@@ -102,7 +103,9 @@ export const useAddress = (): UseAddressReturn => {
     try {
       // Đầu tiên load wards của province đó
       setLoadingWards(true);
-      const data = await getWardsByProvinceCode(provinceCode);
+      // Convert number thành string với padding (01, 79)
+      const provinceCodeStr = provinceCode.toString().padStart(2, '0');
+      const data = await getWardsByProvinceCode(provinceCodeStr);
       setWards(data);
       
       // Sau đó select ward
