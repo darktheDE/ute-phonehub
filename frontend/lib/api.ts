@@ -441,6 +441,16 @@ export const productAPI = {
       method: "DELETE",
     });
   },
+
+  // Get all images for a product (Admin)
+  // GET /api/v1/admin/products/{id}/images
+  getImages: async (
+    productId: number
+  ): Promise<ApiResponse<any[]>> => {
+    return fetchAPI<any[]>(`/admin/products/${productId}/images`, {
+      method: "GET",
+    });
+  },
 };
 
 // Category API endpoints

@@ -37,25 +37,19 @@ export function ImageManagementModal({ product, onClose }: ImageManagementModalP
   const [isPrimary, setIsPrimary] = useState(false);
 
   useEffect(() => {
-    // Use images from product object directly
-    if (product.images && product.images.length > 0) {
-      console.log('✅ Using images from product object:', product.images.length);
-      setImages(product.images);
+    // Use images from product prop (already loaded from API with @EntityGraph)
+    if (product.images && Array.isArray(product.images)) {
+      console.log('✅ Using images from product prop:', product.images.length);
+      setImages(product.images as any[]);
       setNewImageOrder(product.images.length);
-      // If already has images, new image should NOT be primary
-      setIsPrimary(false);
+      setIsPrimary(product.images.length === 0);
     } else {
-      console.log('ℹ️ No images found in product object');
+      console.log('ℹ️ No images in product prop');
       setImages([]);
       setNewImageOrder(0);
-      // First image MUST be primary
       setIsPrimary(true);
     }
-    
-    // Debug: Product may not have thumbnailUrl
-    // if ('thumbnailUrl' in product) {
-    //   console.log('🖼️ Product thumbnail URL:', (product as any).thumbnailUrl);
-    // }
+    setLoading(false);
   }, [product]);
 
   const handleDeleteImage = async (imageId: number) => {

@@ -6,6 +6,7 @@ import com.utephonehub.backend.dto.request.product.ProductImageRequest;
 import com.utephonehub.backend.dto.request.product.ProductTemplateRequest;
 import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
 import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
+import com.utephonehub.backend.dto.response.product.ProductImageResponse;
 import com.utephonehub.backend.dto.response.product.ProductListResponse;
 import com.utephonehub.backend.entity.Brand;
 import com.utephonehub.backend.entity.Category;
@@ -336,6 +337,21 @@ public class ProductServiceImpl implements IProductService {
                 .map(product -> {
                     ProductListResponse response = productMapper.toListResponse(product);
                     enrichListResponseWithTemplateData(response, product);
+                    // Set image count and images list
+                    response.setImageCount(product.getImages() != null ? product.getImages().size() : 0);
+                    if (product.getImages() != null && !product.getImages().isEmpty()) {
+                        List<ProductImageResponse> imageResponses = product.getImages().stream()
+                                .sorted(Comparator.comparing(ProductImage::getImageOrder))
+                                .map(img -> ProductImageResponse.builder()
+                                        .id(img.getId())
+                                        .imageUrl(img.getImageUrl())
+                                        .altText(img.getAltText())
+                                        .isPrimary(img.getIsPrimary())
+                                        .imageOrder(img.getImageOrder())
+                                        .build())
+                                .toList();
+                        response.setImages(imageResponses);
+                    }
                     return response;
                 })
                 .toList();
@@ -386,6 +402,21 @@ public class ProductServiceImpl implements IProductService {
                 .map(product -> {
                     ProductListResponse response = productMapper.toListResponse(product);
                     enrichListResponseWithTemplateData(response, product);
+                    // Set image count and images list
+                    response.setImageCount(product.getImages() != null ? product.getImages().size() : 0);
+                    if (product.getImages() != null && !product.getImages().isEmpty()) {
+                        List<ProductImageResponse> imageResponses = product.getImages().stream()
+                                .sorted(Comparator.comparing(ProductImage::getImageOrder))
+                                .map(img -> ProductImageResponse.builder()
+                                        .id(img.getId())
+                                        .imageUrl(img.getImageUrl())
+                                        .altText(img.getAltText())
+                                        .isPrimary(img.getIsPrimary())
+                                        .imageOrder(img.getImageOrder())
+                                        .build())
+                                .toList();
+                        response.setImages(imageResponses);
+                    }
                     return response;
                 })
                 .toList();
