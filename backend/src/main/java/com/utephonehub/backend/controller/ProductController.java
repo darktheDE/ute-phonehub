@@ -5,6 +5,7 @@ import com.utephonehub.backend.dto.request.product.CreateProductRequest;
 import com.utephonehub.backend.dto.request.product.ManageImagesRequest;
 import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
 import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
+import com.utephonehub.backend.dto.response.product.ProductImageResponse;
 import com.utephonehub.backend.dto.response.product.ProductListResponse;
 import com.utephonehub.backend.service.IProductService;
 import com.utephonehub.backend.util.SecurityUtils;
@@ -25,6 +26,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * REST Controller for Product Management
@@ -266,6 +269,8 @@ public class ProductController {
         
         return ResponseEntity.ok(ApiResponse.success("Khôi phục sản phẩm thành công", null));
     }
+
+
 
     @PostMapping("/{id}/images")
     @PreAuthorize("hasRole('ADMIN')")

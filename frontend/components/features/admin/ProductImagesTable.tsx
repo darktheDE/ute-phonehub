@@ -23,24 +23,14 @@ export function ProductImagesTable() {
   const handleManageImages = async (product: Product) => {
     try {
       setLoadingDetail(true);
-      console.log('🔍 Fetching full product details for ID:', product.id);
+      console.log('🔍 Opening image management for product:', product.id);
       
-      const response = await productAPI.getById(product.id);
-      
-      if (response.success && response.data) {
-        console.log('✅ Product detail loaded:', response.data);
-        console.log('📦 Product has images?', 'images' in response.data);
-        console.log('📦 Images count:', response.data.images?.length || 0);
-        setSelectedProduct(response.data);
-        setShowImageModal(true); // Open modal
-      } else {
-        toast.error('Không thể tải thông tin sản phẩm', {
-          description: 'Vui lòng thử lại sau',
-        });
-      }
+      // Trực tiếp mở modal với thông tin product hiện có
+      setSelectedProduct(product);
+      setShowImageModal(true);
     } catch (error) {
-      console.error('❌ Error loading product detail:', error);
-      toast.error('Lỗi khi tải thông tin sản phẩm', {
+      console.error('❌ Error opening image modal:', error);
+      toast.error('Lỗi khi mở quản lý ảnh', {
         description: error instanceof Error ? error.message : 'Vui lòng thử lại',
       });
     } finally {

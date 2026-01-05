@@ -36,11 +36,17 @@ export function ProductManagement() {
       
       const response = await adminAPI.getAllProducts({
         page: currentPage,
-        size: 10,
+        size: 30,
         keyword: searchKeyword,
         sortBy,
         sortDirection,
         ...filters,
+      });
+      
+      console.log('🔍 API Response:', { 
+        totalElements: response.data?.totalElements, 
+        contentLength: response.data?.content?.length,
+        size: 30
       });
       
       if (response.success && response.data) {

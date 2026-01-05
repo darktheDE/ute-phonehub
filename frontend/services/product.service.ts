@@ -223,10 +223,13 @@ class ProductService {
     sortBy?: string;
     sortDirection?: 'asc' | 'desc';
     includeDeleted?: boolean;
+    page?: number;
+    size?: number;
   }): Promise<{ success: boolean; data: ProductListResponse[] }> {
     try {
       const params: GetProductsParams = {
-        size: 1000,
+        page: filters?.page || 0,
+        size: filters?.size || 100,
         keyword: filters?.keyword,
         categoryId: filters?.categoryId,
         brandId: filters?.brandId,

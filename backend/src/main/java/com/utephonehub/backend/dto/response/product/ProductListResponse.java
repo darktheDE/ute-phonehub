@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * DTO for Product in list/table view
@@ -55,4 +56,14 @@ public class ProductListResponse {
     private String categoryName;
     
     private String brandName;
+    
+    /**
+     * Number of product images
+     */
+    private Integer imageCount;
+    
+    /**
+     * Product images (for image management modal)
+     */
+    private List<ProductImageResponse> images;
 }

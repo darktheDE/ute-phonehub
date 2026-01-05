@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,6 +22,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     
     List<Product> findByIsDeletedFalse();
     
+    @EntityGraph(attributePaths = {"images", "category", "brand"})
     Page<Product> findByIsDeletedFalse(Pageable pageable);
     
     List<Product> findByStatusTrue();
@@ -37,6 +39,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByBrandIdAndIsDeletedFalse(Long brandId, Pageable pageable);
     
     // Search queries
+    @EntityGraph(attributePaths = {"images", "category", "brand"})
     @Query("SELECT p FROM Product p WHERE p.isDeleted = false AND " +
            "(LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
@@ -48,6 +51,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> searchProducts(@Param("keyword") String keyword);
     
     // Advanced filtering with price range - only returns products with templates when price filter active
+    @EntityGraph(attributePaths = {"images", "category", "brand"})
     @Query("SELECT DISTINCT p FROM Product p " +
            "LEFT JOIN p.templates t " +
            "WHERE p.isDeleted = false " +
@@ -84,6 +88,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findAllIncludingDeleted(Pageable pageable);
     
     // Query for deleted products only (isDeleted=true)
+    @EntityGraph(attributePaths = {"images"})
     @Query("""
            SELECT p FROM Product p 
            LEFT JOIN FETCH p.category 
