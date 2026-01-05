@@ -197,20 +197,58 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
                               
                               {/* Product Info */}
                               <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-sm group-hover:text-primary transition-colors truncate">
-                                  {product.name}
+                                {/* Product Name with Discount Badge */}
+                                <div className="flex items-center gap-2">
+                                  <div className="font-semibold text-sm group-hover:text-primary transition-colors truncate">
+                                    {product.name}
+                                  </div>
+                                  {product.hasDiscount && product.discountPercent && (
+                                    <span className="flex-shrink-0 text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded font-medium">
+                                      -{product.discountPercent}%
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="text-xs text-muted-foreground line-clamp-1 mt-1">
-                                  {product.description}
+                                
+                                {/* Technical Specs */}
+                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                  {product.ram && (
+                                    <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                                      RAM {product.ram}
+                                    </span>
+                                  )}
+                                  {product.storage && (
+                                    <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">
+                                      {product.storage}
+                                    </span>
+                                  )}
+                                  {product.batteryCapacity && (
+                                    <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
+                                      🔋 {product.batteryCapacity}mAh
+                                    </span>
+                                  )}
+                                  {product.operatingSystem && (
+                                    <span className="text-[10px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
+                                      {product.operatingSystem}
+                                    </span>
+                                  )}
                                 </div>
+                                
+                                {/* Price and Rating */}
                                 <div className="flex items-center gap-2 mt-2">
                                   <span className="font-semibold text-primary">
                                     {(product.price / 1000000).toFixed(1)}M₫
                                   </span>
+                                  {product.originalPrice && product.originalPrice > product.price && (
+                                    <span className="text-xs text-muted-foreground line-through">
+                                      {(product.originalPrice / 1000000).toFixed(1)}M₫
+                                    </span>
+                                  )}
                                   <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
                                     ⭐ {product.rating?.toFixed(1) || 'N/A'} ({product.reviewCount || 0})
                                   </span>
                                 </div>
+                                
+                                {/* Match Score */}
                                 {product.matchScore && (
                                   <div className="mt-1.5">
                                     <div className="flex items-center justify-between text-xs mb-1">

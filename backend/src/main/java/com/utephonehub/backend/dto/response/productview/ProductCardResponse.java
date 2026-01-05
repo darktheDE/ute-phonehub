@@ -45,6 +45,7 @@ public class ProductCardResponse {
     private Boolean inStock;
     private Integer stockQuantity;  // Số lượng còn lại
     private String stockStatus;  // "In Stock", "Low Stock", "Out of Stock"
+    private Integer soldCount;  // Số lượng đã bán
     
     // === KEY SPECS (for cards) ===
     private String ram;  // "8GB"

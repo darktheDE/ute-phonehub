@@ -12,6 +12,11 @@ export interface ChatbotAssistantUserRequest {
   message: string;
 
   /**
+   * ID sản phẩm để lấy sản phẩm liên quan (tùy chọn)
+   */
+  productId?: number;
+
+  /**
    * ID danh mục (tùy chọn)
    */
   categoryId?: number;
@@ -33,13 +38,14 @@ export interface ChatbotAssistantUserRequest {
 }
 
 /**
- * Sản phẩm được gợi ý
+ * Sản phẩm được gợi ý - đầy đủ thông tin cho Product Card
  */
 export interface RecommendedProductDTO {
   id: number;
   name: string;
   description: string;
   price: number;
+  originalPrice?: number;
   rating: number;
   reviewCount: number;
   imageUrl: string;
@@ -47,6 +53,21 @@ export interface RecommendedProductDTO {
   matchScore?: number;
   reason?: string;
   productUrl?: string;
+  
+  // Technical specs
+  ram?: string;
+  storage?: string;
+  batteryCapacity?: number;
+  operatingSystem?: string;
+  brandName?: string;
+  
+  // Discount info
+  discountPercent?: number;
+  hasDiscount?: boolean;
+  
+  // Sales info
+  soldCount?: number;
+  inStock?: boolean;
 }
 
 /**
