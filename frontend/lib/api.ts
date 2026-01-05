@@ -264,6 +264,71 @@ export const userAPI = {
   },
 };
 
+// Address API endpoints
+export const addressAPI = {
+  /**
+   * GET /api/v1/user/addresses
+   * Lấy danh sách địa chỉ của user hiện tại
+   */
+  getAll: async (): Promise<ApiResponse<import("@/types/address").AddressResponse[]>> => {
+    return fetchAPI<import("@/types/address").AddressResponse[]>("/user/addresses", {
+      method: "GET",
+    });
+  },
+
+  /**
+   * POST /api/v1/user/addresses
+   * Thêm địa chỉ mới
+   */
+  create: async (
+    data: import("@/types/address").AddressRequest
+  ): Promise<ApiResponse<import("@/types/address").AddressResponse>> => {
+    return fetchAPI<import("@/types/address").AddressResponse>("/user/addresses", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * PUT /api/v1/user/addresses/{id}
+   * Cập nhật địa chỉ
+   */
+  update: async (
+    id: number,
+    data: import("@/types/address").AddressRequest
+  ): Promise<ApiResponse<import("@/types/address").AddressResponse>> => {
+    return fetchAPI<import("@/types/address").AddressResponse>(`/user/addresses/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * DELETE /api/v1/user/addresses/{id}
+   * Xóa địa chỉ
+   */
+  delete: async (id: number): Promise<ApiResponse<null>> => {
+    return fetchAPI<null>(`/user/addresses/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  /**
+   * PUT /api/v1/user/addresses/{id}/set-default
+   * Đặt địa chỉ làm mặc định
+   */
+  setDefault: async (
+    id: number
+  ): Promise<ApiResponse<import("@/types/address").AddressResponse>> => {
+    return fetchAPI<import("@/types/address").AddressResponse>(
+      `/user/addresses/${id}/set-default`,
+      {
+        method: "PUT",
+      }
+    );
+  },
+};
+
 // Health check
 export const healthCheck = async (): Promise<ApiResponse<any>> => {
   return fetchAPI<any>("/health", {
@@ -1106,3 +1171,6 @@ export const adminUserAPI = {
     return fetchAPI<User>(`/admin/users/${userId}`);
   },
 };
+
+// Export default fetchAPI for use in services
+export default fetchAPI;

@@ -1,3 +1,4 @@
+// src/main/java/com/utephonehub/backend/config/SecurityConfig.java
 package com.utephonehub.backend.config;
 
 import org.springframework.context.annotation.Bean;
@@ -32,15 +33,30 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource))
+            // ✅ CORS MUST BE FIRST - Apply CORS configuration
+            .cors(cors -> cors. configurationSource(corsConfigurationSource))
+            
+            // ✅ Disable CSRF for REST APIs
             .csrf(AbstractHttpConfigurer::disable)
+            
+            // ✅ Stateless session for JWT
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            
+            // ✅ Configure authorization rules
             .authorizeHttpRequests(auth -> auth
-                // Cho phép truy cập tự do vào các đường dẫn của Swagger
+                
+                // ========================================
+                // PUBLIC ENDPOINTS (No Authentication Required)
+                // ========================================
+                
+                // Swagger UI and OpenAPI docs
                 .requestMatchers(
                     "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html"
+                    "/swagger-ui/**", 
+                    "/swagger-ui.html",
+                    "/swagger-resources/**",
+                    "/webjars/**",
+                    "/favicon.ico"
                 ).permitAll()
                 // Cho phép các endpoint OAuth2 (Google) - phải đặt trước các rule khác
                 .requestMatchers(
@@ -54,14 +70,33 @@ public class SecurityConfig {
                     "/api/v1/health/**",
                     "/api/v1/guest-cart/**"
                 ).permitAll()
-                // Cho phép VNPay endpoints
+                
+                // Health check endpoints
                 .requestMatchers(
                     "/api/v1/payments/**"
                 ).permitAll()
-                // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
+                // Cho phép Chatbot endpoint (public - không cần xác thực)
                 .requestMatchers(
-                    "/api/v1/categories",
-                    "/api/v1/brands",
+                    "/api/v1/chatbot-assistant/**"
+                ).permitAll()
+                // Cho phép truy cập tự do vào API địa chỉ hành chính (OpenAPI Vietnam)
+                .requestMatchers(
+                    "/api/v1/locations/**"
+                ).permitAll()                // Cho phép truy cập tự do vào API danh mục và thương hiệu (public - chỉ GET)
+                .requestMatchers(
+                    "/api/v1/public/**"
+                ).permitAll()
+                
+                // Payment endpoints (VNPay callbacks)
+                .requestMatchers(
+                    "/api/payments/**",
+                    "/api/v1/payments/**"
+                ).permitAll()
+                
+                // Public product browsing endpoints
+                .requestMatchers(
+                    "/api/v1/products/**",
+                    "/api/v1/categories/**", 
                     "/api/v1/brands/**"
                 ).permitAll()
                 // Cho phép public POST /products/filter (public search)
@@ -86,6 +121,19 @@ public class SecurityConfig {
                 ).permitAll()
                 // Yêu cầu ADMIN cho các API quản lý danh mục, thương hiệu, sản phẩm, người dùng
                 .requestMatchers(
+                    "/api/v1/promotions/**"
+                ).permitAll()
+                
+                // ========================================
+                // ADMIN ENDPOINTS (Admin Role Required)
+                // ========================================
+                
+                // Admin Order Management (Module 07 - Admin)
+                .requestMatchers("/api/v1/admin/orders/**").hasAuthority("ADMIN")
+                
+                // Other admin endpoints
+                . requestMatchers(
+                    "/api/v1/admin/users/**",
                     "/api/v1/admin/categories/**",
                     "/api/v1/admin/brands/**",
                     "/api/v1/admin/products/**",

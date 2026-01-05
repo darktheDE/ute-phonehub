@@ -32,9 +32,10 @@ public class ProductComparisonResponse {
         private String thumbnailUrl;
         private String brandName;
         
-        // Price Range
-        private BigDecimal minPrice;
-        private BigDecimal maxPrice;
+        // Price (single template = single price)
+        private BigDecimal originalPrice;
+        private BigDecimal discountedPrice;
+        private Boolean hasDiscount;
         
         // Rating
         private Double averageRating;
@@ -62,5 +63,9 @@ public class ProductComparisonResponse {
         private String battery;
         private String charging;
         private String weight;
+        private String dimensions;
+        private String connectivity;
+        private String sim;
+        private String materials;
     }
 }

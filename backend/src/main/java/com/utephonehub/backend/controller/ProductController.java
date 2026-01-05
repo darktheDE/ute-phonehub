@@ -86,6 +86,32 @@ public class ProductController {
                 .body(ApiResponse.created("Tạo sản phẩm thành công", product));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Lấy chi tiết sản phẩm (Admin)",
+            description = "Lấy thông tin chi tiết của một sản phẩm theo ID"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Lấy chi tiết sản phẩm thành công"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Không tìm thấy sản phẩm"
+            )
+    })
+    public ResponseEntity<ApiResponse<ProductDetailResponse>> getProductById(
+            @Parameter(description = "ID của sản phẩm") @PathVariable Long id
+    ) {
+        log.info("GET /api/v1/admin/products/{}", id);
+        
+        ProductDetailResponse product = productService.getProductById(id);
+        
+        return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết sản phẩm thành công", product));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(

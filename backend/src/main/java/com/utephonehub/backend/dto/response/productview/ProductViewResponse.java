@@ -44,12 +44,19 @@ public class ProductViewResponse {
     // Images
     private List<ProductImageInfo> images;
     
-    // Available variants count
-    private Integer variantsCount;
+    // Technical Specifications from template & metadata
+    private String color;          // from product_templates.color
+    private String ram;            // from product_templates.ram
+    private String storage;        // from product_templates.storage
     
-    // Promotion info (if any)
-    private String promotionBadge;
-    private BigDecimal discountPercentage;
+    // Technical Specifications from metadata (exact DB types)
+    private Double screenSize;           // from product_metadata.screen_size (Double - inches)
+    private String screenTechnology;     // from product_metadata.screen_technology
+    private String cpuChipset;           // from product_metadata.cpu_chipset
+    private String operatingSystem;      // from product_metadata.operating_system
+    private String cameraDetails;        // from product_metadata.camera_details
+    private Double frontCameraMegapixels; // from product_metadata.front_camera_megapixels (Double - MP)
+    private Integer batteryCapacity;     // from product_metadata.battery_capacity (Integer - mAh)
     
     @Data
     @Builder

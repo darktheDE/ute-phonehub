@@ -9,7 +9,7 @@ import type { Product } from '@/types';
 interface Category {
   id: number;
   name: string;
-  description?: string;
+  description?: string | null;
 }
 
 interface Brand {

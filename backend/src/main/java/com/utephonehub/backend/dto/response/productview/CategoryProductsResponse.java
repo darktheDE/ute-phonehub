@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ import java.util.List;
 public class CategoryProductsResponse {
     
     private CategoryInfo category;
+    private Page<ProductCardResponse> products; // Thêm field products
     private List<BreadcrumbItem> breadcrumbs;
     private List<CategoryInfo> subCategories;
     private FilterOptions filterOptions;
@@ -29,7 +31,6 @@ public class CategoryProductsResponse {
     public static class CategoryInfo {
         private Long id;
         private String name;
-        private String slug;
         private String description;
         private Integer productCount;
     }
@@ -41,7 +42,6 @@ public class CategoryProductsResponse {
     public static class BreadcrumbItem {
         private Long id;
         private String name;
-        private String slug;
     }
     
     @Data
@@ -52,6 +52,11 @@ public class CategoryProductsResponse {
         private List<BrandOption> availableBrands;
         private PriceRange priceRange;
         private List<RatingOption> ratingOptions;
+        private List<StorageOption> storageOptions;
+        private List<RamOption> ramOptions;
+        private List<BatteryOption> batteryOptions;
+        private List<ScreenSizeOption> screenSizeOptions;
+        private List<OsOption> osOptions;
         
         @Data
         @Builder
@@ -78,6 +83,55 @@ public class CategoryProductsResponse {
         @AllArgsConstructor
         public static class RatingOption {
             private Integer stars;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class StorageOption {
+            private String value;
+            private String displayValue;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class RamOption {
+            private String value;
+            private String displayValue;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class BatteryOption {
+            private String value;
+            private String displayValue;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class ScreenSizeOption {
+            private String value;
+            private String displayValue;
+            private Integer count;
+        }
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class OsOption {
+            private String value;
             private Integer count;
         }
     }

@@ -50,7 +50,6 @@ public class ProductDetailViewResponse {
     public static class CategoryInfo {
         private Long id;
         private String name;
-        private String slug;
     }
     
     @Data
@@ -82,14 +81,32 @@ public class ProductDetailViewResponse {
     public static class VariantInfo {
         private Long id;
         private String sku;
-        private String color;
-        private String storage;
-        private String ram;
-        private BigDecimal price;
-        private BigDecimal compareAtPrice;
-        private Integer stockQuantity;
-        private String stockStatus;
-        private Boolean status;
+        private String color;           // from product_templates.color
+        private String storage;         // from product_templates.storage
+        private String ram;             // from product_templates.ram
+        private BigDecimal originalPrice;    // giá gốc từ product_templates.price
+        private BigDecimal discountedPrice;  // giá sau khi giảm (có thể null nếu không có khuyến mãi)
+        private DiscountInfo discountInfo;   // thông tin chi tiết về giảm giá
+        private Integer stockQuantity;  // from product_templates.stock_quantity
+        private String stockStatus;     // from product_templates.stock_status
+        private Boolean status;         // from product_templates.status
+        
+        // Tương thích ngược - deprecated, sẽ trả về originalPrice
+        @Deprecated
+        public BigDecimal getPrice() {
+            return originalPrice;
+        }
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DiscountInfo {
+        private BigDecimal discountAmount;     // số tiền đã giảm
+        private Double discountPercentage;     // phần trăm giảm giá (đã tính sẵn)
+        private String promotionId;            // ID của khuyến mãi được áp dụng
+        private String promotionTitle;         // tên khuyến mãi
     }
     
     @Data
@@ -97,21 +114,39 @@ public class ProductDetailViewResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class TechnicalSpecsInfo {
-        private String screen;
-        private String os;
-        private String frontCamera;
-        private String rearCamera;
-        private String cpu;
-        private String ram;
-        private String internalMemory;
-        private String externalMemory;
-        private String sim;
-        private String battery;
-        private String charging;
-        private String dimensions;
-        private String weight;
-        private String materials;
-        private String connectivity;
-        private String features;
+        // Display - from product_metadata
+        private String screenResolution;      // screen_resolution
+        private Double screenSize;            // screen_size
+        private String screenTechnology;      // screen_technology
+        private Integer refreshRate;          // refresh_rate
+        
+        // Performance - from product_metadata
+        private String cpuChipset;            // cpu_chipset
+        private String gpu;                   // gpu
+        private String operatingSystem;       // operating_system
+        
+        // Camera - from product_metadata
+        private String cameraDetails;         // camera_details
+        private Double frontCameraMegapixels; // front_camera_megapixels
+        
+        // Battery - from product_metadata
+        private Integer batteryCapacity;      // battery_capacity
+        private Integer chargingPower;        // charging_power
+        private String chargingType;          // charging_type
+        
+        // Physical - from product_metadata
+        private Double weight;                // weight
+        private String dimensions;            // dimensions
+        private String material;              // material
+        
+        // Connectivity - from product_metadata
+        private String wirelessConnectivity;  // wireless_connectivity
+        private String simType;               // sim_type
+        
+        // Additional - from product_metadata
+        private String waterResistance;       // water_resistance
+        private String audioFeatures;         // audio_features
+        private String securityFeatures;      // security_features
+        private String additionalSpecs;       // additional_specs
     }
 }
