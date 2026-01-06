@@ -1,12 +1,13 @@
 'use client';
 
 import useSWR from 'swr';
-import { 
+import {
   searchProducts,
-  getBestSellingProducts, 
-  getFeaturedProducts, 
+  getBestSellingProducts,
+  getFeaturedProducts,
   getNewArrivals,
   getOnSaleProducts,
+  getOnSaleProductsPaginated,
   getProductsByCategory,
   getRelatedProducts,
   type ProductCardResponse,
@@ -37,10 +38,10 @@ interface UseProductsReturn {
  */
 export function useProducts(options: UseProductsOptions = {}): UseProductsReturn {
   const { limit = 20, categoryId, search, enabled = true } = options;
-  
+
   // Determine which API to use based on parameters
   const shouldUseCategory = categoryId !== undefined && !search;
-  
+
   const searchRequest: ProductSearchRequest = {
     keyword: search,
     size: limit,
@@ -81,7 +82,7 @@ export function useProducts(options: UseProductsOptions = {}): UseProductsReturn
  */
 export function useBestSellingProducts(options: { limit?: number } = {}): UseProductsReturn {
   const { limit = 8 } = options;
-  
+
   const { data, error, isLoading, mutate } = useSWR(
     ['products', 'best-selling', limit],
     () => getBestSellingProducts(limit),
@@ -104,7 +105,7 @@ export function useBestSellingProducts(options: { limit?: number } = {}): UsePro
  */
 export function useFeaturedProducts(options: { limit?: number } = {}): UseProductsReturn {
   const { limit = 8 } = options;
-  
+
   const { data, error, isLoading, mutate } = useSWR(
     ['products', 'featured', limit],
     () => getFeaturedProducts(limit),
@@ -127,10 +128,36 @@ export function useFeaturedProducts(options: { limit?: number } = {}): UseProduc
  */
 export function useNewArrivals(options: { limit?: number } = {}): UseProductsReturn {
   const { limit = 8 } = options;
-  
+
   const { data, error, isLoading, mutate } = useSWR(
     ['products', 'new-arrivals', limit],
     () => getNewArrivals(limit),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  );
+
+  return {
+    data,
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+
+/**
+ * Hook for fetching products on sale (Paginated/Filtered version)
+ * Uses POST /api/v1/products/filter with hasDiscountOnly=true
+ * This is more reliable than the GET /api/v1/products/on-sale endpoint
+ */
+export function useProductsOnSalePaginated(options: { limit?: number } = {}): UseProductsReturn {
+  const { limit = 8 } = options;
+
+  const { data, error, isLoading, mutate } = useSWR(
+    ['products', 'on-sale-paginated', limit],
+    () => getOnSaleProductsPaginated({ size: limit }).then(res => res.content),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -173,11 +200,11 @@ export function useProductsOnSale(options: { limit?: number } = {}): UseProducts
  * Hook for fetching products by category
  */
 export function useProductsByCategory(
-  categoryId: number, 
+  categoryId: number,
   options: { limit?: number } = {}
 ): UseProductsReturn {
   const { limit = 20 } = options;
-  
+
   const request: ProductFilterRequest = {
     page: 0,
     size: limit,

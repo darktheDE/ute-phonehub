@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { ChevronRight, Zap, Flame, Tag } from 'lucide-react';
 import { ProductCard } from './products/NewProductCard';
-import { useProductsOnSale } from '@/hooks/useProducts';
+import { useProductsOnSalePaginated } from '@/hooks/useProducts';
 import { useWishlistStore } from '@/store';
 import { useCartActions } from '@/hooks/useCartActions';
 import { toast } from 'sonner';
 
 export function FlashSaleSection() {
-  const { data: saleProducts, isLoading, error } = useProductsOnSale({ limit: 8 });
+  const { data: saleProducts, isLoading, error } = useProductsOnSalePaginated({ limit: 8 });
   const { addToCart } = useCartActions();
   const { toggleItem: toggleWishlist, isInWishlist } = useWishlistStore();
 
