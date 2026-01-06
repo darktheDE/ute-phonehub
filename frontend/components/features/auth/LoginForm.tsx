@@ -70,7 +70,13 @@ export function LoginForm() {
           router.push(ROUTES.HOME);
         }
       } else {
-        setError(response.message || 'Đăng nhập thất bại');
+        // Check if account is locked
+        const msg = response.message || 'Đăng nhập thất bại';
+        if (response.status === 401 && msg.includes('khóa')) {
+          router.push(ROUTES.ACCOUNT_LOCKED);
+          return;
+        }
+        setError(msg);
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra khi đăng nhập';

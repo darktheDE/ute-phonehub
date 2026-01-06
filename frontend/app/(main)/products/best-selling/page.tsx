@@ -1,7 +1,8 @@
 'use client';
 
+import { Suspense } from 'react';
 import { ProductViewPage } from '@/components/features/products/ProductViewPage';
-import { Flame } from 'lucide-react';
+import { Flame, Loader2 } from 'lucide-react';
 import { getBestSellingProductsPaginated } from '@/services/new-product.service';
 
 const SORT_OPTIONS = [
@@ -14,7 +15,7 @@ const SORT_OPTIONS = [
   { value: 'name:desc', label: 'Tên: Z-A', sortBy: 'name', sortDirection: 'desc' as const },
 ];
 
-export default function BestSellingPage() {
+function BestSellingPageContent() {
   return (
     <ProductViewPage
       title="Sản phẩm bán chạy"
@@ -30,6 +31,18 @@ export default function BestSellingPage() {
       sortOptions={SORT_OPTIONS}
       fetchProducts={getBestSellingProductsPaginated}
     />
+  );
+}
+
+export default function BestSellingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <BestSellingPageContent />
+    </Suspense>
   );
 }
 

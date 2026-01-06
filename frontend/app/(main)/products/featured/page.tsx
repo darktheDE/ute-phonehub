@@ -1,7 +1,8 @@
 'use client';
 
+import { Suspense } from 'react';
 import { ProductViewPage } from '@/components/features/products/ProductViewPage';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Loader2 } from 'lucide-react';
 import { getFeaturedProductsPaginated } from '@/services/new-product.service';
 
 const SORT_OPTIONS = [
@@ -14,7 +15,7 @@ const SORT_OPTIONS = [
   { value: 'name:desc', label: 'Tên: Z-A', sortBy: 'name', sortDirection: 'desc' as const },
 ];
 
-export default function FeaturedProductsPage() {
+function FeaturedProductsPageContent() {
   return (
     <ProductViewPage
       title="Sản phẩm nổi bật"
@@ -30,5 +31,17 @@ export default function FeaturedProductsPage() {
       sortOptions={SORT_OPTIONS}
       fetchProducts={getFeaturedProductsPaginated}
     />
+  );
+}
+
+export default function FeaturedProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <FeaturedProductsPageContent />
+    </Suspense>
   );
 }

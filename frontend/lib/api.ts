@@ -439,8 +439,7 @@ export const productAPI = {
       queryParams.append("brandId", String(params.brandId));
 
     return fetchAPI<any>(
-      `/admin/products${
-        queryParams.toString() ? `?${queryParams.toString()}` : ""
+      `/admin/products${queryParams.toString() ? `?${queryParams.toString()}` : ""
       }`,
       {
         method: "GET",
@@ -936,13 +935,13 @@ export const cartAPI = {
       if (process.env.NODE_ENV === 'development') {
         console.log('[cartAPI] Fetching cart from /cart/me');
       }
-      
+
       const response = await fetchAPI<CartResponseData>("/cart/me", { method: "GET" });
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.log('[cartAPI] Raw response:', response);
       }
-      
+
       // Ensure response has expected structure
       if (response) {
         // Handle case where response.data might be the cart data directly
@@ -952,7 +951,7 @@ export const cartAPI = {
             items: Array.isArray((response as any).items) ? (response as any).items : [],
           } as CartResponseData;
         }
-        
+
         if (response.data) {
           // Normalize items array if missing
           if (!Array.isArray(response.data.items)) {
@@ -968,25 +967,26 @@ export const cartAPI = {
           } as CartResponseData;
         }
       }
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.log('[cartAPI] Normalized response:', response);
       }
-      
+
       return response;
     } catch (error: any) {
       console.error("[cartAPI] Cart API Error:", error);
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.error("[cartAPI] Error details:", {
           message: error?.message,
           stack: error?.stack,
         });
       }
-      
+
       // Return a valid response structure even on error
       return {
         success: false,
+        status: 500,
         message: error?.message || "Không thể tải giỏ hàng",
         data: {
           items: [],
@@ -1007,17 +1007,17 @@ export const cartAPI = {
     if (process.env.NODE_ENV === 'development') {
       console.log('[cartAPI.addToCart] Calling API with data:', data);
     }
-    
+
     try {
       const response = await fetchAPI<CartItemResponse>("/cart/items", {
         method: "POST",
         body: JSON.stringify(data),
       });
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.log('[cartAPI.addToCart] API response:', response);
       }
-      
+
       return response;
     } catch (error) {
       console.error('[cartAPI.addToCart] Error:', error);

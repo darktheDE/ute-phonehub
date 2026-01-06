@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { ProductViewPage } from '@/components/features/products/ProductViewPage';
-import { Zap, Clock } from 'lucide-react';
+import { Zap, Clock, Loader2 } from 'lucide-react';
 import { getOnSaleProductsPaginated } from '@/services/new-product.service';
 
 const SORT_OPTIONS = [
@@ -57,7 +57,7 @@ function CountdownTimer() {
   );
 }
 
-export default function FlashSalePage() {
+function FlashSalePageContent() {
   return (
     <ProductViewPage
       title="Flash Sale ⚡"
@@ -77,3 +77,14 @@ export default function FlashSalePage() {
   );
 }
 
+export default function FlashSalePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <FlashSalePageContent />
+    </Suspense>
+  );
+}

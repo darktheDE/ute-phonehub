@@ -1,7 +1,8 @@
 'use client';
 
+import { Suspense } from 'react';
 import { ProductViewPage } from '@/components/features/products/ProductViewPage';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { getNewArrivalsPaginated } from '@/services/new-product.service';
 
 const SORT_OPTIONS = [
@@ -14,7 +15,7 @@ const SORT_OPTIONS = [
   { value: 'name:desc', label: 'Tên: Z-A', sortBy: 'name', sortDirection: 'desc' as const },
 ];
 
-export default function NewArrivalsPage() {
+function NewArrivalsPageContent() {
   return (
     <ProductViewPage
       title="Sản phẩm mới nhất"
@@ -33,3 +34,14 @@ export default function NewArrivalsPage() {
   );
 }
 
+export default function NewArrivalsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <NewArrivalsPageContent />
+    </Suspense>
+  );
+}
