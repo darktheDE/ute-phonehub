@@ -19,7 +19,7 @@ export function LoginForm() {
   const router = useRouter();
   const { setUser } = useAuth();
   const { errors, validate, clearAllErrors } = useFormValidation();
-  
+
   const [formData, setFormData] = useState({
     usernameOrEmail: '',
     password: '',
@@ -64,7 +64,11 @@ export function LoginForm() {
         setUser(response.data.user);
 
         // Redirect based on user role
-        router.push(ROUTES.MANAGE);
+        if (response.data.user.role === 'ADMIN') {
+          router.push(ROUTES.ADMIN);
+        } else {
+          router.push(ROUTES.HOME);
+        }
       } else {
         setError(response.message || 'Đăng nhập thất bại');
       }
