@@ -16,7 +16,7 @@ export default function GoogleCallbackPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     // Tránh chạy nhiều lần (React Strict Mode hoặc re-render)
     if (hasProcessed.current) {
       console.log('Already processed, skipping...');
@@ -47,11 +47,11 @@ export default function GoogleCallbackPage() {
 
       try {
         console.log('Processing Google login callback...');
-        
+
         // Lưu token vào localStorage
         setAuthTokens(accessToken, refreshToken);
         console.log('Tokens saved to localStorage');
-        
+
         // Verify token was saved
         const savedToken = localStorage.getItem('accessToken');
         if (!savedToken) {
@@ -73,12 +73,16 @@ export default function GoogleCallbackPage() {
           setStatus('success');
           setMessage('Đăng nhập Google thành công! Đang chuyển hướng...');
 
-          // Xóa hash từ URL để URL sạch hơn
+          // Delete hash from URL
           window.history.replaceState(null, '', window.location.pathname);
 
-          // Điều hướng sang trang quản lý sau một chút delay
+          // Get role from response to decide redirect
+          const role = meResponse.data?.role;
+          const targetRoute = role === 'ADMIN' ? ROUTES.ADMIN : ROUTES.USER;
+
+          // Redirect to appropriate dashboard
           setTimeout(() => {
-            router.push(ROUTES.MANAGE);
+            router.push(targetRoute);
           }, 800);
         } else {
           console.error('Invalid response format or missing data:', {
@@ -90,17 +94,17 @@ export default function GoogleCallbackPage() {
           setStatus('error');
           setMessage(
             meResponse?.message ||
-              'Không thể lấy thông tin người dùng sau khi đăng nhập Google.'
+            'Không thể lấy thông tin người dùng sau khi đăng nhập Google.'
           );
         }
       } catch (error) {
         console.error('Google login callback error:', error);
         setStatus('error');
-        const errorMessage = error instanceof Error 
-          ? error.message 
+        const errorMessage = error instanceof Error
+          ? error.message
           : 'Đã có lỗi xảy ra với việc đăng nhập Google, vui lòng thử lại.';
         setMessage(errorMessage);
-        
+
         // Log chi tiết để debug
         if (error instanceof Error) {
           console.error('Error details:', {
