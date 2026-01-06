@@ -42,12 +42,6 @@ public class CustomOidcUserService extends OidcUserService {
             if (user.getStatus() == UserStatus.LOCKED) {
                 throw new UnauthorizedException("Tài khoản của bạn đã bị khóa");
             }
-            // Google OAuth users have verified email, so we can set status to EMAIL_VERIFIED if still ACTIVE
-            if (user.getStatus() == UserStatus.ACTIVE) {
-                user.setStatus(UserStatus.EMAIL_VERIFIED);
-                userRepository.save(user);
-                log.info("Updated Google OAuth user status to EMAIL_VERIFIED: {}", email);
-            }
             log.info("Existing user logged in via Google: {}", email);
             return oidcUser;
         }
@@ -66,14 +60,14 @@ public class CustomOidcUserService extends OidcUserService {
 
         String randomPassword = UUID.randomUUID().toString();
 
-        // Google OAuth users have verified email, so set status to EMAIL_VERIFIED
+        // Create new user with ACTIVE status
         User newUser = User.builder()
                 .email(email)
                 .fullName(fullName)
                 .username(username)
                 .passwordHash(passwordEncoder.encode(randomPassword))
                 .role(UserRole.CUSTOMER)
-                .status(UserStatus.EMAIL_VERIFIED)  // Google email is already verified
+                .status(UserStatus.ACTIVE)
                 .build();
 
         newUser = userRepository.save(newUser);
@@ -88,5 +82,3 @@ public class CustomOidcUserService extends OidcUserService {
         return oidcUser;
     }
 }
-
-

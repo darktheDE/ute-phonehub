@@ -170,9 +170,8 @@ public class UserServiceImpl implements IUserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        // Check if already active (only ACTIVE status is considered "active")
-        // EMAIL_VERIFIED users (e.g., Google accounts) may need to be "unlocked" to
-        // ACTIVE by admin
+        // Check if already active
+        // Locked users can be unlocked to ACTIVE status
         if (user.getStatus() == UserStatus.ACTIVE) {
             log.info("User is already active - userId: {}", userId);
             throw new BadRequestException("Tài khoản đang hoạt động, không cần mở khóa");

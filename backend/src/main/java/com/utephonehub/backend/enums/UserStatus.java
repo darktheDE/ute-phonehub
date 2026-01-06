@@ -12,11 +12,5 @@ public enum UserStatus {
     /**
      * User account is locked by admin and cannot login
      */
-    LOCKED,
-
-    /**
-     * User email has been verified (optional marker status)
-     * Currently not enforced in login flow, but can be used for reporting or future logic.
-     */
-    EMAIL_VERIFIED
+    LOCKED
 }

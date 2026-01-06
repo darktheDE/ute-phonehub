@@ -36,8 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
             String jwt = extractJwtFromRequest(request);
 
@@ -46,16 +45,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 User user = userRepository.findById(userId).orElse(null);
 
-                // Allow both ACTIVE and EMAIL_VERIFIED users to authenticate
-                if (user != null && (user.getStatus() == UserStatus.ACTIVE || user.getStatus() == UserStatus.EMAIL_VERIFIED)) {
+                // Only allow ACTIVE users to authenticate
+                if (user != null && user.getStatus() == UserStatus.ACTIVE) {
                     // Add "ROLE_" prefix for hasRole() to work correctly
                     SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             user,
                             null,
-                            Collections.singletonList(authority)
-                    );
+                            Collections.singletonList(authority));
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);

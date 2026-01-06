@@ -51,7 +51,7 @@ public class AuthServiceImpl implements IAuthService {
         log.info("Registering new user with email: {}", request.getEmail());
 
         // Validate password match
-        if (request.getPassword() != null && request.getConfirmPassword() != null 
+        if (request.getPassword() != null && request.getConfirmPassword() != null
                 && !request.getPassword().equals(request.getConfirmPassword())) {
             throw new BadRequestException("Mật khẩu và xác nhận mật khẩu không khớp");
         }
@@ -98,8 +98,7 @@ public class AuthServiceImpl implements IAuthService {
                 verifyOtpKey,
                 otp,
                 OTP_EXPIRATION_MINUTES,
-                TimeUnit.MINUTES
-        );
+                TimeUnit.MINUTES);
 
         // Send registration OTP email (async, không block registration flow)
         try {
@@ -107,8 +106,8 @@ public class AuthServiceImpl implements IAuthService {
             emailService.sendRegistrationOtpEmail(user.getEmail(), user.getFullName(), otp);
             log.info("Registration OTP email sent successfully to: {}", user.getEmail());
         } catch (Exception e) {
-            log.error("Failed to send registration OTP email to {}: {}", 
-                     user.getEmail(), e.getMessage(), e);
+            log.error("Failed to send registration OTP email to {}: {}",
+                    user.getEmail(), e.getMessage(), e);
             // Không throw exception để không ảnh hưởng registration
         }
 
@@ -121,7 +120,7 @@ public class AuthServiceImpl implements IAuthService {
         log.info("Registering new admin with email: {}", request.getEmail());
 
         // Validate password match
-        if (request.getPassword() != null && request.getConfirmPassword() != null 
+        if (request.getPassword() != null && request.getConfirmPassword() != null
                 && !request.getPassword().equals(request.getConfirmPassword())) {
             throw new BadRequestException("Mật khẩu và xác nhận mật khẩu không khớp");
         }
@@ -171,10 +170,8 @@ public class AuthServiceImpl implements IAuthService {
             throw new UnauthorizedException("Tài khoản của bạn đã bị khóa");
         }
 
-        // Allow login for both ACTIVE and EMAIL_VERIFIED status
-        // ACTIVE = newly registered but not verified email yet
-        // EMAIL_VERIFIED = email has been verified
-        if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.EMAIL_VERIFIED) {
+        // Only allow ACTIVE users to login
+        if (user.getStatus() != UserStatus.ACTIVE) {
             throw new UnauthorizedException("Tài khoản của bạn không ở trạng thái hoạt động");
         }
 
@@ -222,7 +219,8 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     /**
-     * Generate access/refresh tokens for a user, store refresh token in Redis, and build AuthResponse.
+     * Generate access/refresh tokens for a user, store refresh token in Redis, and
+     * build AuthResponse.
      */
     public AuthResponse buildAuthResponse(User user) {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
@@ -306,15 +304,15 @@ public class AuthServiceImpl implements IAuthService {
 
         // Delete OTP from Redis
         redisTemplate.delete(otpKey);
-        
+
         log.info("Password reset successfully for user id: {}", user.getId());
-        
+
         // Send password reset confirmation email (async, không block flow)
         try {
             emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName());
         } catch (Exception e) {
-            log.error("Failed to send password reset email to {}: {}", 
-                     user.getEmail(), e.getMessage());
+            log.error("Failed to send password reset email to {}: {}",
+                    user.getEmail(), e.getMessage());
             // Không throw exception
         }
     }
@@ -331,15 +329,9 @@ public class AuthServiceImpl implements IAuthService {
             throw new UnauthorizedException("Mã OTP không hợp lệ hoặc đã hết hạn");
         }
 
-        // Find user and update status to EMAIL_VERIFIED
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
-
-        // Update user status to EMAIL_VERIFIED after successful email verification
-        if (user.getStatus() == UserStatus.ACTIVE) {
-            user.setStatus(UserStatus.EMAIL_VERIFIED);
-            userRepository.save(user);
-            log.info("User status updated to EMAIL_VERIFIED for email: {}", request.getEmail());
+        // Verify user exists
+        if (!userRepository.existsByEmail(request.getEmail())) {
+            throw new ResourceNotFoundException("Người dùng không tồn tại");
         }
 
         // Delete OTP from Redis (one-time use)
