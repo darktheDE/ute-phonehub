@@ -170,8 +170,10 @@ public class UserServiceImpl implements IUserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        // Check if already active (ACTIVE or EMAIL_VERIFIED)
-        if (user.getStatus() == UserStatus.ACTIVE || user.getStatus() == UserStatus.EMAIL_VERIFIED) {
+        // Check if already active (only ACTIVE status is considered "active")
+        // EMAIL_VERIFIED users (e.g., Google accounts) may need to be "unlocked" to
+        // ACTIVE by admin
+        if (user.getStatus() == UserStatus.ACTIVE) {
             log.info("User is already active - userId: {}", userId);
             throw new BadRequestException("Tài khoản đang hoạt động, không cần mở khóa");
         }
@@ -202,7 +204,7 @@ public class UserServiceImpl implements IUserService {
 
         // Create username from email (before @)
         String username = request.getEmail().split("@")[0];
-        
+
         // If username exists, append random number
         if (userRepository.existsByUsername(username)) {
             username = username + System.currentTimeMillis() % 10000;
@@ -222,7 +224,7 @@ public class UserServiceImpl implements IUserService {
         // Save to database
         user = userRepository.save(user);
 
-        log.info("User created successfully - userId: {}, email: {}, role: {}", 
+        log.info("User created successfully - userId: {}, email: {}, role: {}",
                 user.getId(), user.getEmail(), user.getRole());
 
         return userMapper.toResponse(user);

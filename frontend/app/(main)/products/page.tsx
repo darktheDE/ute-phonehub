@@ -40,10 +40,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { toast } from 'sonner';
-import type { 
-  ProductCardResponse, 
-  ProductSearchRequest, 
-  ProductFilterRequest 
+import type {
+  ProductCardResponse,
+  ProductSearchRequest,
+  ProductFilterRequest
 } from '@/services/new-product.service';
 
 const SORT_OPTIONS = [
@@ -59,19 +59,19 @@ const SORT_OPTIONS = [
 function ProductsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Get initial values from URL
   const initialKeyword = searchParams.get('keyword') || '';
   const initialCategoryId = searchParams.get('categoryId') ? Number(searchParams.get('categoryId')) : undefined;
   const initialTab = searchParams.get('tab') || 'all';
-  
+
   // State
   const [activeTab, setActiveTab] = useState(initialTab);
   const [searchKeyword, setSearchKeyword] = useState(initialKeyword);
   const [gridCols, setGridCols] = useState<3 | 4>(4);
   const [currentSort, setCurrentSort] = useState('created_date:desc');
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
   // Filter state
   const [currentFilters, setCurrentFilters] = useState<ProductFilterRequest>({
     categoryIds: initialCategoryId ? [initialCategoryId] : undefined,
@@ -80,10 +80,10 @@ function ProductsPageContent() {
     page: 0,
     size: 20,
   });
-  
+
   // Track if filter change is from user interaction (not initial load)
   const isUserInteraction = useRef(false);
-  
+
   // Comparison state
   const [compareMode, setCompareMode] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<Set<number>>(new Set());
@@ -117,7 +117,7 @@ function ProductsPageContent() {
 
   // Track URL keyword changes for search from header
   const urlKeyword = searchParams.get('keyword') || '';
-  
+
   // Handle URL keyword changes (when searching from header while on products page)
   useEffect(() => {
     if (isInitialized && urlKeyword) {
@@ -138,7 +138,7 @@ function ProductsPageContent() {
       performFilter(currentFilters);
     }
   }, [urlKeyword]);
-  
+
   // Find "Điện thoại" category and set as default on initial load
   // OR perform search if keyword is provided in URL
   useEffect(() => {
@@ -156,15 +156,15 @@ function ProductsPageContent() {
         setIsInitialized(true);
         return;
       }
-      
+
       if (!initialCategoryId) {
         // Find the phone category (Điện thoại)
-        const phoneCategory = categories.find(cat => 
-          cat.name.toLowerCase().includes('điện thoại') || 
+        const phoneCategory = categories.find(cat =>
+          cat.name.toLowerCase().includes('điện thoại') ||
           cat.name.toLowerCase().includes('phone') ||
           cat.name.toLowerCase().includes('smartphone')
         );
-        
+
         if (phoneCategory) {
           // Set phone category as default
           setActiveTab(String(phoneCategory.id));
@@ -187,7 +187,7 @@ function ProductsPageContent() {
     }
   }, [categories, isInitialized, initialCategoryId, initialKeyword]);
 
-// Auto-filter when filters change (from user interaction)
+  // Auto-filter when filters change (from user interaction)
   useEffect(() => {
     if (isUserInteraction.current && isInitialized) {
       performFilter(currentFilters);
@@ -217,7 +217,7 @@ function ProductsPageContent() {
   // Handle search - uses GET /products/search
   const handleSearch = async () => {
     if (!searchKeyword.trim()) return;
-    
+
     const [sortBy, sortDirection] = currentSort.split(':') as [string, 'asc' | 'desc'];
     const searchRequest: ProductSearchRequest = {
       keyword: searchKeyword,
@@ -226,7 +226,7 @@ function ProductsPageContent() {
       page: 0,
       size: 20,
     };
-    
+
     await performSearch(searchRequest);
   };
 
@@ -234,7 +234,7 @@ function ProductsPageContent() {
   const handleCategoryTabChange = (categoryId: string) => {
     setActiveTab(categoryId);
     clearResults();
-    
+
     // Update URL
     const params = new URLSearchParams(searchParams);
     params.set('tab', categoryId);
@@ -244,7 +244,7 @@ function ProductsPageContent() {
       params.delete('categoryId');
     }
     router.push(`/products?${params.toString()}`, { scroll: false });
-    
+
     // Update filters with new category
     const newFilters: ProductFilterRequest = {
       ...currentFilters,
@@ -259,7 +259,7 @@ function ProductsPageContent() {
   const handleSortChange = (value: string) => {
     setCurrentSort(value);
     const [sortBy, sortDirection] = value.split(':') as [string, 'asc' | 'desc'];
-    
+
     const newFilters = {
       ...currentFilters,
       sortBy,
@@ -304,7 +304,7 @@ function ProductsPageContent() {
         return;
       }
     }
-    
+
     setSelectedForCompare(prev => {
       const newSet = new Set(prev);
       if (selected) {
@@ -352,7 +352,7 @@ function ProductsPageContent() {
       price: product.discountedPrice || product.minPrice,
       inStock: product.inStock,
     });
-    
+
     if (wasInWishlist) {
       toast.info('Đã xóa khỏi danh sách yêu thích');
     } else {
@@ -368,12 +368,14 @@ function ProductsPageContent() {
     }
   };
 
-  // Prepare filter options
-  const categoryOptions = categories.map(cat => ({
+  // Prepare filter options - include children for nested display
+  const mapCategoryToFilterOption = (cat: typeof categories[0]): { id: number; label: string; count?: number; children?: any[] } => ({
     id: cat.id,
     label: cat.name,
     count: cat.productCount,
-  }));
+    children: cat.children?.map(mapCategoryToFilterOption),
+  });
+  const categoryOptions = categories.map(mapCategoryToFilterOption);
 
   const brandOptions = brands.map(brand => ({
     id: brand.id,
@@ -386,7 +388,7 @@ function ProductsPageContent() {
     const range: (number | 'ellipsis')[] = [];
     const maxVisible = 5;
     const currentPage = currentFilters.page || 0;
-    
+
     if (totalPages <= maxVisible) {
       for (let i = 0; i < totalPages; i++) {
         range.push(i);
@@ -410,7 +412,7 @@ function ProductsPageContent() {
         range.push(totalPages - 1);
       }
     }
-    
+
     return range;
   };
 
@@ -450,7 +452,7 @@ function ProductsPageContent() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Button
               variant={compareMode ? 'default' : 'outline'}
               onClick={() => setCompareMode(!compareMode)}
@@ -463,7 +465,7 @@ function ProductsPageContent() {
                 </Badge>
               )}
             </Button>
-            
+
             <div className="hidden md:flex gap-1 border rounded-md p-1">
               <Button
                 variant={gridCols === 3 ? 'default' : 'ghost'}
@@ -505,7 +507,7 @@ function ProductsPageContent() {
             </Sheet>
           </div>
         </div>
-        
+
         {/* Main Content */}
         <div className="flex gap-6">
           {/* Desktop Filter Sidebar */}
@@ -542,14 +544,14 @@ function ProductsPageContent() {
                 )}
               </div>
             )}
-            
+
             {/* Error display */}
             {currentError && (
               <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg mb-4">
                 {currentError}
               </div>
             )}
-            
+
             {/* Products grid */}
             {currentLoading ? (
               <div className={`grid grid-cols-1 sm:grid-cols-2 ${gridCols === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>

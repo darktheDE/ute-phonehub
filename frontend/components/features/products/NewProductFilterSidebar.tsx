@@ -20,23 +20,24 @@ interface FilterOption {
   id: number | string;
   label: string;
   count?: number;
+  children?: FilterOption[];
 }
 
 interface NewProductFilterSidebarProps {
   categories?: FilterOption[];
   brands?: FilterOption[];
-  
+
   // Current filter values
   currentFilters: ProductFilterRequest;
-  
+
   // Callbacks
   onFiltersChange: (filters: ProductFilterRequest) => void;
   onApplyFilters?: () => void; // Optional when autoApply is true
   onClearFilters: () => void;
-  
+
   // Loading state
   isLoading?: boolean;
-  
+
   // Auto-apply mode - filters apply immediately on change
   autoApply?: boolean;
 }
@@ -97,10 +98,10 @@ export function NewProductFilterSidebar({
   // Category handlers
   const handleCategoryChange = (categoryId: number, checked: boolean) => {
     const currentIds = currentFilters.categoryIds || [];
-    const newIds = checked 
+    const newIds = checked
       ? [...currentIds, categoryId]
       : currentIds.filter(id => id !== categoryId);
-    
+
     onFiltersChange({
       ...currentFilters,
       categoryIds: newIds.length > 0 ? newIds : undefined,
@@ -110,10 +111,10 @@ export function NewProductFilterSidebar({
   // Brand handlers  
   const handleBrandChange = (brandId: number, checked: boolean) => {
     const currentIds = currentFilters.brandIds || [];
-    const newIds = checked 
+    const newIds = checked
       ? [...currentIds, brandId]
       : currentIds.filter(id => id !== brandId);
-    
+
     onFiltersChange({
       ...currentFilters,
       brandIds: newIds.length > 0 ? newIds : undefined,
@@ -123,10 +124,10 @@ export function NewProductFilterSidebar({
   // Spec handlers
   const handleRamChange = (ram: string, checked: boolean) => {
     const currentOptions = currentFilters.ramOptions || [];
-    const newOptions = checked 
+    const newOptions = checked
       ? [...currentOptions, ram]
       : currentOptions.filter(option => option !== ram);
-    
+
     onFiltersChange({
       ...currentFilters,
       ramOptions: newOptions.length > 0 ? newOptions : undefined,
@@ -135,10 +136,10 @@ export function NewProductFilterSidebar({
 
   const handleStorageChange = (storage: string, checked: boolean) => {
     const currentOptions = currentFilters.storageOptions || [];
-    const newOptions = checked 
+    const newOptions = checked
       ? [...currentOptions, storage]
       : currentOptions.filter(option => option !== storage);
-    
+
     onFiltersChange({
       ...currentFilters,
       storageOptions: newOptions.length > 0 ? newOptions : undefined,
@@ -147,10 +148,10 @@ export function NewProductFilterSidebar({
 
   const handleOsChange = (os: string, checked: boolean) => {
     const currentOptions = currentFilters.osOptions || [];
-    const newOptions = checked 
+    const newOptions = checked
       ? [...currentOptions, os]
       : currentOptions.filter(option => option !== os);
-    
+
     onFiltersChange({
       ...currentFilters,
       osOptions: newOptions.length > 0 ? newOptions : undefined,
@@ -246,18 +247,40 @@ export function NewProductFilterSidebar({
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-2">
                 {categories.map((category) => (
-                  <div key={category.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`category-${category.id}`}
-                      checked={currentFilters.categoryIds?.includes(Number(category.id)) || false}
-                      onCheckedChange={(checked) => handleCategoryChange(Number(category.id), !!checked)}
-                    />
-                    <Label 
-                      htmlFor={`category-${category.id}`} 
-                      className="flex-1 text-sm font-normal cursor-pointer"
-                    >
-                      {category.label}
-                    </Label>
+                  <div key={category.id}>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`category-${category.id}`}
+                        checked={currentFilters.categoryIds?.includes(Number(category.id)) || false}
+                        onCheckedChange={(checked) => handleCategoryChange(Number(category.id), !!checked)}
+                      />
+                      <Label
+                        htmlFor={`category-${category.id}`}
+                        className="flex-1 text-sm font-normal cursor-pointer"
+                      >
+                        {category.label}
+                      </Label>
+                    </div>
+                    {/* Sub-categories */}
+                    {category.children && category.children.length > 0 && (
+                      <div className="ml-6 mt-1 space-y-1 border-l border-border pl-2">
+                        {category.children.map((child) => (
+                          <div key={child.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`category-${child.id}`}
+                              checked={currentFilters.categoryIds?.includes(Number(child.id)) || false}
+                              onCheckedChange={(checked) => handleCategoryChange(Number(child.id), !!checked)}
+                            />
+                            <Label
+                              htmlFor={`category-${child.id}`}
+                              className="flex-1 text-xs font-normal cursor-pointer text-muted-foreground"
+                            >
+                              {child.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </CollapsibleContent>
@@ -282,8 +305,8 @@ export function NewProductFilterSidebar({
                       checked={currentFilters.brandIds?.includes(Number(brand.id)) || false}
                       onCheckedChange={(checked) => handleBrandChange(Number(brand.id), !!checked)}
                     />
-                    <Label 
-                      htmlFor={`brand-${brand.id}`} 
+                    <Label
+                      htmlFor={`brand-${brand.id}`}
                       className="flex-1 text-sm font-normal cursor-pointer"
                     >
                       {brand.label}
@@ -460,15 +483,15 @@ export function NewProductFilterSidebar({
 
         {/* Apply Filters Button - Only shown when not in autoApply mode */}
         {!autoApply && onApplyFilters && (
-          <Button 
-            onClick={onApplyFilters} 
+          <Button
+            onClick={onApplyFilters}
             className="w-full"
             disabled={isLoading}
           >
             {isLoading ? 'Đang tải...' : 'Áp dụng bộ lọc'}
           </Button>
         )}
-        
+
         {/* Loading indicator for auto-apply mode */}
         {autoApply && isLoading && (
           <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">

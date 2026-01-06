@@ -97,20 +97,29 @@ export default function OrderDetailPage(props: OrderDetailPageProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
-          <Button 
-            onClick={() => router.push('/')} 
-            variant="outline"
-            className="flex-1"
-          >
-            Tiếp tục mua sắm
-          </Button>
+        <div className="flex flex-col gap-3">
           <Button
-            onClick={() => router.push('/manage?tab=orders')}
-            className="flex-1"
+            onClick={() => router.push('/account/payments')}
+            className="w-full"
           >
-            Quản lý đơn hàng
+            Xem lịch sử thanh toán
           </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => router.push('/')}
+              variant="outline"
+              className="flex-1"
+            >
+              Tiếp tục mua sắm
+            </Button>
+            <Button
+              onClick={() => router.push('/manage?tab=orders')}
+              variant="outline"
+              className="flex-1"
+            >
+              Quản lý đơn hàng
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -91,13 +91,6 @@ INSERT INTO categories (name, description, parent_id) VALUES
 ('Cáp sạc', 'Cáp sạc USB-C, Lightning, Micro USB', 4),
 ('Ốp lưng', 'Ốp lưng bảo vệ điện thoại', 4);
 
--- Sub-categories for Phụ kiện
-INSERT INTO categories (name, description, parent_id) VALUES
-('Tai nghe', 'Tai nghe có dây và không dây', 4),
-('Sạc dự phòng', 'Pin sạc dự phòng các loại', 4),
-('Cáp sạc', 'Cáp sạc USB-C, Lightning, Micro USB', 4),
-('Ốp lưng', 'Ốp lưng bảo vệ điện thoại', 4);
-
 -- Table: brands
 CREATE TABLE IF NOT EXISTS brands (
     id BIGSERIAL PRIMARY KEY,

@@ -36,6 +36,7 @@ export interface CategoryResponse {
   hasChildren?: boolean;
   childrenCount: number;
   productCount: number;
+  children?: CategoryResponse[]; // Nested sub-categories
   createdAt: string;
   updatedAt: string;
 }
