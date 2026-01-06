@@ -147,10 +147,22 @@ export function useCartSync() {
 
       // Fetch backend cart
       const backendResp = await cartAPI.getCurrentCart();
+      
+      // Debug logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[useCartSync] Backend cart response:', backendResp);
+      }
+      
       const backendItems =
-        backendResp?.success && Array.isArray(backendResp.data?.items)
+        backendResp?.success && backendResp.data && Array.isArray(backendResp.data.items)
           ? backendResp.data.items
           : [];
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[useCartSync] Backend items:', backendItems);
+        console.log('[useCartSync] Has guest items:', guestItems.length > 0);
+        console.log('[useCartSync] Has backend items:', backendItems.length > 0);
+      }
 
       const hasGuestItems = guestItems.length > 0;
       const hasBackendItems = backendItems.length > 0;
@@ -159,10 +171,26 @@ export function useCartSync() {
         // No guest cart, just sync with backend
         if (hasBackendItems) {
           const mapped = mapBackendCartItems(backendItems);
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[useCartSync] Mapped items from backend:', mapped);
+          }
+          
           // Clear any stale guest cart data in this tab
           clearCart();
           clearGuestCartId();
           setItems(mapped);
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[useCartSync] Cart items after setItems:', useCartStore.getState().items);
+          }
+        } else {
+          // No backend items either, ensure cart is cleared
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[useCartSync] No backend items, clearing cart');
+          }
+          clearCart();
+          clearGuestCartId();
         }
         return;
       }
@@ -201,14 +229,52 @@ export function useCartSync() {
   useEffect(() => {
     const alreadyMerged = getMergeStatus();
 
-    if (isAuthenticated && user && !alreadyMerged) {
-      // Only check merge once per session
-      setMergeStatus(true);
-      checkAndMergeCart();
+    if (isAuthenticated && user) {
+      // ADMIN users don't have carts
+      if (user.role === "ADMIN") {
+        clearCart();
+        clearGuestCartId();
+        return;
+      }
+      
+      if (!alreadyMerged) {
+        // First time login in this session - check and merge
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useCartSync] First login, checking and merging cart');
+        }
+        setMergeStatus(true);
+        checkAndMergeCart();
+      } else {
+        // Already merged, but ensure cart is synced from backend
+        // This handles case where user navigates to cart page after login
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useCartSync] Already merged, syncing cart from backend');
+        }
+        
+        // Fetch and sync cart from backend (without merge)
+        (async () => {
+          try {
+            const resp = await cartAPI.getCurrentCart();
+            if (resp?.success && resp.data && Array.isArray(resp.data.items)) {
+              const mapped = mapBackendCartItems(resp.data.items);
+              setItems(mapped);
+              
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[useCartSync] Synced cart items:', mapped);
+              }
+            }
+          } catch (e) {
+            console.error('[useCartSync] Failed to sync cart:', e);
+          }
+        })();
+      }
     } else if (!isAuthenticated) {
       // IMPORTANT: Do NOT clear the cart on every unauthenticated render.
       // Only clear when transitioning from authenticated -> unauthenticated (logout).
       if (wasAuthenticatedRef.current) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useCartSync] User logged out, clearing cart');
+        }
         setMergeStatus(false);
         if ((Array.isArray(items) && items.length > 0) || guestCartId) {
           clearCart();
@@ -229,6 +295,8 @@ export function useCartSync() {
     checkAndMergeCart,
     items,
     guestCartId,
+    clearGuestCartId,
+    setItems,
   ]);
 
   // Guest cart Redis sync: keep server-side guest cart updated during the current tab session.

@@ -56,12 +56,16 @@ export const ChatbotProductCard: React.FC<ChatbotProductCardProps> = ({
   const brandStyle = BRAND_COLORS[brandName] || BRAND_COLORS.default;
   const medal = MEDALS[index] || `${index + 1}`;
   
-  // Calculate discount
-  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
-  const discountPercent = hasDiscount
-    ? Math.round(((product.originalPrice! - product.price) / product.originalPrice!) * 100)
-    : 0;
-  const savedAmount = hasDiscount ? product.originalPrice! - product.price : 0;
+  // Calculate discount safely
+  const hasDiscount = product.originalPrice && product.originalPrice > 0 && product.price && product.originalPrice > product.price;
+  const discountPercent = (() => {
+    if (hasDiscount && product.originalPrice && product.originalPrice > 0) {
+      const calculated = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+      return Math.max(0, Math.min(100, calculated));
+    }
+    return 0;
+  })();
+  const savedAmount = hasDiscount && product.originalPrice && product.price ? product.originalPrice - product.price : 0;
 
   return (
     <a

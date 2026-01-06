@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, Trash2, Sparkles, Zap, Clock, Target, ChevronLeft, ChevronRight, Star, TrendingUp, Package } from 'lucide-react';
+import { Loader2, Send, Trash2, Sparkles, Zap, Clock, Target, ChevronLeft, ChevronRight, Star, TrendingUp, Package, Bot, MessageCircle, Hand, Crown, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatbotMarkdown } from './ChatbotMarkdown';
 import { ChatbotProductList } from './ChatbotProductCard';
@@ -41,11 +41,11 @@ const INTENT_DISPLAY: Record<string, { label: string; icon: React.ReactNode; col
 
 // Quick action categories for bottom bar - Prompts sát yêu cầu
 const QUICK_CATEGORIES = [
-  { id: 'featured', label: '⭐ Nổi bật', icon: Star, prompt: 'Xem sản phẩm nổi bật', color: 'from-amber-500 to-orange-500' },
-  { id: 'bestselling', label: '🔥 Bán chạy', icon: TrendingUp, prompt: 'Xem sản phẩm bán chạy', color: 'from-red-500 to-pink-500' },
-  { id: 'new', label: '✨ Mới về', icon: Sparkles, prompt: 'Xem sản phẩm mới về', color: 'from-green-500 to-emerald-500' },
-  { id: 'budget', label: '💰 Giá rẻ', icon: Package, prompt: 'Xem điện thoại giá rẻ', color: 'from-blue-500 to-cyan-500' },
-  { id: 'flagship', label: '👑 Cao cấp', icon: Zap, prompt: 'Xem điện thoại cao cấp', color: 'from-purple-500 to-violet-500' },
+  { id: 'featured', label: 'Nổi bật', icon: Star, prompt: 'Xem sản phẩm nổi bật', color: 'from-amber-500 to-orange-500' },
+  { id: 'bestselling', label: 'Bán chạy', icon: TrendingUp, prompt: 'Xem sản phẩm bán chạy', color: 'from-red-500 to-pink-500' },
+  { id: 'new', label: 'Mới về', icon: Sparkles, prompt: 'Xem sản phẩm mới về', color: 'from-green-500 to-emerald-500' },
+  { id: 'budget', label: 'Giá rẻ', icon: Package, prompt: 'Xem điện thoại giá rẻ', color: 'from-blue-500 to-cyan-500' },
+  { id: 'flagship', label: 'Cao cấp', icon: Crown, prompt: 'Xem điện thoại cao cấp', color: 'from-amber-500 to-orange-500' },
 ];
 
 
@@ -109,8 +109,8 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-xl shadow-lg">
-                🤖
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
+                <Bot className="w-5 h-5 text-primary-foreground" />
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
             </div>
@@ -141,13 +141,16 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
           <div className="h-full flex items-center justify-center">
             <div className="max-w-md text-center space-y-6 p-4">
               {/* Avatar lớn hơn */}
-              <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-5xl shadow-2xl animate-bounce">
-                🤖
+              <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-2xl animate-bounce">
+                <Bot className="w-12 h-12 text-primary-foreground" />
               </div>
               
               {/* Welcome text */}
               <div className="space-y-2">
-                <h3 className="text-xl font-bold">Xin chào! 👋</h3>
+                <div className="flex items-center justify-center gap-2">
+                  <h3 className="text-xl font-bold">Xin chào!</h3>
+                  <Hand className="w-5 h-5 text-primary animate-wave" />
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Tôi là trợ lý AI của UTE PhoneHub, sẵn sàng tư vấn điện thoại phù hợp với bạn!
                 </p>
@@ -157,8 +160,9 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
              
 
               {/* Gợi ý nhỏ */}
-              <p className="text-xs text-muted-foreground">
-                💬 Hoặc nhập câu hỏi bên dưới để được tư vấn!
+              <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                <MessageCircle className="w-3 h-3" />
+                Hoặc nhập câu hỏi bên dưới để được tư vấn!
               </p>
             </div>
           </div>
@@ -172,8 +176,8 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
               )}
             >
               {message.type === 'assistant' && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-sm shadow-md">
-                  🤖
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+                  <Bot className="w-4 h-4 text-primary-foreground" />
                 </div>
               )}
 
@@ -197,7 +201,8 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
                     <div className="mt-3 space-y-2 border-t border-border/50 pt-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold flex items-center gap-1">
-                          📦 Gợi ý ({message.response.recommendedProducts.length})
+                          <Package className="w-3 h-3" />
+                          Gợi ý ({message.response.recommendedProducts.length})
                         </span>
                         {message.response.detectedIntent && (
                           <Badge 
@@ -236,8 +241,8 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
               </div>
 
               {message.type === 'user' && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm border">
-                  👤
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center border">
+                  <User className="w-4 h-4 text-muted-foreground" />
                 </div>
               )}
             </div>

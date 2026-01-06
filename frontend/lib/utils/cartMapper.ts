@@ -9,15 +9,18 @@ export function mapBackendCartItem(item: unknown): CartItem {
   const productObj = (typeof obj.product === 'object' && obj.product) ? obj.product as Record<string, unknown> : {};
   
   // Extract price from various possible fields
+  // Backend returns unitPrice as BigDecimal (serialized as number in JSON)
   const rawPrice = typeof obj.price === 'number' 
     ? obj.price 
     : (typeof obj.unitPrice === 'number' 
       ? obj.unitPrice 
-      : (typeof productObj.salePrice === 'number' 
-        ? productObj.salePrice 
-        : (typeof productObj.price === 'number' 
-          ? productObj.price 
-          : 0)));
+      : (typeof obj.unitPrice === 'string'
+        ? parseFloat(obj.unitPrice) || 0
+        : (typeof productObj.salePrice === 'number' 
+          ? productObj.salePrice 
+          : (typeof productObj.price === 'number' 
+            ? productObj.price 
+            : 0))));
   
   const productOriginal = typeof productObj.originalPrice === 'number' 
     ? productObj.originalPrice 
@@ -57,11 +60,11 @@ export function mapBackendCartItem(item: unknown): CartItem {
       : (typeof productObj.name === 'string' 
         ? String(productObj.name) 
         : 'Unknown Product'),
-    productImage: typeof obj.productImage === 'string' 
+    productImage: typeof obj.productImage === 'string' && obj.productImage.trim() !== ''
       ? obj.productImage 
-      : (typeof obj.productThumbnailUrl === 'string' 
+      : (typeof obj.productThumbnailUrl === 'string' && obj.productThumbnailUrl.trim() !== ''
         ? obj.productThumbnailUrl 
-        : (typeof productObj.thumbnailUrl === 'string' 
+        : (typeof productObj.thumbnailUrl === 'string' && String(productObj.thumbnailUrl).trim() !== ''
           ? String(productObj.thumbnailUrl) 
           : '')),
     price: rawPrice,

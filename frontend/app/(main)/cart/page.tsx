@@ -54,20 +54,50 @@ export default function CartPage() {
     setIsLoading(true);
     try {
       const response = await cartAPI.getCurrentCart();
-      if (response.success && response.data) {
+      
+      // Log response for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Cart API Response:', response);
+      }
+      
+      if (response && response.success && response.data) {
         // Use centralized mapper that handles discount/appliedPrice
         const backendItems = Array.isArray(response.data.items)
           ? response.data.items
           : [];
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Backend cart items:', backendItems);
+        }
+        
         const mappedItems = mapBackendCartItems(backendItems);
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Mapped cart items:', mappedItems);
+        }
 
         // Replace local cart with backend data
         clearCart();
-        if (mappedItems.length > 0) setItems(mappedItems);
+        if (mappedItems.length > 0) {
+          setItems(mappedItems);
+        } else {
+          // Cart is empty, ensure store is cleared
+          clearCart();
+        }
+      } else {
+        // Response không thành công hoặc không có data
+        console.warn('Cart API response không hợp lệ:', response);
+        if (response && !response.success) {
+          toast.error(response.message || "Không thể tải giỏ hàng");
+        }
+        clearCart();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch cart from backend:", error);
-      toast.error("Không thể tải giỏ hàng từ server");
+      const errorMessage = error?.message || "Không thể tải giỏ hàng từ server";
+      toast.error(errorMessage);
+      // Clear cart on error to avoid stale data
+      clearCart();
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +106,15 @@ export default function CartPage() {
   // Fetch cart from backend when component mounts and user is authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CartPage] User authenticated, fetching cart');
+      }
       fetchCartFromBackend();
+    } else if (!isAuthenticated) {
+      // Guest user - cart should be in Zustand store (in-memory)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CartPage] Guest user, using in-memory cart');
+      }
     }
   }, [isAuthenticated, user, fetchCartFromBackend]);
 

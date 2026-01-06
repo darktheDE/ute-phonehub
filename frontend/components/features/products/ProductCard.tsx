@@ -96,10 +96,10 @@ export function ProductCard({
             "absolute top-3 flex flex-col gap-1.5 z-10",
             compareMode ? "left-12" : "left-3"
           )}>
-            {product.discountPercentage && product.discountPercentage > 0 && (
+            {product.discountPercentage && product.discountPercentage > 0 && product.discountPercentage <= 100 && (
               <Badge variant="destructive" className="text-xs font-bold px-2.5 py-1 shadow-md bg-gradient-to-r from-red-500 to-rose-500 border-0">
                 <Zap className="w-3 h-3 mr-1" />
-                -{product.discountPercentage}%
+                -{Math.round(product.discountPercentage)}%
               </Badge>
             )}
             {product.promotionBadge && (

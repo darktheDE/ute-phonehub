@@ -129,6 +129,14 @@ async function fetchAPI<T>(
   const url = `${API_BASE_URL}${normalizedEndpoint}`;
   const token = getAuthToken();
 
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[fetchAPI] Token check:`, {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : null,
+    });
+  }
+
   const headers = new Headers(options.headers);
 
   if (!headers.has("Content-Type")) {
@@ -137,13 +145,33 @@ async function fetchAPI<T>(
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[fetchAPI] Authorization header set`);
+    }
+  } else {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[fetchAPI] No token found, request will be unauthenticated`);
+    }
   }
 
   try {
+    // Log request for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[fetchAPI] ${options.method || 'GET'} ${url}`, {
+        hasToken: !!token,
+        body: options.body ? JSON.parse(options.body as string) : undefined,
+      });
+    }
+
     const response = await fetch(url, {
       ...options,
       headers,
     });
+
+    // Log response status
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[fetchAPI] Response ${response.status} ${response.statusText} for ${options.method || 'GET'} ${url}`);
+    }
 
     // Try to parse JSON, but handle cases where response might not be JSON
     let data: any;
@@ -175,9 +203,30 @@ async function fetchAPI<T>(
         `API request failed with status ${response.status} ${response.statusText}`;
 
       // Log error for debugging
-      console.error(`API Error [${response.status}]:`, errorMessage);
+      console.error(`[fetchAPI] API Error [${response.status}]:`, errorMessage, data);
 
-      throw new Error(errorMessage);
+      // Create error object with response data
+      const error = new Error(errorMessage) as any;
+      error.status = response.status;
+      error.data = data;
+      throw error;
+    }
+
+    // Log successful response
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[fetchAPI] Success for ${options.method || 'GET'} ${url}:`, data);
+      // Check if response has success field
+      if (data && typeof data === 'object' && 'success' in data) {
+        console.log(`[fetchAPI] Response success field:`, data.success);
+      } else {
+        console.warn(`[fetchAPI] Response does not have success field`);
+      }
+    }
+
+    // Ensure response has success field if it's an ApiResponse
+    if (data && typeof data === 'object' && !('success' in data)) {
+      // If response doesn't have success field, assume it's successful (status 200)
+      data.success = true;
     }
 
     return data;
@@ -883,7 +932,67 @@ export const cartAPI = {
    * GET /api/v1/cart/me
    */
   getCurrentCart: async (): Promise<ApiResponse<CartResponseData>> => {
-    return fetchAPI<CartResponseData>("/cart/me", { method: "GET" });
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[cartAPI] Fetching cart from /cart/me');
+      }
+      
+      const response = await fetchAPI<CartResponseData>("/cart/me", { method: "GET" });
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[cartAPI] Raw response:', response);
+      }
+      
+      // Ensure response has expected structure
+      if (response) {
+        // Handle case where response.data might be the cart data directly
+        if (!response.data && (response as any).items) {
+          // Backend might return cart data directly in response
+          response.data = {
+            items: Array.isArray((response as any).items) ? (response as any).items : [],
+          } as CartResponseData;
+        }
+        
+        if (response.data) {
+          // Normalize items array if missing
+          if (!Array.isArray(response.data.items)) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('[cartAPI] items is not an array:', response.data.items);
+            }
+            response.data.items = [];
+          }
+        } else {
+          // No data field, create empty structure
+          response.data = {
+            items: [],
+          } as CartResponseData;
+        }
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[cartAPI] Normalized response:', response);
+      }
+      
+      return response;
+    } catch (error: any) {
+      console.error("[cartAPI] Cart API Error:", error);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error("[cartAPI] Error details:", {
+          message: error?.message,
+          stack: error?.stack,
+        });
+      }
+      
+      // Return a valid response structure even on error
+      return {
+        success: false,
+        message: error?.message || "Không thể tải giỏ hàng",
+        data: {
+          items: [],
+        } as CartResponseData,
+      };
+    }
   },
 
   /**
@@ -895,10 +1004,25 @@ export const cartAPI = {
     color?: string;
     storage?: string;
   }): Promise<ApiResponse<CartItemResponse>> => {
-    return fetchAPI<CartItemResponse>("/cart/items", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[cartAPI.addToCart] Calling API with data:', data);
+    }
+    
+    try {
+      const response = await fetchAPI<CartItemResponse>("/cart/items", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[cartAPI.addToCart] API response:', response);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('[cartAPI.addToCart] Error:', error);
+      throw error;
+    }
   },
 
   /**

@@ -29,6 +29,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -61,19 +62,11 @@ public class CartServiceImpl implements ICartService {
     public CartResponse getCurrentCart(Long userId) {
         log.info("Getting cart for user: {}", userId);
         
-        // Get or create cart
-        Cart cart = cartRepository.findByUserIdWithItems(userId)
-                .orElseGet(() -> {
-                    log.info("Creating new cart for user: {}", userId);
-                    User user = userRepository.findById(userId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
-                    
-                    Cart newCart = Cart.builder()
-                            .user(user)
-                            .items(new ArrayList<>())
-                            .build();
-                    return cartRepository.save(newCart);
-                });
+        // Get cart (read-only)
+        Optional<Cart> cartOpt = cartRepository.findByUserIdWithItems(userId);
+        
+        // If cart doesn't exist, create it in a separate write transaction
+        Cart cart = cartOpt.orElseGet(() -> createCartForUser(userId));
 
         // Auto-remove items with deleted products (UC 1.2 Alternate 4.A.1)
         List<CartItem> invalidItems = cart.getItemsInternal().stream()
@@ -82,12 +75,45 @@ public class CartServiceImpl implements ICartService {
         
         if (!invalidItems.isEmpty()) {
             log.warn("Found {} invalid items in cart, removing...", invalidItems.size());
-            invalidItems.forEach(cart::removeItem);
-            cartItemRepository.deleteAll(invalidItems);
-            cartRepository.save(cart);
+            // Need to remove invalid items in a write transaction
+            removeInvalidItems(userId, invalidItems);
+            // Re-fetch cart after cleanup
+            cart = cartRepository.findByUserIdWithItems(userId)
+                    .orElseGet(() -> createCartForUser(userId));
         }
 
         return cartMapper.toResponse(cart);
+    }
+    
+    /**
+     * Create a new cart for user in a separate write transaction
+     * This method is called from read-only getCurrentCart when cart doesn't exist
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    private Cart createCartForUser(Long userId) {
+        log.info("Creating new cart for user: {}", userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        
+        Cart newCart = Cart.builder()
+                .user(user)
+                .items(new ArrayList<>())
+                .build();
+        return cartRepository.save(newCart);
+    }
+    
+    /**
+     * Remove invalid items from cart in a separate write transaction
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    private void removeInvalidItems(Long userId, List<CartItem> invalidItems) {
+        log.info("Removing {} invalid items from cart for user: {}", invalidItems.size(), userId);
+        Cart cart = cartRepository.findByUserIdWithItems(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Giỏ hàng không tồn tại"));
+        
+        invalidItems.forEach(cart::removeItem);
+        cartItemRepository.deleteAll(invalidItems);
+        cartRepository.save(cart);
     }
 
     @Override

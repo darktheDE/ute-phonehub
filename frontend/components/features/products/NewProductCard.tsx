@@ -43,15 +43,27 @@ export function ProductCard({
 
   // Determine if product has discount
   const isDiscounted = product.hasDiscount || 
-    (product.discountedPrice && product.discountedPrice < product.originalPrice) || 
+    (product.discountedPrice && product.originalPrice && product.discountedPrice < product.originalPrice) || 
     (product.discountPercentage && product.discountPercentage > 0);
 
-  const displayPrice = product.discountedPrice || product.originalPrice;
-  const discountPercent = isDiscounted ? 
-    (product.discountPercentage && product.discountPercentage > 0 ? 
-      product.discountPercentage : 
-      Math.round((1 - displayPrice / product.originalPrice) * 100)) : 
-    0;
+  const displayPrice = product.discountedPrice || product.originalPrice || 0;
+  
+  // Calculate discount percentage safely
+  const discountPercent = (() => {
+    // If discountPercentage is provided and valid, use it
+    if (product.discountPercentage && product.discountPercentage > 0 && product.discountPercentage <= 100) {
+      return Math.round(product.discountPercentage);
+    }
+    
+    // Otherwise calculate from prices
+    if (product.originalPrice && product.originalPrice > 0 && displayPrice < product.originalPrice) {
+      const calculated = Math.round((1 - displayPrice / product.originalPrice) * 100);
+      // Ensure it's a valid percentage (0-100)
+      return Math.max(0, Math.min(100, calculated));
+    }
+    
+    return 0;
+  })();
 
   return (
     <Link href={`/products/${product.id}`} className="block h-full group">

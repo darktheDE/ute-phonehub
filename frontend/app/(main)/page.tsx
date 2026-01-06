@@ -2,7 +2,6 @@
 
 import {
   HeroBanner,
-  FeaturesSection,
   FlashSaleSection,
   FeaturedProducts,
   BestSellingSection,
@@ -23,8 +22,6 @@ export default function HomePage() {
           <QuickLinksBar />
         </div>
       </section>
-
-      <FeaturesSection />
       
       {/* Flash Sale - Ưu tiên cao vì urgency */}
       <FlashSaleSection />

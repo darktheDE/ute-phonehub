@@ -50,7 +50,7 @@ const QUICK_ACTIONS = [
     label: 'Cao cấp', 
     icon: Crown, 
     href: '/products?minPrice=20000000',
-    color: 'bg-purple-500 hover:bg-purple-600',
+    color: 'bg-amber-500 hover:bg-amber-600',
   },
 ];
 
@@ -72,26 +72,13 @@ export default function ChatbotPage() {
       <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b">
         <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                  <Smartphone className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                  Trợ lý tư vấn AI
-                </h1>
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                <Smartphone className="w-5 h-5 text-primary-foreground" />
               </div>
-              <p className="text-sm text-muted-foreground max-w-xl">
-                Mô tả nhu cầu của bạn, AI sẽ gợi ý điện thoại phù hợp nhất từ hệ thống UTE PhoneHub
-              </p>
-            </div>
-            
-            {/* Quick Stats */}
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                <Zap className="w-4 h-4" />
-                <span className="font-medium">Phản hồi tức thì</span>
-              </div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Trợ lý tư vấn AI
+              </h1>
             </div>
           </div>
         </div>
@@ -110,8 +97,9 @@ export default function ChatbotPage() {
         {/* Divider */}
         <div className="flex items-center gap-4 my-8">
           <div className="flex-1 h-px bg-border"></div>
-          <span className="text-sm font-large text-muted-foreground px-4">
-            ✨ Khám phá thêm sản phẩm
+          <span className="text-sm font-large text-muted-foreground px-4 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            Khám phá thêm sản phẩm
           </span>
           <div className="flex-1 h-px bg-border"></div>
         </div>

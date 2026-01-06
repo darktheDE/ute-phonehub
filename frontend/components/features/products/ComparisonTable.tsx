@@ -82,10 +82,15 @@ export function ComparisonTable({ products, onRemoveProduct }: ComparisonTablePr
           
           {/* Product cards */}
           {products.map((product) => {
-            const discount = product.hasDiscount && product.originalPrice && product.discountedPrice
-              ? Math.round((1 - product.discountedPrice / product.originalPrice) * 100)
-              : 0;
-            const displayPrice = product.discountedPrice || product.originalPrice;
+            // Calculate discount safely
+            const discount = (() => {
+              if (product.hasDiscount && product.originalPrice && product.originalPrice > 0 && product.discountedPrice && product.discountedPrice < product.originalPrice) {
+                const calculated = Math.round((1 - product.discountedPrice / product.originalPrice) * 100);
+                return Math.max(0, Math.min(100, calculated));
+              }
+              return 0;
+            })();
+            const displayPrice = product.discountedPrice || product.originalPrice || 0;
 
             return (
               <Card key={product.id} className="relative">
