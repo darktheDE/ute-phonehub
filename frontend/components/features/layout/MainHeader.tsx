@@ -73,12 +73,12 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
   // Handle input change with debounce
   const handleSearchChange = (value: string) => {
     setSearchKeyword(value);
-    
+
     // Clear previous debounce
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
-    
+
     // Debounce 300ms
     debounceRef.current = setTimeout(() => {
       fetchSuggestions(value);
@@ -89,7 +89,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        searchRef.current && 
+        searchRef.current &&
         !searchRef.current.contains(event.target as Node) &&
         mobileSearchRef.current &&
         !mobileSearchRef.current.contains(event.target as Node)
@@ -243,7 +243,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
           {/* Actions */}
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Mobile Search Toggle */}
-            <button 
+            <button
               className="md:hidden p-2 text-primary-foreground hover:bg-primary-foreground/10 rounded-full transition-colors"
               onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
             >
@@ -289,7 +289,7 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
             {user ? (
               <div className="hidden sm:flex items-center gap-2">
                 <Link
-                  href={ROUTES.MANAGE}
+                  href={user.role === 'ADMIN' ? ROUTES.ADMIN : ROUTES.USER}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-full text-primary-foreground hover:bg-primary-foreground/10 transition-colors"
                 >
                   <User className="w-5 h-5" />
@@ -368,9 +368,9 @@ export function MainHeader({ user, onLogout }: MainHeaderProps) {
       </div>
 
       {/* Mobile Menu */}
-      <MobileMenu 
-        isOpen={mobileMenuOpen} 
-        user={user} 
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        user={user}
         onLogout={onLogout}
         onClose={() => setMobileMenuOpen(false)}
       />

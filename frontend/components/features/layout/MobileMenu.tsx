@@ -7,13 +7,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Search, 
-  Home, 
-  Smartphone, 
-  Bot, 
-  ShoppingCart, 
-  User, 
+import {
+  Search,
+  Home,
+  Smartphone,
+  Bot,
+  ShoppingCart,
+  User,
   LogOut,
   ChevronRight,
   Sparkles,
@@ -175,7 +175,7 @@ export function MobileMenu({ isOpen, user, onLogout, onClose }: MobileMenuProps)
             <>
               <div className="my-2 mx-4 border-t" />
               <Link
-                href={ROUTES.MANAGE}
+                href={user.role === 'ADMIN' ? ROUTES.ADMIN : ROUTES.USER}
                 onClick={onClose}
                 className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-muted transition-colors group"
               >

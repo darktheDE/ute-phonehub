@@ -5,25 +5,27 @@
 export const ROUTES = {
   // Public routes
   HOME: '/',
-  
+
   // Auth routes
   LOGIN: '/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
-  
+
   // User routes
-  MANAGE: '/manage',
-  PROFILE: '/manage?tab=profile',
-  ORDERS: '/manage?tab=orders',
-  ADDRESSES: '/manage?tab=addresses',
-  WISHLIST: '/manage?tab=wishlist',
+  // User routes
+  USER: '/user',
+  PROFILE: '/user?tab=profile',
+  ORDERS: '/user?tab=orders',
+  ADDRESSES: '/user?tab=addresses',
+  WISHLIST: '/user?tab=wishlist',
   CART: '/cart',
-  
+
   // Admin routes
-  ADMIN_DASHBOARD: '/manage?tab=dashboard',
-  ADMIN_PRODUCTS: '/manage?tab=products',
-  ADMIN_ORDERS: '/manage?tab=orders',
-  ADMIN_USERS: '/manage?tab=users',
+  ADMIN: '/admin',
+  ADMIN_DASHBOARD: '/admin?tab=dashboard',
+  ADMIN_PRODUCTS: '/admin?tab=products',
+  ADMIN_ORDERS: '/admin?tab=orders',
+  ADMIN_USERS: '/admin?tab=users',
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;

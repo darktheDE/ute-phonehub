@@ -1,17 +1,24 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Facebook, Mail, MapPin, Phone, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Footer() {
+  const pathname = usePathname();
   const currentYear = new Date().getFullYear();
+
+  // Hide footer on dashboard routes
+  if (pathname?.startsWith('/user') || pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <footer className="relative mt-16 border-t border-border/50 bg-gradient-to-b from-sidebar via-sidebar to-sidebar/95 text-sidebar-foreground">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-50" />
-      
+
       <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-16">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Company Info */}
@@ -51,8 +58,8 @@ export function Footer() {
                 { href: '#', label: 'Câu hỏi thường gặp' },
               ].map((item) => (
                 <li key={item.label}>
-                  <Link 
-                    href={item.href} 
+                  <Link
+                    href={item.href}
                     className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition-all duration-200 hover:text-primary hover:translate-x-1"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-all duration-200" />
@@ -76,8 +83,8 @@ export function Footer() {
                 { href: '#', label: 'Liên hệ' },
               ].map((item) => (
                 <li key={item.label}>
-                  <Link 
-                    href={item.href} 
+                  <Link
+                    href={item.href}
                     className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition-all duration-200 hover:text-primary hover:translate-x-1"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-all duration-200" />
@@ -112,8 +119,8 @@ export function Footer() {
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-amber-500/20">
                   <Mail className="h-4 w-4 text-primary" />
                 </div>
-                <a 
-                  href="mailto:support@utephonehub.vn" 
+                <a
+                  href="mailto:support@utephonehub.vn"
                   className="text-sm text-muted-foreground transition-colors hover:text-primary"
                 >
                   support@utephonehub.vn
