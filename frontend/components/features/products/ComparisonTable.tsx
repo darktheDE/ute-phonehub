@@ -11,6 +11,7 @@ import type { ProductComparisonResponse } from '@/types/product-view';
 interface ComparisonTableProps {
   products: ProductComparisonResponse['products'];
   onRemoveProduct: (productId: number) => void;
+  onBuyNow?: (product: ProductComparisonResponse['products'][0]) => void;
 }
 
 const formatPrice = (price: number) => {
@@ -26,11 +27,10 @@ const renderStars = (rating: number) => {
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
-          className={`w-3 h-3 ${
-            star <= rating
+          className={`w-3 h-3 ${star <= rating
               ? 'fill-yellow-400 text-yellow-400'
               : 'fill-gray-200 text-gray-200'
-          }`}
+            }`}
         />
       ))}
       <span className="ml-1 text-sm font-medium">{rating.toFixed(1)}</span>
@@ -54,7 +54,7 @@ function ProductImage({ src, alt, className }: { src: string; alt: string; class
   );
 }
 
-export function ComparisonTable({ products, onRemoveProduct }: ComparisonTableProps) {
+export function ComparisonTable({ products, onRemoveProduct, onBuyNow }: ComparisonTableProps) {
   const specRows = [
     { key: 'screen', label: 'Màn hình' },
     { key: 'os', label: 'Hệ điều hành' },
@@ -79,7 +79,7 @@ export function ComparisonTable({ products, onRemoveProduct }: ComparisonTablePr
         <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: `250px repeat(${products.length}, 1fr)` }}>
           {/* Empty cell for spec labels */}
           <div></div>
-          
+
           {/* Product cards */}
           {products.map((product) => {
             // Calculate discount safely
@@ -121,7 +121,7 @@ export function ComparisonTable({ products, onRemoveProduct }: ComparisonTablePr
                     <h3 className="font-semibold text-sm leading-tight line-clamp-2">
                       {product.name}
                     </h3>
-                    
+
                     <p className="text-xs text-muted-foreground">
                       {product.brandName}
                     </p>
@@ -152,10 +152,11 @@ export function ComparisonTable({ products, onRemoveProduct }: ComparisonTablePr
                       </span>
                     </div>
 
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="w-full text-xs"
                       disabled={!product.inStock}
+                      onClick={() => onBuyNow?.(product)}
                     >
                       <ShoppingCart className="w-3 h-3 mr-1" />
                       Mua ngay
@@ -172,14 +173,14 @@ export function ComparisonTable({ products, onRemoveProduct }: ComparisonTablePr
           <CardContent className="p-0">
             {specRows.map((spec, index) => {
               // Check if any product has this spec
-              const hasSpec = products.some(product => 
+              const hasSpec = products.some(product =>
                 product.specs[spec.key as keyof typeof product.specs]
               );
-              
+
               if (!hasSpec) return null;
 
               return (
-                <div 
+                <div
                   key={spec.key}
                   className={`grid gap-4 p-4 ${index > 0 ? 'border-t' : ''}`}
                   style={{ gridTemplateColumns: `250px repeat(${products.length}, 1fr)` }}
@@ -188,7 +189,7 @@ export function ComparisonTable({ products, onRemoveProduct }: ComparisonTablePr
                   <div className="font-medium text-sm text-muted-foreground self-center">
                     {spec.label}
                   </div>
-                  
+
                   {/* Spec values */}
                   {products.map((product) => (
                     <div key={`${product.id}-${spec.key}`} className="text-sm self-center">

@@ -5,25 +5,19 @@ import { ChevronRight, Flame, TrendingUp } from 'lucide-react';
 import { ProductCard, ProductCardSkeleton } from './products/NewProductCard';
 import { useBestSellingProducts } from '@/hooks/useProducts';
 import { Badge } from '@/components/ui/badge';
-import { useCartStore, useWishlistStore } from '@/store';
+import { useWishlistStore } from '@/store';
+import { useCartActions } from '@/hooks/useCartActions';
 import { toast } from 'sonner';
 
 export function BestSellingSection() {
   const { data: bestSellingProducts, isLoading, error } = useBestSellingProducts({ limit: 8 });
-  const { addItem: addToCart } = useCartStore();
+  const { addToCart } = useCartActions();
   const { toggleItem: toggleWishlist, isInWishlist } = useWishlistStore();
 
   const handleAddToCart = (productId: number) => {
     const product = bestSellingProducts?.find(p => p.id === productId);
     if (product) {
-      addToCart({
-        productId: product.id,
-        productName: product.name,
-        price: product.discountedPrice || product.originalPrice,
-        quantity: 1,
-        productImage: product.thumbnailUrl || '',
-      });
-      toast.success('Đã thêm vào giỏ hàng!');
+      addToCart(product);
     }
   };
 
@@ -91,15 +85,14 @@ export function BestSellingSection() {
               <div key={product.id} className="relative">
                 {/* Ranking badge for top 3 */}
                 {index < 3 && (
-                  <div className={`absolute -top-2 -left-2 z-10 w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg ${
-                    index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
-                    index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
-                    'bg-gradient-to-br from-orange-400 to-orange-600'
-                  }`}>
+                  <div className={`absolute -top-2 -left-2 z-10 w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
+                      index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
+                        'bg-gradient-to-br from-orange-400 to-orange-600'
+                    }`}>
                     {index + 1}
                   </div>
                 )}
-                <ProductCard 
+                <ProductCard
                   product={product}
                   onAddToCart={handleAddToCart}
                   onToggleWishlist={handleToggleWishlist}

@@ -1,12 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Bot, Sparkles, Zap, MessageCircle, Flame, Smartphone } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { useCartStore } from '@/store/cartStore';
-import { toast } from 'sonner';
+import { useCartActions } from '@/hooks/useCartActions';
 
 interface HeroBannerProps {
   productId?: number;
@@ -27,8 +25,18 @@ export function HeroBanner({
   originalPrice = 34990000,
   badge = 'HOT DEAL',
 }: HeroBannerProps = {}) {
-  const router = useRouter();
-  const { addItem } = useCartStore();
+  const { buyNowWithDetails } = useCartActions();
+
+  // Handle buy now with product details
+  const handleBuyNow = () => {
+    buyNowWithDetails({
+      productId,
+      productName,
+      productImage: productImage || '',
+      price: salePrice,
+      quantity: 1,
+    });
+  };
 
   return (
     <section className="relative bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white overflow-hidden">
@@ -37,7 +45,7 @@ export function HeroBanner({
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
-      
+
       <div className="relative max-w-7xl mx-auto px-4 py-8 md:py-12">
         {/* AI Chatbot Highlight Banner - Glassmorphism */}
         <div className="mb-8 p-5 md:p-7 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
@@ -66,8 +74,8 @@ export function HeroBanner({
               </div>
             </div>
             <Link href="/chatbot">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-gradient-to-r from-primary to-amber-500 hover:from-primary/90 hover:to-amber-600 text-white shadow-lg shadow-primary/50 gap-2 group hover:scale-105 transition-all duration-300"
               >
                 <MessageCircle className="w-5 h-5 group-hover:animate-bounce" />
@@ -76,12 +84,12 @@ export function HeroBanner({
               </Button>
             </Link>
           </div>
-          
+
           {/* Quick prompts - Improved */}
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="text-xs text-gray-400">Thử hỏi:</span>
             {['Điện thoại chụp hình đẹp', 'iPhone giá tốt', 'Samsung pin trâu'].map((prompt, i) => (
-              <Link 
+              <Link
                 key={i}
                 href="/chatbot"
                 className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs text-gray-300 hover:text-white transition-all duration-300 border border-white/10 hover:border-white/20 hover:scale-105 backdrop-blur-sm"
@@ -113,26 +121,14 @@ export function HeroBanner({
                 {formatPrice(originalPrice)}
               </span>
               <span className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-xl text-sm font-bold border border-red-500/30 backdrop-blur-sm">
-                -{Math.round((1 - salePrice/originalPrice) * 100)}%
+                -{Math.round((1 - salePrice / originalPrice) * 100)}%
               </span>
             </div>
             <div className="flex gap-3">
               <Button
                 size="lg"
                 className="gap-2 shadow-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 hover:scale-105 transition-all duration-300"
-                onClick={() => {
-                  addItem({
-                    productId,
-                    productName,
-                    productImage: productImage || '',
-                    price: salePrice,
-                    quantity: 1,
-                  });
-                  toast.success('Đã thêm vào giỏ hàng!', {
-                    description: `${productName} - ${formatPrice(salePrice)}`,
-                  });
-                  router.push('/checkout');
-                }}
+                onClick={handleBuyNow}
               >
                 Mua ngay
                 <ChevronRight className="w-4 h-4" />
@@ -140,7 +136,7 @@ export function HeroBanner({
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white/40 text-white hover:bg-white hover:text-[#0f172a] transition-all hover:scale-105"
+                className="border-2 border-white/50 text-white bg-white/10 hover:bg-white hover:text-[#0f172a] transition-all hover:scale-105"
                 asChild
               >
                 <Link href={`/products/${productId}`}>
@@ -149,7 +145,7 @@ export function HeroBanner({
               </Button>
             </div>
           </div>
-          
+
           {/* Product Image - Enhanced */}
           <div className="flex justify-center">
             <div className="relative">
@@ -157,8 +153,8 @@ export function HeroBanner({
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-amber-500/20 to-primary/20 rounded-full blur-3xl animate-pulse"></div>
               <div className="relative w-64 h-64 md:w-80 md:h-80 bg-gradient-to-br from-white/10 to-white/5 rounded-3xl flex items-center justify-center shadow-2xl border border-white/20 backdrop-blur-xl">
                 {productImage && (productImage.startsWith('/') || productImage.startsWith('http')) ? (
-                  <img 
-                    src={productImage} 
+                  <img
+                    src={productImage}
                     alt={productName}
                     className="w-full h-full object-contain p-8 drop-shadow-2xl"
                   />

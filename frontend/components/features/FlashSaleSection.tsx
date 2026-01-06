@@ -4,25 +4,19 @@ import Link from 'next/link';
 import { ChevronRight, Zap, Flame, Tag } from 'lucide-react';
 import { ProductCard } from './products/NewProductCard';
 import { useProductsOnSale } from '@/hooks/useProducts';
-import { useCartStore, useWishlistStore } from '@/store';
+import { useWishlistStore } from '@/store';
+import { useCartActions } from '@/hooks/useCartActions';
 import { toast } from 'sonner';
 
 export function FlashSaleSection() {
   const { data: saleProducts, isLoading, error } = useProductsOnSale({ limit: 8 });
-  const { addItem: addToCart } = useCartStore();
+  const { addToCart } = useCartActions();
   const { toggleItem: toggleWishlist, isInWishlist } = useWishlistStore();
 
   const handleAddToCart = (productId: number) => {
     const product = saleProducts?.find(p => p.id === productId);
     if (product) {
-      addToCart({
-        productId: product.id,
-        productName: product.name,
-        price: product.discountedPrice || product.originalPrice,
-        quantity: 1,
-        productImage: product.thumbnailUrl || '',
-      });
-      toast.success('Đã thêm vào giỏ hàng!');
+      addToCart(product);
     }
   };
 
@@ -50,7 +44,7 @@ export function FlashSaleSection() {
           backgroundSize: '40px 40px'
         }} />
       </div>
-      
+
       <div className="relative max-w-7xl mx-auto px-4">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -93,8 +87,8 @@ export function FlashSaleSection() {
         ) : saleProducts && saleProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {saleProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
+              <ProductCard
+                key={product.id}
                 product={product}
                 onAddToCart={handleAddToCart}
                 onToggleWishlist={handleToggleWishlist}

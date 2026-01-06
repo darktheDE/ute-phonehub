@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  ArrowLeft, 
-  X, 
+import {
+  ArrowLeft,
+  X,
   Star,
   ShoppingCart,
   Heart,
@@ -26,6 +26,8 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { ComparisonTable } from '@/components/features/products/ComparisonTable';
+import { useCartActions } from '@/hooks/useCartActions';
+import type { ProductComparisonResponse as ComparisonProduct } from '@/types/product-view';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -40,11 +42,10 @@ const renderStars = (rating: number, size = 'sm') => {
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
-          className={`${size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'} ${
-            star <= rating
+          className={`${size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'} ${star <= rating
               ? 'fill-yellow-400 text-yellow-400'
               : 'fill-gray-200 text-gray-200'
-          }`}
+            }`}
         />
       ))}
       <span className={`ml-1 font-medium ${size === 'sm' ? 'text-xs' : 'text-sm'}`}>
@@ -77,7 +78,7 @@ const ComparisonSkeleton = ({ count }: { count: number }) => (
       <Skeleton className="h-8 w-64 mb-4" />
       <Skeleton className="h-4 w-96" />
     </div>
-    
+
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
       {Array.from({ length: count }, (_, i) => (
         <Card key={i} className="h-[800px]">
@@ -100,19 +101,21 @@ const ComparisonSkeleton = ({ count }: { count: number }) => (
   </div>
 );
 
-const ProductCard = ({ 
-  product, 
+const ProductCard = ({
+  product,
   onRemove,
-  isHighlighted 
-}: { 
+  onBuyNow,
+  isHighlighted
+}: {
   product: ProductComparisonResponse['products'][0];
   onRemove: (id: number) => void;
+  onBuyNow?: (product: ProductComparisonResponse['products'][0]) => void;
   isHighlighted?: boolean;
 }) => {
   const discount = product.hasDiscount && product.originalPrice && product.discountedPrice
     ? Math.round((1 - product.discountedPrice / product.originalPrice) * 100)
     : 0;
-    
+
   const displayPrice = product.discountedPrice || product.originalPrice;
 
   return (
@@ -157,7 +160,7 @@ const ProductCard = ({
           <h3 className="font-semibold text-lg leading-tight line-clamp-2">
             {product.name}
           </h3>
-          
+
           <p className="text-sm text-muted-foreground">
             {product.brandName}
           </p>
@@ -196,10 +199,11 @@ const ProductCard = ({
 
           {/* Action Buttons */}
           <div className="flex gap-2 pt-2">
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               className="flex-1"
               disabled={!product.inStock}
+              onClick={() => onBuyNow?.(product)}
             >
               <ShoppingCart className="w-4 h-4 mr-1" />
               Mua ngay
@@ -219,7 +223,7 @@ const ProductCard = ({
           <Info className="w-4 h-4" />
           Thông số kỹ thuật
         </h4>
-        
+
         <div className="space-y-2.5 text-sm">
           {product.specs.screen && (
             <div className="flex justify-between items-start gap-2">
@@ -227,91 +231,91 @@ const ProductCard = ({
               <span className="font-medium text-right flex-shrink-0">{product.specs.screen}</span>
             </div>
           )}
-          
+
           {product.specs.os && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Hệ điều hành</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.os}</span>
             </div>
           )}
-          
+
           {product.specs.cpu && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Chip xử lý</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.cpu}</span>
             </div>
           )}
-          
+
           {product.specs.ram && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">RAM</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.ram}</span>
             </div>
           )}
-          
+
           {product.specs.internalMemory && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Bộ nhớ</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.internalMemory}</span>
             </div>
           )}
-          
+
           {product.specs.rearCamera && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Camera sau</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.rearCamera}</span>
             </div>
           )}
-          
+
           {product.specs.frontCamera && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Camera trước</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.frontCamera}</span>
             </div>
           )}
-          
+
           {product.specs.battery && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Pin</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.battery}</span>
             </div>
           )}
-          
+
           {product.specs.charging && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Sạc</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.charging}</span>
             </div>
           )}
-          
+
           {product.specs.weight && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Trọng lượng</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.weight}</span>
             </div>
           )}
-          
+
           {product.specs.dimensions && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Kích thước</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.dimensions}</span>
             </div>
           )}
-          
+
           {product.specs.connectivity && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Kết nối</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.connectivity}</span>
             </div>
           )}
-          
+
           {product.specs.sim && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">SIM</span>
               <span className="font-medium text-right flex-shrink-0">{product.specs.sim}</span>
             </div>
           )}
-          
+
           {product.specs.materials && (
             <div className="flex justify-between items-start gap-2">
               <span className="text-muted-foreground min-w-0">Chất liệu</span>
@@ -327,15 +331,27 @@ const ProductCard = ({
 function ProductCompareContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const productIds = useMemo(() => 
+  const productIds = useMemo(() =>
     searchParams.get('ids')?.split(',').map(Number).filter(Boolean) || [],
     [searchParams]
   );
-  
+
   const [comparisonData, setComparisonData] = useState<ProductComparisonResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const { buyNowWithDetails } = useCartActions();
+
+  // Handle buy now for comparison products
+  const handleBuyNow = (product: ComparisonProduct['products'][0]) => {
+    buyNowWithDetails({
+      productId: product.id,
+      productName: product.name,
+      productImage: product.thumbnailUrl || '',
+      price: product.discountedPrice || product.originalPrice || 0,
+      quantity: 1,
+    });
+  };
 
   useEffect(() => {
     const fetchComparisonData = async () => {
@@ -360,7 +376,7 @@ function ProductCompareContent() {
       try {
         setLoading(true);
         setError(null);
-        
+
         const data = await compareProducts(productIds);
         setComparisonData(data);
       } catch (err) {
@@ -386,23 +402,23 @@ function ProductCompareContent() {
   // Find best value product (highest rating or lowest price)
   const findBestValueProduct = (products: ProductComparisonResponse['products']) => {
     if (products.length === 0) return null;
-    
+
     // First try to find by highest rating
-    const highestRated = products.reduce((prev, current) => 
+    const highestRated = products.reduce((prev, current) =>
       (current.averageRating || 0) > (prev.averageRating || 0) ? current : prev
     );
-    
+
     if (highestRated.averageRating && highestRated.averageRating >= 4.5) {
       return highestRated.id;
     }
-    
+
     // If no high rating, find lowest price
     const lowestPrice = products.reduce((prev, current) => {
       const prevPrice = prev.discountedPrice || prev.originalPrice || 0;
       const currentPrice = current.discountedPrice || current.originalPrice || 0;
       return currentPrice < prevPrice ? current : prev;
     });
-    
+
     return lowestPrice.id;
   };
 
@@ -438,8 +454,8 @@ function ProductCompareContent() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={() => router.push('/products')}
               className="flex items-center gap-2"
             >
@@ -451,7 +467,7 @@ function ProductCompareContent() {
               <h1 className="text-3xl font-bold">So sánh sản phẩm</h1>
             </div>
           </div>
-          
+
           <p className="text-muted-foreground text-lg">
             So sánh thông số kỹ thuật và giá cả của {comparisonData.products.length} sản phẩm
           </p>
@@ -500,16 +516,16 @@ function ProductCompareContent() {
 
         {/* Comparison Content */}
         {viewMode === 'cards' ? (
-          <div className={`grid gap-6 ${
-            comparisonData.products.length === 2 ? 'grid-cols-1 lg:grid-cols-2' :
-            comparisonData.products.length === 3 ? 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' :
-            'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
-          }`}>
+          <div className={`grid gap-6 ${comparisonData.products.length === 2 ? 'grid-cols-1 lg:grid-cols-2' :
+              comparisonData.products.length === 3 ? 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' :
+                'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+            }`}>
             {comparisonData.products.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
                 onRemove={removeProduct}
+                onBuyNow={handleBuyNow}
                 isHighlighted={product.id === bestValueProductId}
               />
             ))}
@@ -518,6 +534,7 @@ function ProductCompareContent() {
           <ComparisonTable
             products={comparisonData.products}
             onRemoveProduct={removeProduct}
+            onBuyNow={handleBuyNow}
           />
         )}
 

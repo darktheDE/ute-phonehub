@@ -13,3 +13,4 @@ export { useBrands } from "./useBrands";
 export { usePromotions } from "./usePromotions";
 export { useAvailablePromotions } from "./useAvailablePromotions";
 export { useWishlistSync, WishlistSyncClient } from "./useWishlistSync";
+export { useCartActions } from "./useCartActions";

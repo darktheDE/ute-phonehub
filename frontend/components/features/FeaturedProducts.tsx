@@ -4,25 +4,19 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { ProductCard } from './products/NewProductCard';
 import { useFeaturedProducts } from '@/hooks/useProducts';
-import { useCartStore, useWishlistStore } from '@/store';
+import { useWishlistStore } from '@/store';
+import { useCartActions } from '@/hooks/useCartActions';
 import { toast } from 'sonner';
 
 export function FeaturedProducts() {
   const { data: featuredProducts, isLoading, error } = useFeaturedProducts({ limit: 8 });
-  const { addItem: addToCart } = useCartStore();
+  const { addToCart } = useCartActions();
   const { toggleItem: toggleWishlist, isInWishlist } = useWishlistStore();
 
   const handleAddToCart = (productId: number) => {
     const product = featuredProducts?.find(p => p.id === productId);
     if (product) {
-      addToCart({
-        productId: product.id,
-        productName: product.name,
-        price: product.discountedPrice || product.originalPrice,
-        quantity: 1,
-        productImage: product.thumbnailUrl || '',
-      });
-      toast.success('Đã thêm vào giỏ hàng!');
+      addToCart(product);
     }
   };
 
@@ -80,8 +74,8 @@ export function FeaturedProducts() {
         ) : featuredProducts && featuredProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {featuredProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
+              <ProductCard
+                key={product.id}
                 product={product}
                 onAddToCart={handleAddToCart}
                 onToggleWishlist={handleToggleWishlist}

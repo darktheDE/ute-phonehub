@@ -34,8 +34,9 @@ import Image from 'next/image';
 import { ProductCard } from '@/components/features/products/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { useCartActions } from '@/hooks/useCartActions';
+import type { CartItemDetails } from '@/hooks/useCartActions';
 import { toast } from 'sonner';
 
 export default function ProductDetailPage() {
@@ -47,13 +48,13 @@ export default function ProductDetailPage() {
   const [relatedProducts, setRelatedProducts] = useState<ProductViewResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
 
-  // Cart and Wishlist stores
-  const { addItem: addToCart } = useCartStore();
+  // Cart and Wishlist
+  const { addToCartWithDetails, buyNowWithDetails } = useCartActions();
   const { toggleItem: toggleWishlistItem, isInWishlist } = useWishlistStore();
 
   // Fetch product details
@@ -61,28 +62,28 @@ export default function ProductDetailPage() {
     const fetchProduct = async () => {
       try {
         console.log('🔍 Fetching product detail for ID:', productId);
-        
+
         if (!productId || isNaN(productId)) {
           console.error('❌ Invalid product ID:', productId);
           setError('ID sản phẩm không hợp lệ');
           setLoading(false);
           return;
         }
-        
+
         setLoading(true);
         setError(null);
-        
+
         console.log('📡 Calling API for product:', productId);
         const [productData, relatedData] = await Promise.all([
           productViewService.getProductById(productId),
           productViewService.getRelatedProducts(productId, 8),
         ]);
-        
+
         console.log('✅ Product data received:', productData);
-        
+
         setProduct(productData);
         setRelatedProducts(relatedData);
-        
+
         // Select first available variant
         if (productData.variants && productData.variants.length > 0 && productData.variants[0]) {
           setSelectedVariant(productData.variants[0].id);
@@ -120,7 +121,7 @@ export default function ProductDetailPage() {
             <h2 className="text-3xl font-bold tracking-tight">Không tìm thấy sản phẩm</h2>
             <p className="text-muted-foreground">{error}</p>
           </div>
-          <Button 
+          <Button
             onClick={() => router.push('/products')}
             className="gap-2"
           >
@@ -135,7 +136,7 @@ export default function ProductDetailPage() {
   const primaryImage = product.images?.find(img => img.isPrimary) || product.images?.[0];
   const currentImage = product.images?.[selectedImage] || primaryImage;
   const imageUrl = currentImage?.imageUrl || product.thumbnailUrl || '/placeholder-product.png';
-  
+
   const selectedVariantData = product.variants?.find(v => v.id === selectedVariant);
   const currentPrice = selectedVariantData?.discountedPrice ?? selectedVariantData?.originalPrice ?? 0;
   const originalPrice = selectedVariantData?.originalPrice ?? 0;
@@ -157,7 +158,7 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (!product || !selectedVariantData) return;
 
-    addToCart({
+    const details: CartItemDetails = {
       productId: product.id,
       productName: `${product.name}${selectedVariantData.color ? ` - ${selectedVariantData.color}` : ''}${selectedVariantData.storage ? ` ${selectedVariantData.storage}` : ''}`,
       productImage: imageUrl,
@@ -166,17 +167,14 @@ export default function ProductDetailPage() {
       quantity: quantity,
       color: selectedVariantData.color,
       storage: selectedVariantData.storage,
-    });
-    toast.success('Đã thêm vào giỏ hàng', {
-      description: `${product.name} x${quantity}`,
-    });
+    };
+    addToCartWithDetails(details);
   };
 
   const handleBuyNow = () => {
     if (!product || !selectedVariantData) return;
 
-    // Add to cart first
-    addToCart({
+    const details: CartItemDetails = {
       productId: product.id,
       productName: `${product.name}${selectedVariantData.color ? ` - ${selectedVariantData.color}` : ''}${selectedVariantData.storage ? ` ${selectedVariantData.storage}` : ''}`,
       productImage: imageUrl,
@@ -185,9 +183,8 @@ export default function ProductDetailPage() {
       quantity: quantity,
       color: selectedVariantData.color,
       storage: selectedVariantData.storage,
-    });
-    // Navigate to checkout
-    router.push('/checkout');
+    };
+    buyNowWithDetails(details);
   };
 
   const handleToggleWishlist = () => {
@@ -311,7 +308,7 @@ export default function ProductDetailPage() {
                 priority
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
-              
+
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
                 {discountPercentage > 0 && (
@@ -339,8 +336,8 @@ export default function ProductDetailPage() {
                       key={img.id}
                       className={cn(
                         "relative flex-shrink-0 w-20 h-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg overflow-hidden border transition-all duration-200",
-                        selectedImage === index 
-                          ? "border-primary ring-2 ring-primary ring-offset-2" 
+                        selectedImage === index
+                          ? "border-primary ring-2 ring-primary ring-offset-2"
                           : "border-transparent hover:border-primary/50 hover:scale-105"
                       )}
                       onClick={() => setSelectedImage(index)}
@@ -370,11 +367,11 @@ export default function ProductDetailPage() {
                   {product.brand?.name}
                 </Badge>
               </div>
-              
+
               <h1 className="text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                 {product.name}
               </h1>
-              
+
               {/* Rating & Sold */}
               <div className="flex items-center gap-6">
                 {product.averageRating && product.averageRating > 0 && (
@@ -428,7 +425,7 @@ export default function ProductDetailPage() {
                   {product.variants.map((variant) => {
                     const isSelected = selectedVariant === variant.id;
                     const variantInStock = variant.stockQuantity && variant.stockQuantity > 0;
-                    
+
                     return (
                       <Card
                         key={variant.id}
@@ -452,7 +449,7 @@ export default function ProductDetailPage() {
                               )}
                               {variant.color && (
                                 <div className="flex items-center gap-2">
-                                  <div 
+                                  <div
                                     className="w-4 h-4 rounded-full border"
                                     style={{ backgroundColor: variant.color.toLowerCase() }}
                                   />
@@ -470,8 +467,8 @@ export default function ProductDetailPage() {
                             </p>
                             <p className={cn(
                               "text-xs px-2 py-1 rounded-full",
-                              variantInStock 
-                                ? "bg-green-100 text-green-700" 
+                              variantInStock
+                                ? "bg-green-100 text-green-700"
                                 : "bg-red-100 text-red-700"
                             )}>
                               {variantInStock ? `Còn ${variant.stockQuantity}` : 'Hết hàng'}
@@ -535,7 +532,7 @@ export default function ProductDetailPage() {
                   Thêm vào giỏ hàng
                 </Button>
               </div>
-              
+
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
@@ -607,26 +604,26 @@ export default function ProductDetailPage() {
         <div className="mb-16">
           <Tabs defaultValue="description" className="space-y-6">
             <TabsList className="w-full justify-start h-auto p-0 bg-transparent border-b rounded-none">
-              <TabsTrigger 
-                value="description" 
+              <TabsTrigger
+                value="description"
                 className="relative px-6 py-3 text-base font-semibold data-[state=active]:bg-transparent rounded-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-primary"
               >
                 Mô tả sản phẩm
               </TabsTrigger>
-              <TabsTrigger 
-                value="specifications" 
+              <TabsTrigger
+                value="specifications"
                 className="relative px-6 py-3 text-base font-semibold data-[state=active]:bg-transparent rounded-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-primary"
               >
                 Thông số kỹ thuật
               </TabsTrigger>
-              <TabsTrigger 
-                value="reviews" 
+              <TabsTrigger
+                value="reviews"
                 className="relative px-6 py-3 text-base font-semibold data-[state=active]:bg-transparent rounded-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-primary"
               >
                 Đánh giá ({product.totalReviews || 0})
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="description" className="mt-0">
               <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
                 <CardContent className="p-8">
@@ -646,14 +643,14 @@ export default function ProductDetailPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="specifications" className="mt-0">
               <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
                 <CardContent className="p-8">
                   {specifications.length > 0 ? (
                     <div className="grid md:grid-cols-2 gap-6">
                       {specifications.map((item, index) => (
-                        <div 
+                        <div
                           key={`${item.label}-${index}`}
                           className="group flex items-start gap-4 p-4 rounded-xl hover:bg-accent/50 transition-colors duration-200"
                         >
@@ -679,7 +676,7 @@ export default function ProductDetailPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="reviews" className="mt-0">
               <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
                 <CardContent className="p-8">

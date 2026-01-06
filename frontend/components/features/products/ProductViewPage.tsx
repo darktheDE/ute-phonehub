@@ -28,7 +28,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useCartStore, useWishlistStore } from '@/store';
+import { useWishlistStore } from '@/store';
+import { useCartActions } from '@/hooks/useCartActions';
 import type { ProductCardResponse, PageResponse } from '@/services/new-product.service';
 
 interface SortOption {
@@ -80,27 +81,27 @@ export function ProductViewPage({
 }: ProductViewPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Cart & Wishlist stores
-  const { addItem: addToCart } = useCartStore();
+  const { addToCart } = useCartActions();
   const { toggleItem: toggleWishlist, isInWishlist } = useWishlistStore();
-  
+
   // State
   const [products, setProducts] = useState<ProductCardResponse[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
-  
+
   // Comparison state
   const [compareMode, setCompareMode] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<Map<number, ProductCardResponse>>(new Map());
-  
+
   // Pagination & Sort state from URL
   const currentPage = parseInt(searchParams.get('page') || '0');
   const pageSize = parseInt(searchParams.get('size') || '12');
   const sortValue = searchParams.get('sort') || defaultSort;
-  
+
   // Parse sort value
   const [sortBy, sortDirection] = sortValue.split(':') as [string, 'asc' | 'desc'];
 
@@ -114,7 +115,7 @@ export function ProductViewPage({
         sortBy,
         sortDirection,
       });
-      
+
       setProducts(response.content);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
@@ -133,7 +134,7 @@ export function ProductViewPage({
   // Update URL params
   const updateParams = (params: { page?: number; size?: number; sort?: string }) => {
     const newParams = new URLSearchParams(searchParams.toString());
-    
+
     if (params.page !== undefined) {
       newParams.set('page', params.page.toString());
     }
@@ -145,7 +146,7 @@ export function ProductViewPage({
       newParams.set('sort', params.sort);
       newParams.set('page', '0');
     }
-    
+
     router.push(`${basePath}?${newParams.toString()}`);
   };
 
@@ -183,14 +184,7 @@ export function ProductViewPage({
   const handleAddToCart = (productId: number) => {
     const product = products.find(p => p.id === productId);
     if (product) {
-      addToCart({
-        productId: product.id,
-        productName: product.name,
-        price: product.discountedPrice || product.originalPrice,
-        quantity: 1,
-        productImage: product.thumbnailUrl || '',
-      });
-      toast.success('Đã thêm vào giỏ hàng!');
+      addToCart(product);
     }
   };
 
@@ -213,32 +207,32 @@ export function ProductViewPage({
   const getVisiblePages = () => {
     const pages: (number | 'ellipsis')[] = [];
     const maxVisible = 5;
-    
+
     if (totalPages <= maxVisible) {
       return Array.from({ length: totalPages }, (_, i) => i);
     }
-    
+
     pages.push(0);
-    
+
     if (currentPage > 2) {
       pages.push('ellipsis');
     }
-    
+
     const start = Math.max(1, currentPage - 1);
     const end = Math.min(totalPages - 2, currentPage + 1);
-    
+
     for (let i = start; i <= end; i++) {
       if (!pages.includes(i)) pages.push(i);
     }
-    
+
     if (currentPage < totalPages - 3) {
       pages.push('ellipsis');
     }
-    
+
     if (!pages.includes(totalPages - 1)) {
       pages.push(totalPages - 1);
     }
-    
+
     return pages;
   };
 
@@ -256,14 +250,14 @@ export function ProductViewPage({
       {/* Header */}
       <div className={cn("border-b backdrop-blur-sm", headerGradient)}>
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             Quay lại trang chủ
           </Link>
-          
+
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -281,7 +275,7 @@ export function ProductViewPage({
               </div>
               <p className="text-muted-foreground max-w-xl">{subtitle}</p>
             </div>
-            
+
             {/* Custom header content (e.g., countdown timer) */}
             {customHeaderContent}
           </div>
@@ -392,8 +386,8 @@ export function ProductViewPage({
         {isLoading ? (
           <div className={cn(
             "grid gap-4 animate-pulse",
-            viewMode === 'grid' 
-              ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' 
+            viewMode === 'grid'
+              ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
               : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'
           )}>
             {Array.from({ length: pageSize }).map((_, i) => (
@@ -403,13 +397,13 @@ export function ProductViewPage({
         ) : products.length > 0 ? (
           <div className={cn(
             "grid gap-4",
-            viewMode === 'grid' 
-              ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' 
+            viewMode === 'grid'
+              ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
               : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'
           )}>
             {products.map((product) => (
-              <ProductCard 
-                key={product.id} 
+              <ProductCard
+                key={product.id}
                 product={product}
                 compareMode={compareMode}
                 isSelected={selectedForCompare.has(product.id)}
@@ -443,7 +437,7 @@ export function ProductViewPage({
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious 
+                  <PaginationPrevious
                     href="#"
                     onClick={(e) => {
                       e.preventDefault();
@@ -455,7 +449,7 @@ export function ProductViewPage({
                     )}
                   />
                 </PaginationItem>
-                
+
                 {getVisiblePages().map((page, index) => (
                   <PaginationItem key={index}>
                     {page === 'ellipsis' ? (
@@ -477,9 +471,9 @@ export function ProductViewPage({
                     )}
                   </PaginationItem>
                 ))}
-                
+
                 <PaginationItem>
-                  <PaginationNext 
+                  <PaginationNext
                     href="#"
                     onClick={(e) => {
                       e.preventDefault();
