@@ -27,6 +27,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'cdn.tgdd.vn',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdnv2.tgdd.vn',
+      },
+      {
+        protocol: 'https',
         hostname: '**', // Allow all HTTPS images
       },
       {
@@ -34,6 +42,7 @@ const nextConfig: NextConfig = {
         hostname: '**', // Allow all HTTP images (for development)
       },
     ],
+    unoptimized: true,
   },
 };
 
