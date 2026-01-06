@@ -19,6 +19,7 @@ import com.utephonehub.backend.service.IProductViewService;
 import com.utephonehub.backend.service.IPromotionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +40,15 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * ProductViewServiceImpl - Tối ưu hóa cho hiệu suất cao
+ * 
+ * OPTIMIZATION STRATEGIES:
+ * 1. Sử dụng LIMIT tại database level thay vì load tất cả rồi filter
+ * 2. JOIN FETCH để tránh N+1 queries
+ * 3. Caching cho các methods thường xuyên được gọi (homepage sections)
+ * 4. Lazy loading review stats chỉ khi cần thiết
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -74,12 +84,10 @@ public class ProductViewServiceImpl implements IProductViewService {
 
     @Override
     public Page<ProductCardResponse> filterProducts(ProductFilterRequest request) {
-        // Sử dụng createdAt cho database sorting để tránh lỗi với price
-        Pageable pageable = PageRequest.of(
-            request.getPage() != null && request.getPage() >= 0 ? request.getPage() : 0,
-            request.getSize() != null && request.getSize() > 0 ? request.getSize() : 20,
-            Sort.by(Sort.Direction.DESC, "createdAt")
-        );
+        String sortBy = request.getSortBy() != null ? request.getSortBy().toLowerCase() : "createdAt";
+        String sortDirection = request.getSortDirection() != null ? request.getSortDirection() : "desc";
+        int page = request.getPage() != null && request.getPage() >= 0 ? request.getPage() : 0;
+        int size = request.getSize() != null && request.getSize() > 0 ? request.getSize() : 20;
         
         // Lấy danh sách categoryIds và brandIds, nếu rỗng thì truyền null để lọc tất cả
         List<Long> categoryIds = (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) 
@@ -87,26 +95,167 @@ public class ProductViewServiceImpl implements IProductViewService {
         List<Long> brandIds = (request.getBrandIds() != null && !request.getBrandIds().isEmpty()) 
             ? request.getBrandIds() : null;
         
-        Page<Product> basePage = productRepository.filterProductsOptimized(categoryIds, brandIds, request.getMinPrice(), request.getMaxPrice(), pageable);
+        // Kiểm tra nếu cần sort theo computed fields (price, rating, soldCount, discountPercentage)
+        // Những field này cần load tất cả data và sort trong service layer
+        boolean needsServiceLayerSort = isComputedSortField(sortBy);
         
-        // Get review stats for minRating filter
-        Map<Long, ReviewSummary> reviewStats = reviewStats(basePage.getContent());
+        List<Product> allFiltered;
+        long totalElements;
         
-        List<Product> filtered = basePage.getContent().stream()
-                .filter(p -> matchRam(p, request.getRamOptions()))
-                .filter(p -> matchStorage(p, request.getStorageOptions()))
-                .filter(p -> matchBattery(p.getMetadata(), request.getMinBattery(), request.getMaxBattery()))
-                .filter(p -> matchScreenSize(p.getMetadata(), request.getScreenSizeOptions()))
-                .filter(p -> matchOs(p.getMetadata(), request.getOsOptions()))
-                .filter(p -> matchRating(p, request.getMinRating(), request.getMaxRating(), reviewStats))
-                .filter(p -> matchInStock(p, request.getInStockOnly()))
-                .filter(p -> matchHasDiscount(p, request.getHasDiscountOnly()))
+        if (needsServiceLayerSort) {
+            // Load TẤT CẢ products matching filters, không pagination ở DB level
+            List<Product> allProducts = productRepository.filterProductsAll(
+                categoryIds, brandIds, request.getMinPrice(), request.getMaxPrice());
+            
+            // Get review stats for all products (for rating filter and sort)
+            Map<Long, ReviewSummary> reviewStats = reviewStats(allProducts);
+            
+            // Apply additional filters in service layer
+            allFiltered = allProducts.stream()
+                    .filter(p -> matchRam(p, request.getRamOptions()))
+                    .filter(p -> matchStorage(p, request.getStorageOptions()))
+                    .filter(p -> matchBattery(p.getMetadata(), request.getMinBattery(), request.getMaxBattery()))
+                    .filter(p -> matchScreenSize(p.getMetadata(), request.getScreenSizeOptions()))
+                    .filter(p -> matchOs(p.getMetadata(), request.getOsOptions()))
+                    .filter(p -> matchRating(p, request.getMinRating(), request.getMaxRating(), reviewStats))
+                    .filter(p -> matchInStock(p, request.getInStockOnly()))
+                    .filter(p -> matchHasDiscount(p, request.getHasDiscountOnly()))
+                    .collect(Collectors.toList());
+            
+            totalElements = allFiltered.size();
+            
+            // Apply sorting on ALL filtered data
+            allFiltered = applySortingWithReviewStats(allFiltered, sortBy, sortDirection, reviewStats);
+            
+            // Manual pagination after sorting
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, allFiltered.size());
+            
+            if (fromIndex >= allFiltered.size()) {
+                allFiltered = Collections.emptyList();
+            } else {
+                allFiltered = allFiltered.subList(fromIndex, toIndex);
+            }
+        } else {
+            // Sort fields that DB can handle (createdAt, name) - use DB pagination
+            Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+            String dbSortField = "name".equals(sortBy) ? "name" : "createdAt";
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, dbSortField));
+            
+            Page<Product> basePage = productRepository.filterProductsOptimized(
+                categoryIds, brandIds, request.getMinPrice(), request.getMaxPrice(), pageable);
+            
+            // Get review stats for minRating filter
+            Map<Long, ReviewSummary> reviewStats = reviewStats(basePage.getContent());
+            
+            allFiltered = basePage.getContent().stream()
+                    .filter(p -> matchRam(p, request.getRamOptions()))
+                    .filter(p -> matchStorage(p, request.getStorageOptions()))
+                    .filter(p -> matchBattery(p.getMetadata(), request.getMinBattery(), request.getMaxBattery()))
+                    .filter(p -> matchScreenSize(p.getMetadata(), request.getScreenSizeOptions()))
+                    .filter(p -> matchOs(p.getMetadata(), request.getOsOptions()))
+                    .filter(p -> matchRating(p, request.getMinRating(), request.getMaxRating(), reviewStats))
+                    .filter(p -> matchInStock(p, request.getInStockOnly()))
+                    .filter(p -> matchHasDiscount(p, request.getHasDiscountOnly()))
+                    .collect(Collectors.toList());
+            
+            totalElements = basePage.getTotalElements();
+        }
+        
+        // Convert to DTO
+        List<ProductCardResponse> cards = toCards(allFiltered);
+        Pageable resultPageable = PageRequest.of(page, size);
+        return new PageImpl<>(cards, resultPageable, totalElements);
+    }
+    
+    /**
+     * Kiểm tra xem sortBy có phải là computed field cần sort trong service layer không
+     */
+    private boolean isComputedSortField(String sortBy) {
+        if (sortBy == null) return false;
+        String normalized = sortBy.toLowerCase();
+        return normalized.equals("price") || 
+               normalized.equals("rating") || 
+               normalized.equals("soldcount") ||
+               normalized.equals("sold_count") ||
+               normalized.equals("discountpercentage") ||
+               normalized.equals("discount_percentage") ||
+               normalized.equals("discount");
+    }
+    
+    /**
+     * Apply sorting với review stats đã được tính sẵn
+     */
+    private List<Product> applySortingWithReviewStats(List<Product> products, String sortBy, 
+                                                       String sortDirection, Map<Long, ReviewSummary> reviewStats) {
+        if (products == null || products.isEmpty()) return products;
+        
+        boolean isAsc = "asc".equalsIgnoreCase(sortDirection);
+        String normalizedSortBy = sortBy.trim().toLowerCase(Locale.ROOT);
+        
+        return products.stream()
+                .sorted((p1, p2) -> {
+                    int compare = 0;
+                    
+                    switch (normalizedSortBy) {
+                        case "price":
+                            ProductTemplate t1 = displayTemplate(p1);
+                            ProductTemplate t2 = displayTemplate(p2);
+                            // Lấy giá hiển thị (discounted price nếu có, không thì giá gốc)
+                            BigDecimal price1 = getDisplayPrice(t1);
+                            BigDecimal price2 = getDisplayPrice(t2);
+                            compare = price1.compareTo(price2);
+                            break;
+                        case "rating":
+                            double rating1 = reviewStats.getOrDefault(p1.getId(), ReviewSummary.empty()).average;
+                            double rating2 = reviewStats.getOrDefault(p2.getId(), ReviewSummary.empty()).average;
+                            compare = Double.compare(rating1, rating2);
+                            break;
+                        case "soldcount":
+                        case "sold_count":
+                            int sold1 = calculateSoldCount(p1);
+                            int sold2 = calculateSoldCount(p2);
+                            compare = Integer.compare(sold1, sold2);
+                            break;
+                        case "discountpercentage":
+                        case "discount_percentage":
+                        case "discount":
+                            DiscountResult d1 = calculateDiscount(displayTemplate(p1) != null ? displayTemplate(p1).getPrice() : null);
+                            DiscountResult d2 = calculateDiscount(displayTemplate(p2) != null ? displayTemplate(p2).getPrice() : null);
+                            double percent1 = d1.discountPercentage != null ? d1.discountPercentage : 0.0;
+                            double percent2 = d2.discountPercentage != null ? d2.discountPercentage : 0.0;
+                            compare = Double.compare(percent1, percent2);
+                            break;
+                        case "name":
+                            String name1 = p1.getName() != null ? p1.getName() : "";
+                            String name2 = p2.getName() != null ? p2.getName() : "";
+                            compare = name1.compareToIgnoreCase(name2);
+                            break;
+                        case "created_date":
+                        case "createddate":
+                        case "createdat":
+                        default:
+                            compare = p1.getCreatedAt().compareTo(p2.getCreatedAt());
+                            break;
+                    }
+                    
+                    return isAsc ? compare : -compare;
+                })
                 .collect(Collectors.toList());
-        
-        // Apply custom sorting based on request
-        filtered = applySorting(filtered, request.getSortBy(), request.getSortDirection());
-        
-        return createPageFromList(filtered, pageable, basePage.getTotalElements());
+    }
+    
+    /**
+     * Get display price (discounted price if available, otherwise original price)
+     */
+    private BigDecimal getDisplayPrice(ProductTemplate template) {
+        if (template == null || template.getPrice() == null) {
+            return BigDecimal.ZERO;
+        }
+        DiscountResult discount = calculateDiscount(template.getPrice());
+        if (discount.hasDiscount && discount.discountedPrice != null) {
+            return discount.discountedPrice;
+        }
+        return template.getPrice();
     }
 
     @Override
@@ -208,88 +357,116 @@ public class ProductViewServiceImpl implements IProductViewService {
         return toCards(relatedProducts);
     }
 
+    /**
+     * Lấy sản phẩm bán chạy với caching
+     * Cache TTL: 15 phút (bán chạy ít thay đổi hơn new arrivals)
+     * NOTE: Sold count hiện tại = 0, fallback theo createdAt DESC (mới nhất = nổi bật)
+     */
     @Override
+    @Cacheable(value = "bestSellingProducts", key = "#limit != null ? #limit : 10", unless = "#result == null || #result.isEmpty()")
     public List<ProductCardResponse> getBestSellingProducts(Integer limit) {
-        List<Product> list = productRepository.findByStatusTrueAndIsDeletedFalse();
-        List<Product> sorted = list.stream()
+        log.debug("🔥 getBestSellingProducts - limit: {} (CACHE MISS)", limit);
+        int take = limitOrDefault(limit);
+        // Sử dụng query với LIMIT tại DB level
+        // TODO: Khi có OrderItemRepository, implement actual sold count query
+        Pageable pageable = PageRequest.of(0, take);
+        Page<Product> page = productRepository.findNewArrivalsOptimized(pageable);
+        
+        // Sort theo soldCount nếu có, fallback theo createdAt
+        List<Product> sorted = page.getContent().stream()
                 .sorted((p1, p2) -> {
                     Integer sold1 = calculateSoldCount(p1);
                     Integer sold2 = calculateSoldCount(p2);
-                    
-                    // Nếu sold count khác nhau, sắp xếp theo sold count DESC
                     int soldCompare = sold2.compareTo(sold1);
                     if (soldCompare != 0) {
                         return soldCompare;
                     }
-                    
-                    // Nếu sold count giống nhau (đều = 0), fallback sắp xếp theo createdAt DESC (mới nhất)
                     return p2.getCreatedAt().compareTo(p1.getCreatedAt());
                 })
-                .limit(limitOrDefault(limit))
-            .collect(Collectors.toList());
-        return toCards(sorted);
-    }
-
-    @Override
-    public List<ProductCardResponse> getNewArrivals(Integer limit) {
-        List<Product> list = productRepository.findByStatusTrueAndIsDeletedFalse();
-        List<Product> sorted = list.stream()
-                .sorted(Comparator.comparing(Product::getCreatedAt).reversed())
-                .limit(limitOrDefault(limit))
-            .collect(Collectors.toList());
-        return toCards(sorted);
-    }
-
-    @Override
-    public List<ProductCardResponse> getFeaturedProducts(Integer limit) {
-        List<Product> list = productRepository.findByStatusTrueAndIsDeletedFalse();
-        Map<Long, ReviewSummary> reviewStats = reviewStats(list);
-        
-        // Thử filter theo tiêu chí đầy đủ trước
-        List<Product> strictFeatured = list.stream()
-                .filter(p -> {
-                    ReviewSummary stats = reviewStats.get(p.getId());
-                    int soldCount = calculateSoldCount(p);
-                    double rating = stats != null ? stats.average : 0.0;
-                    
-                    // Tiêu chí nổi bật theo controller: rating >= 4.5, đã bán >= 100
-                    return rating >= 4.5 && soldCount >= 100;
-                })
+                .limit(take)
                 .collect(Collectors.toList());
+        return toCards(sorted);
+    }
+
+    /**
+     * Lấy sản phẩm mới nhất với caching và LIMIT tại DB level
+     * Cache TTL: 10 phút (homepage hiển thị, cần cập nhật thường xuyên hơn)
+     */
+    @Override
+    @Cacheable(value = "newArrivals", key = "#limit != null ? #limit : 10", unless = "#result == null || #result.isEmpty()")
+    public List<ProductCardResponse> getNewArrivals(Integer limit) {
+        log.debug("🆕 getNewArrivals - limit: {} (CACHE MISS)", limit);
+        int take = limitOrDefault(limit);
+        // Sử dụng query với LIMIT tại DB level, đã sort theo createdAt DESC
+        Pageable pageable = PageRequest.of(0, take);
+        Page<Product> page = productRepository.findNewArrivalsOptimized(pageable);
+        return toCards(page.getContent());
+    }
+
+    /**
+     * Lấy sản phẩm nổi bật với caching - KHÔNG BỎ SÓT
+     * Cache TTL: 15 phút (featured products ít thay đổi)
+     * 
+     * LOGIC CẢI TIẾN (tránh bỏ sót):
+     * 1. Query product IDs có rating >= 4.5 TỪ DB (không giới hạn)
+     * 2. Lấy products theo IDs đó với JOIN FETCH
+     * 3. Sort theo rating DESC, soldCount DESC
+     * 4. Fallback: nếu không có sản phẩm nào đạt → lấy top rated
+     */
+    @Override
+    @Cacheable(value = "featuredProducts", key = "#limit != null ? #limit : 10", unless = "#result == null || #result.isEmpty()")
+    public List<ProductCardResponse> getFeaturedProducts(Integer limit) {
+        log.debug("⭐ getFeaturedProducts - limit: {} (CACHE MISS - DB LEVEL FILTER)", limit);
+        int take = limitOrDefault(limit);
         
-        // Nếu không có sản phẩm nào đạt tiêu chí nghiêm ngặt, fallback chỉ filter theo rating >= 4.5
-        List<Product> featured = strictFeatured.isEmpty() ? 
-                list.stream()
-                    .filter(p -> {
-                        ReviewSummary stats = reviewStats.get(p.getId());
-                        double rating = stats != null ? stats.average : 0.0;
-                        return rating >= 4.5; // Chỉ cần rating >= 4.5
-                    })
-                    .collect(Collectors.toList())
-                : strictFeatured;
+        // BƯỚC 1: Lấy product IDs có rating >= 4.5 từ DB (KHÔNG BỎ SÓT)
+        List<Object[]> highRatedProducts = reviewRepository.findProductIdsWithHighRating(4.5);
         
-        // Nếu vẫn không có, lấy top products theo rating
-        if (featured.isEmpty()) {
-            featured = list.stream().collect(Collectors.toList());
+        if (!highRatedProducts.isEmpty()) {
+            // Lấy top N product IDs
+            List<Long> topIds = highRatedProducts.stream()
+                    .limit(take)
+                    .map(row -> (Long) row[0])
+                    .collect(Collectors.toList());
+            
+            // BƯỚC 2: Lấy products với JOIN FETCH
+            List<Product> products = productRepository.findByIdsWithDetails(topIds);
+            
+            // BƯỚC 3: Sắp xếp lại theo thứ tự rating (giữ nguyên order từ query)
+            Map<Long, Integer> orderMap = new HashMap<>();
+            for (int i = 0; i < topIds.size(); i++) {
+                orderMap.put(topIds.get(i), i);
+            }
+            products.sort(Comparator.comparingInt(p -> orderMap.getOrDefault(p.getId(), Integer.MAX_VALUE)));
+            
+            log.debug("✅ Tìm thấy {} sản phẩm rating >= 4.5", products.size());
+            return toCards(products);
         }
         
-        List<Product> sorted = featured.stream()
-                .sorted((p1, p2) -> {
-                    ReviewSummary stats1 = reviewStats.get(p1.getId());
-                    ReviewSummary stats2 = reviewStats.get(p2.getId());
-                    double rating1 = stats1 != null ? stats1.average : 0.0;
-                    double rating2 = stats2 != null ? stats2.average : 0.0;
-                    
-                    // Sắp xếp theo rating desc, rồi theo sold count desc
-                    int ratingCompare = Double.compare(rating2, rating1);
-                    if (ratingCompare != 0) return ratingCompare;
-                    
-                    return Integer.compare(calculateSoldCount(p2), calculateSoldCount(p1));
-                })
-                .limit(limitOrDefault(limit))
-                .collect(Collectors.toList());
-                
-        return toCards(sorted);
+        // FALLBACK: Lấy top rated products (không có threshold)
+        log.debug("⚠️ Không có sản phẩm rating >= 4.5, fallback lấy top rated");
+        List<Object[]> topRated = reviewRepository.findTopRatedProductIds();
+        
+        if (!topRated.isEmpty()) {
+            List<Long> topIds = topRated.stream()
+                    .limit(take)
+                    .map(row -> (Long) row[0])
+                    .collect(Collectors.toList());
+            
+            List<Product> products = productRepository.findByIdsWithDetails(topIds);
+            Map<Long, Integer> orderMap = new HashMap<>();
+            for (int i = 0; i < topIds.size(); i++) {
+                orderMap.put(topIds.get(i), i);
+            }
+            products.sort(Comparator.comparingInt(p -> orderMap.getOrDefault(p.getId(), Integer.MAX_VALUE)));
+            return toCards(products);
+        }
+        
+        // CUỐI CÙNG: Lấy sản phẩm mới nhất nếu không có review nào
+        log.debug("⚠️ Không có review, fallback lấy sản phẩm mới nhất");
+        Pageable pageable = PageRequest.of(0, take);
+        Page<Product> page = productRepository.findNewArrivalsOptimized(pageable);
+        return toCards(page.getContent());
     }
 
     @Override
@@ -530,26 +707,51 @@ public class ProductViewServiceImpl implements IProductViewService {
         return createPageFromList(pagedProducts, pageable, relatedProducts.size());
     }
 
+    /**
+     * Lấy sản phẩm đang giảm giá với caching - KHÔNG BỎ SÓT
+     * Cache TTL: 5 phút (flash sale cần cập nhật nhanh hơn)
+     * 
+     * LOGIC CẢI TIẾN:
+     * - Lấy TẤT CẢ sản phẩm active (vì discount có thể áp dụng cho bất kỳ SP nào)
+     * - Filter những sản phẩm có discount
+     * - Sort theo discount amount DESC
+     * - Cache kết quả để tránh query lại
+     * 
+     * NOTE: Có thể chậm nếu có nhiều sản phẩm, nhưng ĐẢM BẢO KHÔNG BỎ SÓT
+     * Trade-off được chấp nhận vì có cache 5 phút
+     */
     @Override
+    @Cacheable(value = "productsOnSale", key = "#limit != null ? #limit : 10", unless = "#result == null || #result.isEmpty()")
     public List<ProductCardResponse> getProductsOnSale(Integer limit) {
+        log.debug("🏷️ getProductsOnSale - limit: {} (CACHE MISS - FULL SCAN)", limit);
         int take = limitOrDefault(limit);
-        List<Product> discounted = productRepository.findByStatusTrueAndIsDeletedFalse().stream()
+        
+        // Lấy TẤT CẢ sản phẩm active để đảm bảo không bỏ sót
+        // Được cache 5 phút nên overhead là chấp nhận được
+        List<Product> allProducts = productRepository.findByStatusTrueAndIsDeletedFalse();
+        
+        List<Product> discounted = allProducts.stream()
                 .filter(p -> {
                     ProductTemplate t = displayTemplate(p);
                     return calculateDiscount(t != null ? t.getPrice() : null).hasDiscount;
                 })
                 .sorted((p1, p2) -> {
-                    // Sắp xếp theo số tiền giảm DESC (giảm nhiều nhất trước)
                     ProductTemplate t1 = displayTemplate(p1);
                     ProductTemplate t2 = displayTemplate(p2);
                     DiscountResult discount1 = calculateDiscount(t1 != null ? t1.getPrice() : null);
                     DiscountResult discount2 = calculateDiscount(t2 != null ? t2.getPrice() : null);
-                    
-                    // So sánh discount amount DESC
+                    // Sort theo % giảm giá DESC, sau đó số tiền giảm DESC
+                    int percentCompare = Double.compare(
+                            discount2.discountPercentage != null ? discount2.discountPercentage : 0.0,
+                            discount1.discountPercentage != null ? discount1.discountPercentage : 0.0
+                    );
+                    if (percentCompare != 0) return percentCompare;
                     return discount2.discountAmount.compareTo(discount1.discountAmount);
                 })
                 .limit(take)
                 .collect(Collectors.toList());
+        
+        log.debug("✅ Tìm thấy {} sản phẩm đang giảm giá (từ {} sản phẩm)", discounted.size(), allProducts.size());
         return toCards(discounted);
     }
 
@@ -810,15 +1012,18 @@ public class ProductViewServiceImpl implements IProductViewService {
     /**
      * Filter by discount availability
      * @param product Product to check
-     * @param hasDiscountOnly If true, only return products with active promotions
+     * @param hasDiscountOnly If true, only return products with active DISCOUNT promotions
      * @return true if hasDiscountOnly is false/null or product has discount
      */
     private boolean matchHasDiscount(Product product, Boolean hasDiscountOnly) {
         if (hasDiscountOnly == null || !hasDiscountOnly) return true;
-        ProductTemplate template = displayTemplate(product);
-        if (template == null || template.getPrice() == null) return false;
-        DiscountResult discount = calculateDiscount(template.getPrice());
-        return discount.hasDiscount;
+        
+        // Use getBestDiscountForProduct to correctly check DISCOUNT type promotions
+        Long categoryId = product.getCategory() != null ? product.getCategory().getId() : null;
+        Long brandId = product.getBrand() != null ? product.getBrand().getId() : null;
+        Double discountPercent = promotionService.getBestDiscountForProduct(product.getId(), categoryId, brandId);
+        
+        return discountPercent != null && discountPercent > 0;
     }
 
     private int totalStock(Product product) {

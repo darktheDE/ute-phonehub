@@ -18,7 +18,7 @@ public class GeminiApiFallbackConfig {
     @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models}")
     private String baseUrl;
     
-    @Value("${gemini.model:gemini-2.0-flash}")
+    @Value("${gemini.model:gemma-3-12b-it}")
     private String model;
     
     @Value("${gemini.embedding.model:text-embedding-004}")

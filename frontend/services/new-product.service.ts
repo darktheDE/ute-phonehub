@@ -37,6 +37,7 @@ export interface ProductCardResponse {
   inStock: boolean;
   stockQuantity: number;
   stockStatus: string;
+  soldCount?: number; // Số lượng đã bán
   
   // Key specs
   ram?: string;
@@ -45,6 +46,13 @@ export interface ProductCardResponse {
   screenSize?: string;
   operatingSystem?: string;
   processor?: string;
+  
+  // Extended specs (from ProductMetadata)
+  batteryCapacity?: number;
+  chargingPower?: number;
+  screenResolution?: string;
+  screenTechnology?: string;
+  refreshRate?: number;
 }
 
 export interface ProductSearchRequest {
@@ -406,5 +414,130 @@ export async function compareProducts(productIds: number[]): Promise<ProductComp
   } catch (error) {
     console.error('Compare products error:', error);
     return null;
+  }
+}
+
+// ==================== PAGINATED API FUNCTIONS ====================
+
+export interface PaginatedRequest {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+/**
+ * Get featured products with pagination
+ * Sử dụng filter API với sortBy=soldCount để lấy sản phẩm nổi bật
+ * Cho phép user override sort options
+ */
+export async function getFeaturedProductsPaginated(request: PaginatedRequest = {}): Promise<PageResponse<ProductCardResponse>> {
+  try {
+    const filterRequest: ProductFilterRequest = {
+      page: request.page || 0,
+      size: request.size || 12,
+      // Cho phép override sort, mặc định là soldCount
+      sortBy: request.sortBy || 'soldCount',
+      sortDirection: request.sortDirection || 'desc',
+    };
+    
+    console.log('⭐ Getting featured products (paginated):', filterRequest);
+    return await filterProducts(filterRequest);
+  } catch (error) {
+    console.error('Get featured products paginated error:', error);
+    return {
+      content: [],
+      totalPages: 0,
+      totalElements: 0,
+      size: request.size || 12,
+      number: request.page || 0,
+    };
+  }
+}
+
+/**
+ * Get new arrivals with pagination
+ * Sử dụng filter API với sortBy=createdAt để lấy sản phẩm mới nhất
+ * Cho phép user override sort options
+ */
+export async function getNewArrivalsPaginated(request: PaginatedRequest = {}): Promise<PageResponse<ProductCardResponse>> {
+  try {
+    const filterRequest: ProductFilterRequest = {
+      page: request.page || 0,
+      size: request.size || 12,
+      // Cho phép override sort, mặc định là createdAt
+      sortBy: request.sortBy || 'createdAt',
+      sortDirection: request.sortDirection || 'desc',
+    };
+    
+    console.log('🆕 Getting new arrivals (paginated):', filterRequest);
+    return await filterProducts(filterRequest);
+  } catch (error) {
+    console.error('Get new arrivals paginated error:', error);
+    return {
+      content: [],
+      totalPages: 0,
+      totalElements: 0,
+      size: request.size || 12,
+      number: request.page || 0,
+    };
+  }
+}
+
+/**
+ * Get on-sale products with pagination
+ * Sử dụng filter API với hasDiscountOnly=true để lấy sản phẩm đang giảm giá
+ * Cho phép user override sort options
+ */
+export async function getOnSaleProductsPaginated(request: PaginatedRequest = {}): Promise<PageResponse<ProductCardResponse>> {
+  try {
+    const filterRequest: ProductFilterRequest = {
+      page: request.page || 0,
+      size: request.size || 12,
+      hasDiscountOnly: true,
+      // Cho phép override sort, mặc định là discountPercentage
+      sortBy: request.sortBy || 'discountPercentage',
+      sortDirection: request.sortDirection || 'desc',
+    };
+    
+    console.log('🏷️ Getting on-sale products (paginated):', filterRequest);
+    return await filterProducts(filterRequest);
+  } catch (error) {
+    console.error('Get on-sale products paginated error:', error);
+    return {
+      content: [],
+      totalPages: 0,
+      totalElements: 0,
+      size: request.size || 12,
+      number: request.page || 0,
+    };
+  }
+}
+
+/**
+ * Get best selling products with pagination
+ * Cho phép user override sort options
+ */
+export async function getBestSellingProductsPaginated(request: PaginatedRequest = {}): Promise<PageResponse<ProductCardResponse>> {
+  try {
+    const filterRequest: ProductFilterRequest = {
+      page: request.page || 0,
+      size: request.size || 12,
+      // Cho phép override sort, mặc định là soldCount
+      sortBy: request.sortBy || 'soldCount',
+      sortDirection: request.sortDirection || 'desc',
+    };
+    
+    console.log('🔥 Getting best selling products (paginated):', filterRequest);
+    return await filterProducts(filterRequest);
+  } catch (error) {
+    console.error('Get best selling products paginated error:', error);
+    return {
+      content: [],
+      totalPages: 0,
+      totalElements: 0,
+      size: request.size || 12,
+      number: request.page || 0,
+    };
   }
 }

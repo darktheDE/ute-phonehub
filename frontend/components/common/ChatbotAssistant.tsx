@@ -5,21 +5,52 @@ import { useChatbotAssistant } from '@/hooks/useChatbotAssistant';
 import { ChatbotAssistantUserRequest } from '@/types/chatbot-assistant.d';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, Trash2 } from 'lucide-react';
+import { Loader2, Send, Trash2, Sparkles, Zap, Clock, Target, ChevronLeft, ChevronRight, Star, TrendingUp, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
-import { useCategories } from '@/hooks/useCategories';
-import { Slider } from '@/components/ui/slider';
+import { ChatbotMarkdown } from './ChatbotMarkdown';
+import { ChatbotProductList } from './ChatbotProductCard';
 
 interface ChatbotAssistantProps {
   className?: string;
 }
 
+// Intent display mapping với colors
+const INTENT_DISPLAY: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  FEATURED: { label: 'Nổi bật', icon: <Sparkles className="w-3 h-3" />, color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' },
+  BEST_SELLING: { label: 'Bán chạy', icon: <Zap className="w-3 h-3" />, color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+  NEW_ARRIVALS: { label: 'Mới về', icon: <Sparkles className="w-3 h-3" />, color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+  SEARCH: { label: 'Tìm kiếm', icon: <Target className="w-3 h-3" />, color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+  FILTER_RAM: { label: 'Lọc RAM', icon: <Target className="w-3 h-3" />, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' },
+  FILTER_STORAGE: { label: 'Lọc Storage', icon: <Target className="w-3 h-3" />, color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200' },
+  FILTER_BATTERY: { label: 'Pin trâu', icon: <Target className="w-3 h-3" />, color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' },
+  FILTER_PRICE: { label: 'Lọc Giá', icon: <Target className="w-3 h-3" />, color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+  FILTER_BRAND: { label: 'Theo hãng', icon: <Target className="w-3 h-3" />, color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200' },
+  COMPARE: { label: 'So sánh', icon: <Target className="w-3 h-3" />, color: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200' },
+  CATEGORY: { label: 'Danh mục', icon: <Target className="w-3 h-3" />, color: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200' },
+  FILTER_OS: { label: 'Hệ điều hành', icon: <Target className="w-3 h-3" />, color: 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200' },
+  RELATED: { label: 'Liên quan', icon: <Target className="w-3 h-3" />, color: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200' },
+  FILTER_CAMERA: { label: 'Camera đẹp', icon: <Target className="w-3 h-3" />, color: 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200' },
+  FILTER_GAMING: { label: 'Gaming', icon: <Zap className="w-3 h-3" />, color: 'bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900 dark:text-fuchsia-200' },
+  FILTER_BUDGET: { label: 'Giá rẻ', icon: <Target className="w-3 h-3" />, color: 'bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200' },
+  FILTER_FLAGSHIP: { label: 'Cao cấp', icon: <Sparkles className="w-3 h-3" />, color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+  FILTER_SCREEN: { label: 'Màn hình', icon: <Target className="w-3 h-3" />, color: 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200' },
+  FILTER_RATING: { label: 'Đánh giá', icon: <Sparkles className="w-3 h-3" />, color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' },
+};
+
+// Quick action categories for bottom bar - Prompts sát yêu cầu
+const QUICK_CATEGORIES = [
+  { id: 'featured', label: '⭐ Nổi bật', icon: Star, prompt: 'Xem sản phẩm nổi bật', color: 'from-amber-500 to-orange-500' },
+  { id: 'bestselling', label: '🔥 Bán chạy', icon: TrendingUp, prompt: 'Xem sản phẩm bán chạy', color: 'from-red-500 to-pink-500' },
+  { id: 'new', label: '✨ Mới về', icon: Sparkles, prompt: 'Xem sản phẩm mới về', color: 'from-green-500 to-emerald-500' },
+  { id: 'budget', label: '💰 Giá rẻ', icon: Package, prompt: 'Xem điện thoại giá rẻ', color: 'from-blue-500 to-cyan-500' },
+  { id: 'flagship', label: '👑 Cao cấp', icon: Zap, prompt: 'Xem điện thoại cao cấp', color: 'from-purple-500 to-violet-500' },
+];
+
+
 /**
- * Component Chatbot Tư Vấn Sản Phẩm
- * Gợi ý sản phẩm phù hợp dựa trên câu hỏi của khách hàng
+ * Component Chatbot Tư Vấn Sản Phẩm - UI/UX Tối Ưu
  */
 export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
   className,
@@ -27,12 +58,8 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
   const { messages, loading, error, sendMessage, clearChat } =
     useChatbotAssistant();
   const [input, setInput] = useState('');
-  const [categoryId, setCategoryId] = useState<number | undefined>();
-  const [minPrice, setMinPrice] = useState<number | undefined>();
-  const [maxPrice, setMaxPrice] = useState<number | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const { categories } = useCategories({ parentId: null });
+  const quickActionsRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -44,9 +71,6 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
 
     const request: ChatbotAssistantUserRequest = {
       message: message.trim(),
-      categoryId,
-      minPrice,
-      maxPrice,
     };
 
     try {
@@ -66,76 +90,76 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
     await sendChatRequest(prompt);
   };
 
+  const scrollQuickActions = (direction: 'left' | 'right') => {
+    if (quickActionsRef.current) {
+      const scrollAmount = 200;
+      quickActionsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <div
-      className={cn('flex flex-col h-full bg-card rounded-lg border', className)}
+      className={cn('flex flex-col h-full bg-card rounded-xl border shadow-xl overflow-hidden', className)}
     >
-      {/* Header */}
-      <CardHeader className="border-b pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base md:text-lg">
-            Cửa sổ trò chuyện
-          </CardTitle>
+      {/* Header - Compact */}
+      <CardHeader className="border-b py-3 px-4 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-xl shadow-lg">
+                🤖
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
+            </div>
+            <div>
+              <CardTitle className="text-base font-bold">Trợ lý AI</CardTitle>
+              <p className="text-xs text-muted-foreground">Online • Sẵn sàng hỗ trợ</p>
+            </div>
+          </div>
 
-          {messages.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearChat}
-              className="hidden sm:inline-flex"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Xóa lịch sử
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={clearChat}
+                className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
 
-      {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/40">
+      {/* Chat Area - Tăng kích thước */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-gradient-to-b from-muted/20 to-muted/40 min-h-[400px]">
         {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-center text-muted-foreground">
-            <div>
-              <p className="text-sm font-medium mb-2">
-                Chào bạn 👋 – hãy mô tả nhu cầu của bạn để bắt đầu.
-              </p>
-              <p className="text-xs">
-                Ví dụ: “Điện thoại chụp hình đẹp tầm 10 triệu”, “Máy mỏng nhẹ pin trâu”...
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2 justify-center text-xs">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 px-2"
-                  onClick={() => handleQuickPrompt('Cho tôi xem sản phẩm nổi bật')}
-                  disabled={loading}
-                >
-                  “Cho tôi xem sản phẩm nổi bật”
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 px-2"
-                  onClick={() =>
-                    handleQuickPrompt('Cho tôi xem các sản phẩm bán chạy tầm 8-12 triệu')
-                  }
-                  disabled={loading}
-                >
-                  “Sản phẩm bán chạy tầm 8-12 triệu”
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 px-2"
-                  onClick={() => handleQuickPrompt('Điện thoại mới ra mắt gần đây')}
-                  disabled={loading}
-                >
-                  “Điện thoại mới ra mắt gần đây”
-                </Button>
+          <div className="h-full flex items-center justify-center">
+            <div className="max-w-md text-center space-y-6 p-4">
+              {/* Avatar lớn hơn */}
+              <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-5xl shadow-2xl animate-bounce">
+                🤖
               </div>
+              
+              {/* Welcome text */}
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold">Xin chào! 👋</h3>
+                <p className="text-sm text-muted-foreground">
+                  Tôi là trợ lý AI của UTE PhoneHub, sẵn sàng tư vấn điện thoại phù hợp với bạn!
+                </p>
+              </div>
+              
+              {/* Quick Access Links - thay thế gợi ý câu hỏi */}
+             
+
+              {/* Gợi ý nhỏ */}
+              <p className="text-xs text-muted-foreground">
+                💬 Hoặc nhập câu hỏi bên dưới để được tư vấn!
+              </p>
             </div>
           </div>
         ) : (
@@ -143,116 +167,76 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
             <div
               key={message.id}
               className={cn(
-                'flex gap-3 animate-fade-in',
+                'flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300',
                 message.type === 'user' ? 'justify-end' : 'justify-start'
               )}
             >
               {message.type === 'assistant' && (
-                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-sm shadow-md">
                   🤖
                 </div>
               )}
 
               <div
                 className={cn(
-                  'max-w-md p-3 rounded-lg text-sm',
+                  'max-w-[90%] md:max-w-2xl p-4 rounded-2xl text-sm shadow-sm',
                   message.type === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-br-none'
-                    : 'bg-background border rounded-bl-none'
+                    ? 'bg-primary text-primary-foreground rounded-br-sm'
+                    : 'bg-background border rounded-bl-sm'
                 )}
               >
-                <p className="mb-2 whitespace-pre-line">{message.content}</p>
+                {message.type === 'assistant' ? (
+                  <ChatbotMarkdown content={message.content} />
+                ) : (
+                  <p className="whitespace-pre-line">{message.content}</p>
+                )}
 
-                {/* Hiển thị sản phẩm gợi ý */}
+                {/* Products */}
                 {message.response?.recommendedProducts &&
                   message.response.recommendedProducts.length > 0 && (
-                    <div className="mt-3 space-y-2 border-t border-border pt-2">
-                      <p className="text-xs font-semibold text-muted-foreground">
-                        📦 Sản phẩm gợi ý ({message.response.recommendedProducts.length}):
-                      </p>
-                      <div className="grid grid-cols-1 gap-2">
-                        {message.response.recommendedProducts.map((product, index) => (
-                          <a
-                            key={product.id ? `${product.id}-${index}` : `product-${index}`}
-                            href={product.productUrl || `/products/${product.id}`}
-                            className="block p-3 rounded-md bg-muted/40 border hover:border-primary hover:shadow-sm transition-all cursor-pointer group"
+                    <div className="mt-3 space-y-2 border-t border-border/50 pt-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold flex items-center gap-1">
+                          📦 Gợi ý ({message.response.recommendedProducts.length})
+                        </span>
+                        {message.response.detectedIntent && (
+                          <Badge 
+                            className={cn(
+                              'text-[10px] gap-1 px-2',
+                              INTENT_DISPLAY[message.response.detectedIntent]?.color
+                            )}
                           >
-                            <div className="flex gap-3">
-                              {/* Product Image */}
-                              {product.imageUrl && (
-                                <div className="flex-shrink-0 w-16 h-16 rounded bg-background border flex items-center justify-center overflow-hidden">
-                                  <Image
-                                    src={product.imageUrl}
-                                    alt={product.name}
-                                    width={60}
-                                    height={60}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                    }}
-                                  />
-                                </div>
-                              )}
-                              
-                              {/* Product Info */}
-                              <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-sm group-hover:text-primary transition-colors truncate">
-                                  {product.name}
-                                </div>
-                                <div className="text-xs text-muted-foreground line-clamp-1 mt-1">
-                                  {product.description}
-                                </div>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <span className="font-semibold text-primary">
-                                    {(product.price / 1000000).toFixed(1)}M₫
-                                  </span>
-                                  <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
-                                    ⭐ {product.rating?.toFixed(1) || 'N/A'} ({product.reviewCount || 0})
-                                  </span>
-                                </div>
-                                {product.matchScore && (
-                                  <div className="mt-1.5">
-                                    <div className="flex items-center justify-between text-xs mb-1">
-                                      <span className="text-muted-foreground">Độ phù hợp:</span>
-                                      <span className="font-semibold text-emerald-600">
-                                        {(product.matchScore * 100).toFixed(0)}%
-                                      </span>
-                                    </div>
-                                    <div className="w-full bg-muted rounded-full h-1.5">
-                                      <div
-                                        className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-1.5 rounded-full transition-all"
-                                        style={{ width: `${product.matchScore * 100}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* Action Button */}
-                              <div className="flex-shrink-0 flex items-center justify-center">
-                                <div className="text-blue-600 group-hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  →
-                                </div>
-                              </div>
-                            </div>
-                          </a>
-                        ))}
+                            {INTENT_DISPLAY[message.response.detectedIntent]?.icon}
+                            {INTENT_DISPLAY[message.response.detectedIntent]?.label}
+                          </Badge>
+                        )}
                       </div>
+                      <ChatbotProductList 
+                        products={message.response.recommendedProducts}
+                        groupByBrand={message.response.recommendedProducts.length > 3}
+                      />
                     </div>
                   )}
 
-                {/* Hiển thị metadata */}
+                {/* Metadata */}
                 {message.response && (
-                  <div className="mt-2 text-[11px] text-muted-foreground flex items-center gap-2 flex-wrap">
-                    <span>🎯 {message.response.detectedIntent}</span>
-                    <span>⏱️ {message.response.processingTimeMs}ms</span>
+                  <div className="mt-2 pt-2 border-t border-border/30 flex items-center gap-3 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {message.response.processingTimeMs}ms
+                    </span>
+                    {message.response.relevanceScore > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Target className="w-3 h-3" />
+                        {(message.response.relevanceScore * 100).toFixed(0)}%
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
 
               {message.type === 'user' && (
-                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm border">
                   👤
                 </div>
               )}
@@ -262,86 +246,80 @@ export const ChatbotAssistant: React.FC<ChatbotAssistantProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Error Display */}
+      {/* Error */}
       {error && (
-        <div className="px-4 py-2 bg-destructive/10 border-b border-destructive/30 text-destructive text-xs">
-          ❌ {error}
+        <div className="px-4 py-2 bg-destructive/10 text-destructive text-xs flex items-center gap-2">
+          <span>❌ {error}</span>
         </div>
       )}
 
-      {/* Input & filter */}
-      <div className="border-t bg-background rounded-b-lg">
-        <CardContent className="space-y-3 pt-3 pb-4">
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 text-xs">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-muted-foreground">Khoảng giá (VND)</span>
-                <span className="text-[11px] text-muted-foreground">
-                  {minPrice?.toLocaleString('vi-VN') || 0} -{' '}
-                  {maxPrice?.toLocaleString('vi-VN') || 50_000_000}
-                </span>
-              </div>
-              <Slider
-                min={0}
-                max={50_000_000}
-                step={500_000}
-                value={[minPrice ?? 0, maxPrice ?? 50_000_000]}
-                onValueChange={([min, max]) => {
-                  setMinPrice(min);
-                  setMaxPrice(max);
-                }}
+      {/* Quick Actions Bar - Scrollable */}
+      <div className="border-t bg-muted/30 relative">
+        <div className="flex items-center">
+          <button
+            onClick={() => scrollQuickActions('left')}
+            className="absolute left-0 z-10 h-full px-1 bg-gradient-to-r from-muted to-transparent hover:from-muted/80"
+          >
+            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+          </button>
+          
+          <div 
+            ref={quickActionsRef}
+            className="flex gap-2 overflow-x-auto scrollbar-hide py-2 px-8"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {QUICK_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => handleQuickPrompt(cat.prompt)}
                 disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-muted-foreground">
-                Danh mục (tùy chọn)
-              </label>
-              <select
-                className="h-8 w-full rounded-md border bg-background px-2 text-xs"
-                value={categoryId ?? ''}
-                onChange={(e) =>
-                  setCategoryId(e.target.value ? parseInt(e.target.value) : undefined)
-                }
-                disabled={loading}
+                className={cn(
+                  "flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white shadow-sm transition-transform hover:scale-105 disabled:opacity-50",
+                  `bg-gradient-to-r ${cat.color}`
+                )}
               >
-                <option value="">Tất cả danh mục</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <cat.icon className="w-3.5 h-3.5" />
+                {cat.label}
+              </button>
+            ))}
           </div>
 
-          {/* Input Form */}
-          <form onSubmit={handleSendMessage} className="flex gap-2">
-            <Input
-              type="text"
-              placeholder="Mô tả nhu cầu của bạn... (ví dụ: điện thoại chụp hình đẹp tầm 10 triệu)"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={loading}
-              className="flex-1 text-sm"
-            />
-            <Button type="submit" disabled={loading || !input.trim()}>
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </Button>
-          </form>
+          <button
+            onClick={() => scrollQuickActions('right')}
+            className="absolute right-0 z-10 h-full px-1 bg-gradient-to-l from-muted to-transparent hover:from-muted/80"
+          >
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+      </div>
 
-          <p className="text-[11px] text-muted-foreground text-center">
-            💡 Chatbot ưu tiên gợi ý từ dữ liệu sản phẩm thật trong hệ thống, sau đó dùng AI
-            để giải thích và so sánh.
-          </p>
-        </CardContent>
+      {/* Input */}
+      <div className="border-t bg-background p-3">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="Nhập câu hỏi của bạn..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={loading}
+            className="flex-1 rounded-full px-4"
+          />
+          <Button 
+            type="submit" 
+            disabled={loading || !input.trim()}
+            size="icon"
+            className="rounded-full w-10 h-10 bg-primary hover:bg-primary/90"
+          >
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </Button>
+        </form>
       </div>
     </div>
   );
 };
+
+export default ChatbotAssistant;

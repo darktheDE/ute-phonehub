@@ -4,9 +4,42 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { ProductCard } from './products/NewProductCard';
 import { useFeaturedProducts } from '@/hooks/useProducts';
+import { useCartStore, useWishlistStore } from '@/store';
+import { toast } from 'sonner';
 
 export function FeaturedProducts() {
   const { data: featuredProducts, isLoading, error } = useFeaturedProducts({ limit: 8 });
+  const { addItem: addToCart } = useCartStore();
+  const { toggleItem: toggleWishlist, isInWishlist } = useWishlistStore();
+
+  const handleAddToCart = (productId: number) => {
+    const product = featuredProducts?.find(p => p.id === productId);
+    if (product) {
+      addToCart({
+        productId: product.id,
+        productName: product.name,
+        price: product.discountedPrice || product.originalPrice,
+        quantity: 1,
+        productImage: product.thumbnailUrl || '',
+      });
+      toast.success('Đã thêm vào giỏ hàng!');
+    }
+  };
+
+  const handleToggleWishlist = (productId: number) => {
+    const product = featuredProducts?.find(p => p.id === productId);
+    if (product) {
+      const wasInWishlist = isInWishlist(productId);
+      toggleWishlist({
+        productId: product.id,
+        productName: product.name,
+        price: product.discountedPrice || product.originalPrice,
+        productImage: product.thumbnailUrl || '',
+        inStock: product.inStock,
+      });
+      toast.success(wasInWishlist ? 'Đã xóa khỏi yêu thích' : 'Đã thêm vào yêu thích');
+    }
+  };
 
   return (
     <section className="py-8 md:py-12">
@@ -21,7 +54,7 @@ export function FeaturedProducts() {
             </p>
           </div>
           <Link
-            href="/products"
+            href="/products/featured"
             className="text-primary hover:underline flex items-center gap-1 text-sm font-semibold"
           >
             Xem tất cả <ChevronRight className="w-4 h-4" />
@@ -50,6 +83,9 @@ export function FeaturedProducts() {
               <ProductCard 
                 key={product.id} 
                 product={product}
+                onAddToCart={handleAddToCart}
+                onToggleWishlist={handleToggleWishlist}
+                isInWishlist={isInWishlist(product.id)}
               />
             ))}
           </div>

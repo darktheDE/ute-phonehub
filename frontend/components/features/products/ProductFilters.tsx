@@ -58,11 +58,11 @@ const PRICE_RANGES = [
   { min: 50000000, max: undefined, label: 'Trên 50 triệu' }
 ]
 
-const formatPrice = (price: number): string => {
+const formatSliderPrice = (price: number): string => {
   if (price >= 1000000) {
-    return `${(price / 1000000).toFixed(0)}tr`
+    return `${(price / 1000000).toFixed(0)} triệu`
   }
-  return `${(price / 1000).toFixed(0)}k`
+  return `${(price / 1000).toFixed(0)}K`
 }
 
 export function ProductFilters({ 
@@ -312,7 +312,7 @@ export function ProductFilters({
                     {getActiveFilterCount('price') > 0 && (
                       <Badge variant="secondary" className="text-xs">
                         {filters.minPrice || filters.maxPrice ? 
-                          `${filters.minPrice ? formatPrice(filters.minPrice) : '0'} - ${filters.maxPrice ? formatPrice(filters.maxPrice) : '∞'}`
+                          `${filters.minPrice ? formatSliderPrice(filters.minPrice) : '0'} - ${filters.maxPrice ? formatSliderPrice(filters.maxPrice) : '∞'}`
                           : '1'
                         }
                       </Badge>
@@ -359,8 +359,8 @@ export function ProductFilters({
                   {/* Custom range slider */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-gray-600">
-                      <span>{formatPrice(priceRange[0])}</span>
-                      <span>{formatPrice(priceRange[1])}</span>
+                      <span>{formatSliderPrice(priceRange[0])}</span>
+                      <span>{formatSliderPrice(priceRange[1])}</span>
                     </div>
                     <Slider
                       value={priceRange}

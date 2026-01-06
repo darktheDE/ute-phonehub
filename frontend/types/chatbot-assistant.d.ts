@@ -12,6 +12,11 @@ export interface ChatbotAssistantUserRequest {
   message: string;
 
   /**
+   * ID sản phẩm để lấy sản phẩm liên quan (tùy chọn)
+   */
+  productId?: number;
+
+  /**
    * ID danh mục (tùy chọn)
    */
   categoryId?: number;
@@ -33,13 +38,14 @@ export interface ChatbotAssistantUserRequest {
 }
 
 /**
- * Sản phẩm được gợi ý
+ * Sản phẩm được gợi ý - đầy đủ thông tin cho Product Card
  */
 export interface RecommendedProductDTO {
   id: number;
   name: string;
   description: string;
   price: number;
+  originalPrice?: number;
   rating: number;
   reviewCount: number;
   imageUrl: string;
@@ -47,6 +53,21 @@ export interface RecommendedProductDTO {
   matchScore?: number;
   reason?: string;
   productUrl?: string;
+  
+  // Technical specs
+  ram?: string;
+  storage?: string;
+  batteryCapacity?: number;
+  operatingSystem?: string;
+  brandName?: string;
+  
+  // Discount info
+  discountPercent?: number;
+  hasDiscount?: boolean;
+  
+  // Sales info
+  soldCount?: number;
+  inStock?: boolean;
 }
 
 /**
@@ -88,4 +109,56 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   response?: ChatbotAssistantUserResponse;
+}
+
+// ==================== ADMIN TYPES ====================
+
+/**
+ * Request để bật/tắt chatbot (Admin only)
+ */
+export interface ChatbotToggleRequest {
+  /**
+   * Trạng thái mới của chatbot (true = bật, false = tắt)
+   */
+  enabled: boolean;
+  
+  /**
+   * Lý do thay đổi (tùy chọn)
+   */
+  reason?: string;
+}
+
+/**
+ * Response trạng thái chatbot
+ */
+export interface ChatbotStatusResponse {
+  /**
+   * Chatbot đang bật hay tắt
+   */
+  enabled: boolean;
+  
+  /**
+   * Trạng thái hiển thị (BẬT/TẮT)
+   */
+  status: string;
+  
+  /**
+   * Admin đã cập nhật lần cuối
+   */
+  updatedBy?: string;
+  
+  /**
+   * Thời gian cập nhật lần cuối
+   */
+  updatedAt?: string;
+  
+  /**
+   * Mô tả
+   */
+  description?: string;
+  
+  /**
+   * Thông báo cho admin
+   */
+  message?: string;
 }

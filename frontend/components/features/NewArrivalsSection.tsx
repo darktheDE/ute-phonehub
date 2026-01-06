@@ -1,19 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, Zap, Flame, Tag } from 'lucide-react';
+import { ChevronRight, Sparkles } from 'lucide-react';
 import { ProductCard } from './products/NewProductCard';
-import { useProductsOnSale } from '@/hooks/useProducts';
+import { useNewArrivals } from '@/hooks/useProducts';
 import { useCartStore, useWishlistStore } from '@/store';
 import { toast } from 'sonner';
 
-export function FlashSaleSection() {
-  const { data: saleProducts, isLoading, error } = useProductsOnSale({ limit: 8 });
+export function NewArrivalsSection() {
+  const { data: newProducts, isLoading, error } = useNewArrivals({ limit: 8 });
   const { addItem: addToCart } = useCartStore();
   const { toggleItem: toggleWishlist, isInWishlist } = useWishlistStore();
 
   const handleAddToCart = (productId: number) => {
-    const product = saleProducts?.find(p => p.id === productId);
+    const product = newProducts?.find(p => p.id === productId);
     if (product) {
       addToCart({
         productId: product.id,
@@ -27,7 +27,7 @@ export function FlashSaleSection() {
   };
 
   const handleToggleWishlist = (productId: number) => {
-    const product = saleProducts?.find(p => p.id === productId);
+    const product = newProducts?.find(p => p.id === productId);
     if (product) {
       const wasInWishlist = isInWishlist(productId);
       toggleWishlist({
@@ -42,25 +42,23 @@ export function FlashSaleSection() {
   };
 
   return (
-    <section className="py-8 md:py-10 bg-gradient-to-r from-red-500/5 via-orange-500/5 to-yellow-500/5">
+    <section className="py-8 md:py-12 bg-gradient-to-b from-background to-muted/30">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white px-4 py-1.5 text-xs font-bold tracking-wide uppercase shadow-lg">
-              <Zap className="h-4 w-4 animate-pulse" />
-              <span>Flash Sale</span>
-              <Flame className="h-4 w-4" />
-            </span>
-            <div className="hidden sm:flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium">
-              <Tag className="h-4 w-4 text-red-500" />
-              <span className="font-semibold text-red-600">
-                Giảm đến 50%
-              </span>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="w-5 h-5 text-blue-500" />
+              <h2 className="text-xl md:text-2xl font-bold text-foreground">
+                Sản phẩm mới nhất
+              </h2>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Những sản phẩm vừa ra mắt, cập nhật công nghệ mới nhất
+            </p>
           </div>
           <Link
-            href="/products/flash-sale"
-            className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+            href="/products/new-arrivals"
+            className="text-primary hover:underline flex items-center gap-1 text-sm font-semibold"
           >
             Xem tất cả <ChevronRight className="w-4 h-4" />
           </Link>
@@ -68,12 +66,12 @@ export function FlashSaleSection() {
 
         {error && (
           <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-center text-destructive">
-            Có lỗi xảy ra khi tải sản phẩm khuyến mãi.
+            Có lỗi xảy ra khi tải sản phẩm mới.
           </div>
         )}
 
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {Array.from({ length: 8 }).map((_, index) => (
               <div key={index} className="animate-pulse">
                 <div className="aspect-square bg-secondary rounded-lg mb-2"></div>
@@ -82,9 +80,9 @@ export function FlashSaleSection() {
               </div>
             ))}
           </div>
-        ) : saleProducts && saleProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {saleProducts.map((product) => (
+        ) : newProducts && newProducts.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+            {newProducts.map((product) => (
               <ProductCard 
                 key={product.id} 
                 product={product}
@@ -96,7 +94,7 @@ export function FlashSaleSection() {
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-border bg-secondary/60 p-6 text-center text-muted-foreground">
-            Hiện chưa có sản phẩm đang Flash Sale.
+            Chưa có sản phẩm mới.
           </div>
         )}
       </div>

@@ -42,6 +42,7 @@ public class ChatbotAssistantUserResponse {
     
     /**
      * DTO cho sản phẩm được gợi ý
+     * Chứa đầy đủ thông tin để hiển thị Product Card
      */
     @Data
     @Builder
@@ -52,6 +53,7 @@ public class ChatbotAssistantUserResponse {
         private String name;
         private String description;
         private Double price;
+        private Double originalPrice;
         private Double rating;
         private Integer reviewCount;
         private String imageUrl;
@@ -64,5 +66,20 @@ public class ChatbotAssistantUserResponse {
          * VD: /products/1
          */
         private String productUrl;
+        
+        // Thông tin kỹ thuật cho Product Card
+        private String ram;
+        private String storage;
+        private Integer batteryCapacity;
+        private String operatingSystem;
+        private String brandName;
+        
+        // Thông tin khuyến mãi
+        private Integer discountPercent;
+        private Boolean hasDiscount;
+        
+        // Thông tin bán hàng
+        private Integer soldCount;
+        private Boolean inStock;
     }
 }

@@ -99,9 +99,12 @@ export function ProductFilterSidebar({
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Format price
-  const formatPrice = (price: number) => {
-    return (price / 1000000).toFixed(1) + 'tr';
+  // Format price - VND chuẩn cho slider
+  const formatSliderPrice = (price: number) => {
+    if (price >= 1000000) {
+      return (price / 1000000).toFixed(1) + ' triệu';
+    }
+    return price.toLocaleString('vi-VN') + '₫';
   };
 
   // Check if any filter is active
@@ -261,9 +264,9 @@ export function ProductFilterSidebar({
                 className="w-full"
               />
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">{formatPrice(priceRange[0])}</span>
+                <span className="font-medium">{formatSliderPrice(priceRange[0])}</span>
                 <span className="text-muted-foreground">-</span>
-                <span className="font-medium">{formatPrice(priceRange[1])}</span>
+                <span className="font-medium">{formatSliderPrice(priceRange[1])}</span>
               </div>
             </CardContent>
           </CollapsibleContent>

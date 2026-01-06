@@ -727,6 +727,38 @@ INSERT INTO messages (conversation_id, sender_type, content, metadata) VALUES
 (3, 'USER', 'Tôi muốn tư vấn mua laptop', NULL);
 
 -- ============================================
+-- 10. CHATBOT CONFIG (Bật/tắt chatbot)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS chatbot_config (
+    id BIGSERIAL PRIMARY KEY,
+    config_key VARCHAR(50) NOT NULL UNIQUE,
+    config_value VARCHAR(255) NOT NULL,
+    description TEXT,
+    updated_by VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index cho config_key (tìm kiếm nhanh)
+CREATE INDEX IF NOT EXISTS idx_chatbot_config_key ON chatbot_config(config_key);
+
+-- Seed data: Cấu hình CHATBOT_ENABLED mặc định bật
+INSERT INTO chatbot_config (config_key, config_value, description, updated_by)
+VALUES (
+    'CHATBOT_ENABLED',
+    'true',
+    'Bật/tắt tính năng chatbot AI. Khi tắt, hệ thống sẽ trả về các sản phẩm nổi bật/mới/bán chạy thay vì gọi AI.',
+    'SYSTEM'
+) ON CONFLICT (config_key) DO NOTHING;
+
+COMMENT ON TABLE chatbot_config IS 'Bảng lưu trữ cấu hình chatbot - cho phép Admin bật/tắt chatbot';
+COMMENT ON COLUMN chatbot_config.config_key IS 'Key cấu hình (VD: CHATBOT_ENABLED)';
+COMMENT ON COLUMN chatbot_config.config_value IS 'Giá trị cấu hình (VD: true/false)';
+COMMENT ON COLUMN chatbot_config.description IS 'Mô tả cấu hình';
+COMMENT ON COLUMN chatbot_config.updated_by IS 'Email admin đã cập nhật lần cuối';
+
+-- ============================================
 -- END OF INITIALIZATION SCRIPT
 -- ============================================
 --- BẢNG PROVINCES ---

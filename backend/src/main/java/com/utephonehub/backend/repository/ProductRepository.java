@@ -228,5 +228,81 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice,
             Pageable pageable);
+
+    // ==================== OPTIMIZED QUERIES FOR HOMEPAGE SECTIONS ====================
+    
+    /**
+     * Lấy sản phẩm mới nhất với LIMIT tại DB level (tối ưu hiệu suất)
+     * Sắp xếp theo createdAt DESC trong query thay vì in-memory
+     */
+    @Query(value = "SELECT DISTINCT p FROM Product p " +
+           "LEFT JOIN FETCH p.category " +
+           "LEFT JOIN FETCH p.brand " +
+           "WHERE p.status = true AND p.isDeleted = false " +
+           "ORDER BY p.createdAt DESC",
+           countQuery = "SELECT COUNT(p) FROM Product p WHERE p.status = true AND p.isDeleted = false")
+    Page<Product> findNewArrivalsOptimized(Pageable pageable);
+    
+    /**
+     * Lấy sản phẩm đang sale (có promotion active)
+     * JOIN với templates để lấy thông tin giá
+     */
+    @Query(value = "SELECT DISTINCT p FROM Product p " +
+           "LEFT JOIN FETCH p.category " +
+           "LEFT JOIN FETCH p.brand " +
+           "WHERE p.status = true AND p.isDeleted = false " +
+           "ORDER BY p.createdAt DESC",
+           countQuery = "SELECT COUNT(p) FROM Product p WHERE p.status = true AND p.isDeleted = false")
+    Page<Product> findProductsForSaleCheck(Pageable pageable);
+    
+    /**
+     * Lấy sản phẩm nổi bật - dùng cho Featured Products section
+     * Sẽ được filter thêm bởi service layer theo rating và sold count
+     */
+    @Query(value = "SELECT DISTINCT p FROM Product p " +
+           "LEFT JOIN FETCH p.category " +
+           "LEFT JOIN FETCH p.brand " +
+           "WHERE p.status = true AND p.isDeleted = false " +
+           "ORDER BY p.createdAt DESC",
+           countQuery = "SELECT COUNT(p) FROM Product p WHERE p.status = true AND p.isDeleted = false")
+    Page<Product> findForFeaturedProducts(Pageable pageable);
+    
+    /**
+     * Lấy sản phẩm theo danh sách IDs với JOIN FETCH
+     * Dùng cho Featured Products sau khi đã có list IDs từ ReviewRepository
+     */
+    @Query("SELECT DISTINCT p FROM Product p " +
+           "LEFT JOIN FETCH p.category " +
+           "LEFT JOIN FETCH p.brand " +
+           "WHERE p.id IN :ids AND p.status = true AND p.isDeleted = false")
+    List<Product> findByIdsWithDetails(List<Long> ids);
+    
+    /**
+     * Đếm tổng sản phẩm active - dùng cho cache validation
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.status = true AND p.isDeleted = false")
+    long countActiveProducts();
+    
+    /**
+     * Lấy TẤT CẢ sản phẩm matching filters (không pagination)
+     * Dùng cho sorting theo computed fields (price, rating, soldCount)
+     * Cần sort trong service layer sau khi tính toán
+     */
+    @Query("SELECT DISTINCT p FROM Product p " +
+           "LEFT JOIN FETCH p.category " +
+           "LEFT JOIN FETCH p.brand " +
+           "LEFT JOIN p.templates t " +
+           "WHERE p.isDeleted = false AND p.status = true " +
+           "AND (:categoryIds IS NULL OR p.category.id IN :categoryIds) " +
+           "AND (:brandIds IS NULL OR p.brand.id IN :brandIds) " +
+           "AND ((:minPrice IS NULL AND :maxPrice IS NULL) " +
+           "OR (t.status = true " +
+           "AND (:minPrice IS NULL OR t.price >= :minPrice) " +
+           "AND (:maxPrice IS NULL OR t.price <= :maxPrice)))")
+    List<Product> filterProductsAll(
+            @Param("categoryIds") List<Long> categoryIds,
+            @Param("brandIds") List<Long> brandIds,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice);
 }
 
