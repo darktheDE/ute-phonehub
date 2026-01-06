@@ -55,10 +55,9 @@ function CheckoutTabs({
               disabled={currentStep < step.id}
               className={`
                 flex-1 py-4 px-6 text-sm font-medium border-b-2 transition-colors
-                ${
-                  isActive
-                    ? "border-primary text-foreground"
-                    : isPast
+                ${isActive
+                  ? "border-primary text-foreground"
+                  : isPast
                     ? "border-transparent text-primary hover:text-primary/80 cursor-pointer"
                     : "border-transparent text-muted-foreground cursor-not-allowed"
                 }
@@ -115,9 +114,8 @@ function OrderSummary({
           return (
             <div
               key={item.id}
-              className={`flex gap-3 ${
-                isItemProcessing ? "opacity-60 pointer-events-none" : ""
-              }`}
+              className={`flex gap-3 ${isItemProcessing ? "opacity-60 pointer-events-none" : ""
+                }`}
             >
               <div className="relative w-16 h-16 bg-muted rounded flex items-center justify-center flex-shrink-0">
                 {item.productImage && item.productImage.length <= 4 ? (
@@ -204,9 +202,9 @@ function CheckoutContent() {
   const selectedParam = searchParams?.get?.("selected") ?? null;
   const selectedIdsFromQuery = selectedParam
     ? selectedParam
-        .split(",")
-        .map((s) => Number(s))
-        .filter(Boolean)
+      .split(",")
+      .map((s) => Number(s))
+      .filter(Boolean)
     : null;
 
   // Validate selected items exist in cart
@@ -308,6 +306,7 @@ function CheckoutContent() {
   const [orderingItemIds, setOrderingItemIds] = useState<number[]>([]);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [error, setError] = useState("");
+  const [orderSuccess, setOrderSuccess] = useState(false); // Prevent empty cart flash
 
   const shippingFee = getConfiguredShippingFee();
   const shippingUnit = "Giao hàng nhanh";
@@ -429,7 +428,7 @@ function CheckoutContent() {
     const orderedLocalIds = itemsForOrder.map((it: any) => it.id);
     try {
       localStorage.setItem("lastOrderPlacedAt", String(Date.now()));
-    } catch {}
+    } catch { }
     setOrderingItemIds(orderedLocalIds);
     setIsProcessing(true);
     try {
@@ -474,13 +473,13 @@ function CheckoutContent() {
       // Mark order placed so other tabs/pages refresh cart
       try {
         localStorage.setItem("lastOrderPlacedAt", String(Date.now()));
-      } catch {}
+      } catch { }
 
       // Remove ordered items locally as immediate feedback
       try {
         const orderedLocalIds = itemsForOrder.map((it: any) => it.id);
         removeItems(orderedLocalIds);
-      } catch {}
+      } catch { }
 
       // Try a final refresh from backend to ensure server state wins
       try {
@@ -496,6 +495,9 @@ function CheckoutContent() {
       } catch (e) {
         console.warn("Failed final cart refresh after order:", e);
       }
+
+      // Mark order as successful before navigation to prevent empty cart flash
+      setOrderSuccess(true);
 
       // Navigate to appropriate page
       if (paymentMethod === "VNPAY" && orderData?.paymentUrl) {
@@ -513,8 +515,8 @@ function CheckoutContent() {
     }
   };
 
-  // Empty cart
-  if (items.length === 0) {
+  // Empty cart - but don't show if order was just placed (prevents flash before redirect)
+  if (items.length === 0 && !orderSuccess && !isProcessing) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <ShoppingCart className="mx-auto h-16 w-16 text-muted-foreground mb-4" />

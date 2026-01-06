@@ -18,6 +18,7 @@ services:
       - ./migrations/004_add_product_images.sql:/docker-entrypoint-initdb.d/004_add_product_images.sql
       - ./migrations/005_import_real_products.sql:/docker-entrypoint-initdb.d/005_import_real_products.sql
       - ./migrations/006_seed_promotions.sql:/docker-entrypoint-initdb.d/006_seed_promotions.sql
+      - ./migrations/007_seed_address_data.sql:/docker-entrypoint-initdb.d/007_seed_address_data.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
