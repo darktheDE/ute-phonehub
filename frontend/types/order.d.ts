@@ -127,3 +127,46 @@ export interface CreateOrderResponse {
   message?: string;
   paymentUrl?: string; // For VNPay payment
 }
+
+// Admin order detail response (mapping từ AdminOrderDetailResponse backend)
+export interface AdminOrderItemDto {
+  id: number;
+  productId: number;
+  productName: string;
+  productThumbnail?: string;
+  quantity: number;
+  price: number;
+  totalPrice: number;
+  createdAt: string;
+}
+
+export interface AdminOrderDetailResponse {
+  id: number;
+  orderCode: string;
+  // Customer Information
+  customerId?: number | null;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string | null;
+  // Recipient Information
+  recipientName: string;
+  recipientPhone: string;
+  shippingAddress: string;
+  // Order Details
+  status: OrderStatus;
+  statusDisplay: string;
+  paymentMethod: PaymentMethod;
+  totalAmount: number;
+  shippingFee: number;
+  shippingUnit?: string;
+  note?: string;
+  // Items
+  items: AdminOrderItemDto[];
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+  // Admin specific fields
+  availableStatusTransitions: OrderStatus[];
+  adminNotes?: string;
+}
+

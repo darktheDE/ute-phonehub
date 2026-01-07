@@ -13,6 +13,7 @@ import {
     Heart,
     MapPin,
     Bell,
+    CreditCard,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ import {
     CustomerAddresses,
     CustomerWishlist,
     OrdersTable,
+    PaymentHistory,
 } from "@/components/features/dashboard";
 import { Sidebar } from "@/components/features/layout/Sidebar";
 import { useOrders } from "@/hooks";
@@ -29,7 +31,8 @@ type TabType =
     | "profile"
     | "orders"
     | "addresses"
-    | "wishlist";
+    | "wishlist"
+    | "payments";
 
 export default function UserDashboardClient() {
     const router = useRouter();
@@ -46,6 +49,7 @@ export default function UserDashboardClient() {
     const menuItems = [
         { id: "profile" as TabType, label: "Thông tin cá nhân", icon: User },
         { id: "orders" as TabType, label: "Đơn hàng của tôi", icon: ShoppingCart },
+        { id: "payments" as TabType, label: "Lịch sử thanh toán", icon: CreditCard },
         { id: "addresses" as TabType, label: "Địa chỉ", icon: MapPin },
         { id: "wishlist" as TabType, label: "Yêu thích", icon: Heart },
     ];
@@ -128,6 +132,7 @@ export default function UserDashboardClient() {
                         <h2 className="text-xl font-bold text-foreground">
                             {activeTab === "profile" && "Thông tin cá nhân"}
                             {activeTab === "orders" && "Đơn hàng của tôi"}
+                            {activeTab === "payments" && "Lịch sử thanh toán"}
                             {activeTab === "addresses" && "Địa chỉ của tôi"}
                             {activeTab === "wishlist" && "Sản phẩm yêu thích"}
                         </h2>
@@ -165,6 +170,9 @@ export default function UserDashboardClient() {
                             <OrdersTable orders={orders} isAdmin={false} />
                         )
                     )}
+
+                    {/* Payment History */}
+                    {activeTab === "payments" && <PaymentHistory />}
                 </div>
             </div>
         </div>

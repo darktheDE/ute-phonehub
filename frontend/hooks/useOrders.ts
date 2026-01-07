@@ -19,19 +19,22 @@ export function useOrders(isAdmin: boolean = false) {
       try {
         setLoading(true);
         setError(null);
-        
+
         if (isAdmin) {
           // Admin: dùng API quản lý đơn hàng: GET /api/v1/admin/orders
           const response = await adminAPI.getOrders({
             page: 0,
-            size: 20,
+            size: 50,
             sortBy: "createdAt",
             sortDirection: "desc",
           });
+
           if (response.success && response.data) {
             const pageData = response.data;
-            const transformedOrders: Order[] = (pageData.content ||
-              []).map((item: AdminOrderListResponse) => ({
+            // Handle both paginated and non-paginated responses
+            const ordersArray = pageData.content || (Array.isArray(pageData) ? pageData : []);
+
+            const transformedOrders: Order[] = ordersArray.map((item: AdminOrderListResponse) => ({
               id: item.id,
               orderCode: item.orderCode,
               customer: item.customerName || item.recipientName,
@@ -50,6 +53,8 @@ export function useOrders(isAdmin: boolean = false) {
               itemCount: item.itemCount,
             }));
             setOrders(transformedOrders);
+          } else {
+            setOrders([]);
           }
         } else {
           // Customer: dùng API /api/v1/orders/my-orders
@@ -101,7 +106,7 @@ export function useOrders(isAdmin: boolean = false) {
       try {
         setLoading(true);
         setError(null);
-        
+
         if (isAdmin) {
           const response = await adminAPI.getOrders({
             page: 0,
@@ -113,23 +118,23 @@ export function useOrders(isAdmin: boolean = false) {
             const pageData = response.data;
             const transformedOrders: Order[] = (pageData.content ||
               []).map((item: AdminOrderListResponse) => ({
-              id: item.id,
-              orderCode: item.orderCode,
-              customer: item.customerName || item.recipientName,
-              total: item.totalAmount,
-              totalAmount: item.totalAmount,
-              status: item.status,
-              date: new Date(item.createdAt).toLocaleDateString("vi-VN"),
-              createdAt: item.createdAt,
-              updatedAt: item.updatedAt,
-              email: item.customerEmail || "",
-              recipientName: item.recipientName,
-              phoneNumber: item.recipientPhone || "",
-              shippingAddress: item.shippingAddress,
-              paymentMethod: item.paymentMethod,
-              items: [],
-              itemCount: item.itemCount,
-            }));
+                id: item.id,
+                orderCode: item.orderCode,
+                customer: item.customerName || item.recipientName,
+                total: item.totalAmount,
+                totalAmount: item.totalAmount,
+                status: item.status,
+                date: new Date(item.createdAt).toLocaleDateString("vi-VN"),
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+                email: item.customerEmail || "",
+                recipientName: item.recipientName,
+                phoneNumber: item.recipientPhone || "",
+                shippingAddress: item.shippingAddress,
+                paymentMethod: item.paymentMethod,
+                items: [],
+                itemCount: item.itemCount,
+              }));
             setOrders(transformedOrders);
           }
         } else {

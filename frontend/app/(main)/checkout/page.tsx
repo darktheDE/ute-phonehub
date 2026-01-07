@@ -395,6 +395,7 @@ function CheckoutContent() {
     if (currentStep === 1 && !validateStep1()) return;
     setError("");
     setCurrentStep((prev) => Math.min(prev + 1, 3));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleBack = () => {

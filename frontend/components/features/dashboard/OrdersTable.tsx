@@ -14,10 +14,30 @@ import type { Order } from '@/types';
 interface OrdersTableProps {
   orders: Order[];
   isAdmin?: boolean;
+  onViewDetail?: (orderId: number) => void;
 }
 
-export function OrdersTable({ orders, isAdmin = false }: OrdersTableProps) {
+export function OrdersTable({ orders, isAdmin = false, onViewDetail }: OrdersTableProps) {
   const router = useRouter();
+
+  const handleViewOrder = (order: Order) => {
+    if (isAdmin && onViewDetail) {
+      // Admin mode: open modal
+      onViewDetail(order.id);
+    } else {
+      // Customer mode: navigate to order page
+      router.push(`/orders/${order.id}`);
+    }
+  };
+
+  // Empty state
+  if (orders.length === 0) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-12 text-center">
+        <p className="text-muted-foreground">Không có đơn hàng nào</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -65,7 +85,7 @@ export function OrdersTable({ orders, isAdmin = false }: OrdersTableProps) {
                     <button
                       className="rounded-lg p-2 text-blue-600 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={`Xem chi tiết đơn hàng ${order.id}`}
-                      onClick={() => router.push(`/orders/${order.id}`)}
+                      onClick={() => handleViewOrder(order)}
                     >
                       <Eye className="w-4 h-4" />
                     </button>

@@ -89,24 +89,13 @@ public class AuthServiceImpl implements IAuthService {
 
         log.info("User registered successfully with id: {}", user.getId());
 
-        // Generate OTP for email verification
-        String otp = otpGenerator.generateOtp();
-        String verifyOtpKey = REGISTER_OTP_PREFIX + user.getEmail();
-
-        // Store OTP in Redis with expiration
-        redisTemplate.opsForValue().set(
-                verifyOtpKey,
-                otp,
-                OTP_EXPIRATION_MINUTES,
-                TimeUnit.MINUTES);
-
-        // Send registration OTP email (async, không block registration flow)
+        // Send welcome registration email (async, không block registration flow)
         try {
-            log.info("Attempting to send registration OTP email to: {}", user.getEmail());
-            emailService.sendRegistrationOtpEmail(user.getEmail(), user.getFullName(), otp);
-            log.info("Registration OTP email sent successfully to: {}", user.getEmail());
+            log.info("Attempting to send registration welcome email to: {}", user.getEmail());
+            emailService.sendRegistrationEmail(user.getEmail(), user.getFullName());
+            log.info("Registration welcome email sent successfully to: {}", user.getEmail());
         } catch (Exception e) {
-            log.error("Failed to send registration OTP email to {}: {}",
+            log.error("Failed to send registration welcome email to {}: {}",
                     user.getEmail(), e.getMessage(), e);
             // Không throw exception để không ảnh hưởng registration
         }

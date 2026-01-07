@@ -23,3 +23,6 @@ export { CategoryForm } from './CategoryForm';
 export { BrandManagement } from './BrandManagement';
 export { BrandsTable } from './BrandsTable';
 export { BrandForm } from './BrandForm';
+export { AdminOrderDetailModal } from './AdminOrderDetailModal';
+export { PaymentHistory } from './PaymentHistory';
+

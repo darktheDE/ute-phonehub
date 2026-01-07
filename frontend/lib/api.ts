@@ -1355,5 +1355,69 @@ export const adminUserAPI = {
   },
 };
 
+// ============================================
+// ADMIN - ORDER MANAGEMENT API
+// ============================================
+export const adminOrderAPI = {
+  /**
+   * GET /api/v1/admin/orders
+   * Lấy danh sách đơn hàng với pagination và filters
+   */
+  getOrders: async (params: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDirection?: string;
+    search?: string;
+    status?: string;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params.page !== undefined) queryParams.append("page", params.page.toString());
+    if (params.size !== undefined) queryParams.append("size", params.size.toString());
+    if (params.sortBy) queryParams.append("sortBy", params.sortBy);
+    if (params.sortDirection) queryParams.append("sortDirection", params.sortDirection);
+    if (params.search) queryParams.append("search", params.search);
+    if (params.status) queryParams.append("status", params.status);
+
+    return fetchAPI<any>(`/admin/orders?${queryParams.toString()}`);
+  },
+
+  /**
+   * GET /api/v1/admin/orders/{orderId}
+   * Lấy chi tiết đơn hàng
+   */
+  getOrderDetail: async (orderId: number): Promise<ApiResponse<import("@/types").AdminOrderDetailResponse>> => {
+    return fetchAPI<import("@/types").AdminOrderDetailResponse>(`/admin/orders/${orderId}`);
+  },
+
+  /**
+   * PUT /api/v1/admin/orders/{orderId}/status
+   * Cập nhật trạng thái đơn hàng
+   */
+  updateOrderStatus: async (
+    orderId: number,
+    newStatus: string,
+    adminNote?: string
+  ): Promise<ApiResponse<import("@/types").AdminOrderDetailResponse>> => {
+    const params = new URLSearchParams();
+    params.append("newStatus", newStatus);
+    if (adminNote) params.append("adminNote", adminNote);
+
+    return fetchAPI<import("@/types").AdminOrderDetailResponse>(
+      `/admin/orders/${orderId}/status?${params.toString()}`,
+      { method: "PUT" }
+    );
+  },
+
+  /**
+   * GET /api/v1/admin/orders/{orderId}/available-transitions
+   * Lấy danh sách trạng thái có thể chuyển đổi
+   */
+  getAvailableTransitions: async (orderId: number): Promise<ApiResponse<string[]>> => {
+    return fetchAPI<string[]>(`/admin/orders/${orderId}/available-transitions`);
+  },
+};
+
 // Export default fetchAPI for use in services
 export default fetchAPI;
+

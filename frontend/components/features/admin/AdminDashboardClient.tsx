@@ -26,6 +26,7 @@ import {
     UsersManagement,
     CategoryManagement,
     BrandManagement,
+    AdminOrderDetailModal,
 } from "@/components/features/dashboard";
 import {
     PromotionsTable,
@@ -52,9 +53,10 @@ export default function AdminDashboardClient() {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeTab, setActiveTab] = useState<TabType>("dashboard");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
     const isAdmin = user?.role === "ADMIN";
-    const { orders, loading: ordersLoading } = useOrders(true); // true for isAdmin
+    const { orders, loading: ordersLoading, refetch: refetchOrders } = useOrders(true); // true for isAdmin
 
     // Admin menu items
     const menuItems = [
@@ -197,8 +199,21 @@ export default function AdminDashboardClient() {
                         ordersLoading ? (
                             <div className="bg-card rounded-xl border border-border p-6 animate-pulse h-64" />
                         ) : (
-                            <OrdersTable orders={orders} isAdmin={true} />
+                            <OrdersTable
+                                orders={orders}
+                                isAdmin={true}
+                                onViewDetail={(orderId) => setSelectedOrderId(orderId)}
+                            />
                         )
+                    )}
+
+                    {/* Order Detail Modal */}
+                    {selectedOrderId && (
+                        <AdminOrderDetailModal
+                            orderId={selectedOrderId}
+                            onClose={() => setSelectedOrderId(null)}
+                            onStatusUpdate={() => refetchOrders()}
+                        />
                     )}
 
                     {/* Users Management */}

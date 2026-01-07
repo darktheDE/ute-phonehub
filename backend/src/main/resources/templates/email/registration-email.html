@@ -5,48 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chào mừng đến với UTE Phone Hub</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f4f4f4;">
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f9fafb;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f9fafb;">
         <tr>
             <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <table role="presentation" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.07);">
                     <!-- Header -->
                     <tr>
-                        <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">UTE Phone Hub</h1>
+                        <td style="padding: 32px 40px; text-align: center; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 12px 12px 0 0;">
+                            <h1 style="margin: 0; color: #f6c343; font-size: 28px; font-weight: bold; letter-spacing: -0.5px;">📱 UTE Phone Hub</h1>
                         </td>
                     </tr>
                     
                     <!-- Content -->
                     <tr>
                         <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px;">Chào mừng bạn, <span th:text="${fullName}">Người dùng</span>!</h2>
+                            <!-- Welcome Badge -->
+                            <div style="text-align: center; margin-bottom: 24px;">
+                                <span style="display: inline-block; padding: 8px 20px; background-color: #fef3c7; color: #92400e; font-size: 14px; font-weight: 600; border-radius: 20px;">🎉 Chào mừng thành viên mới!</span>
+                            </div>
                             
-                            <p style="margin: 0 0 20px; color: #666666; font-size: 16px; line-height: 1.6;">
-                                Cảm ơn bạn đã đăng ký tài khoản tại <strong>UTE Phone Hub</strong> - Nền tảng mua sắm điện thoại uy tín hàng đầu!
+                            <h2 style="margin: 0 0 20px; color: #0f172a; font-size: 24px; font-weight: 700; text-align: center;">Xin chào, <span th:text="${fullName}">Người dùng</span>!</h2>
+                            
+                            <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.7; text-align: center;">
+                                Cảm ơn bạn đã đăng ký tài khoản tại <strong style="color: #0f172a;">UTE Phone Hub</strong> - Nền tảng mua sắm điện thoại uy tín hàng đầu!
                             </p>
                             
-                            <p style="margin: 0 0 20px; color: #666666; font-size: 16px; line-height: 1.6;">
+                            <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.7;">
                                 Tài khoản của bạn đã được tạo thành công. Bây giờ bạn có thể:
                             </p>
                             
-                            <ul style="margin: 0 0 30px; padding-left: 20px; color: #666666; font-size: 16px; line-height: 1.8;">
-                                <li>Khám phá hàng ngàn sản phẩm điện thoại chất lượng cao</li>
-                                <li>Nhận các ưu đãi và khuyến mãi độc quyền</li>
-                                <li>Theo dõi đơn hàng và quản lý thông tin cá nhân</li>
-                                <li>Tích lũy điểm thưởng với mỗi giao dịch</li>
-                            </ul>
-                            
-                            <!-- CTA Button -->
-                            <table role="presentation" style="width: 100%; margin: 30px 0;">
+                            <!-- Features Grid -->
+                            <table role="presentation" style="width: 100%; margin: 24px 0;">
                                 <tr>
-                                    <td align="center">
-                                        <a th:href="${loginUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Đăng nhập ngay</a>
+                                    <td style="padding: 16px; background-color: #f8fafc; border-radius: 8px; border-left: 4px solid #f6c343;">
+                                        <p style="margin: 0 0 8px; font-size: 14px;">✨ Khám phá hàng ngàn sản phẩm điện thoại chất lượng cao</p>
+                                        <p style="margin: 0 0 8px; font-size: 14px;">🎁 Nhận các ưu đãi và khuyến mãi độc quyền</p>
+                                        <p style="margin: 0 0 8px; font-size: 14px;">📦 Theo dõi đơn hàng và quản lý thông tin cá nhân</p>
+                                        <p style="margin: 0; font-size: 14px;">⭐ Tích lũy điểm thưởng với mỗi giao dịch</p>
                                     </td>
                                 </tr>
                             </table>
                             
-                            <p style="margin: 30px 0 0; color: #999999; font-size: 14px; line-height: 1.6;">
+                            <!-- CTA Button -->
+                            <table role="presentation" style="width: 100%; margin: 32px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a th:href="${loginUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #f6c343 0%, #f59e0b 100%); color: #0f172a; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 14px rgba(246, 195, 67, 0.4);">Đăng nhập ngay</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 24px 0 0; color: #94a3b8; font-size: 14px; line-height: 1.6; text-align: center;">
                                 Nếu bạn có bất kỳ câu hỏi nào, đừng ngần ngại liên hệ với chúng tôi qua email hoặc hotline.
                             </p>
                         </td>
@@ -54,14 +64,14 @@
                     
                     <!-- Footer -->
                     <tr>
-                        <td style="padding: 30px 40px; background-color: #f8f9fa; border-radius: 0 0 8px 8px; text-align: center;">
-                            <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
-                                <strong>UTE Phone Hub</strong>
+                        <td style="padding: 24px 40px; background-color: #0f172a; border-radius: 0 0 12px 12px; text-align: center;">
+                            <p style="margin: 0 0 8px; color: #f6c343; font-size: 14px; font-weight: 600;">
+                                UTE Phone Hub
                             </p>
-                            <p style="margin: 0; color: #999999; font-size: 12px;">
+                            <p style="margin: 0; color: #94a3b8; font-size: 12px;">
                                 Email này được gửi tự động, vui lòng không trả lời.
                             </p>
-                            <p style="margin: 10px 0 0; color: #999999; font-size: 12px;">
+                            <p style="margin: 8px 0 0; color: #64748b; font-size: 12px;">
                                 © 2025 UTE Phone Hub. Tất cả quyền được bảo lưu.
                             </p>
                         </td>
@@ -72,4 +82,3 @@
     </table>
 </body>
 </html>
-

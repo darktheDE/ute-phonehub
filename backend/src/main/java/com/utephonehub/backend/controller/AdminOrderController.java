@@ -34,7 +34,7 @@ import java.util.Map;
 @Slf4j
 @Tag(name = "Admin Order Management", description = "APIs quản lý đơn hàng cho Admin")
 @SecurityRequirement(name = "bearerAuth")
-@PreAuthorize("hasAuthority('ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminOrderController {
 
 	private final IAdminOrderService adminOrderService;
