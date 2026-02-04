@@ -8,6 +8,7 @@ import com.utephonehub.backend.dto.request.product.UpdateProductRequest;
 import com.utephonehub.backend.dto.response.product.ProductDetailResponse;
 import com.utephonehub.backend.dto.response.product.ProductImageResponse;
 import com.utephonehub.backend.dto.response.product.ProductListResponse;
+import com.utephonehub.backend.dto.response.product.ProductTemplateResponse;
 import com.utephonehub.backend.entity.Brand;
 import com.utephonehub.backend.entity.Category;
 import com.utephonehub.backend.entity.Product;
@@ -43,7 +44,8 @@ import java.util.List;
 
 /**
  * Implementation of Product Service
- * Refactored to align with Class Diagram: Product + ProductTemplates + ProductMetadata
+ * Refactored to align with Class Diagram: Product + ProductTemplates +
+ * ProductMetadata
  */
 @Service
 @RequiredArgsConstructor
@@ -57,41 +59,50 @@ public class ProductServiceImpl implements IProductService {
     private final UserRepository userRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductMapper productMapper;
-    
+
     // New dependencies for templates and metadata
     private final ProductTemplateRepository productTemplateRepository;
     private final ProductMetadataRepository productMetadataRepository;
     private final ProductTemplateMapper productTemplateMapper;
     private final ProductMetadataMapper productMetadataMapper;
-    
+
     // EntityManager for flushing in template updates
     private final jakarta.persistence.EntityManager entityManager;
-    
+
     // PromotionService for calculating product discounts
     private final IPromotionService promotionService;
 
     @Override
+    public List<ProductTemplateResponse> getProductMetadataGreaterThanPrice(BigDecimal price) {
+        log.info("Getting product templates with price greater than: {}", price);
+
+        List<ProductTemplate> templates = productTemplateRepository.findByPriceGreaterThan(price);
+
+        return productTemplateMapper.toResponseList(templates);
+    }
+
+    @Override
     public ProductDetailResponse createProduct(CreateProductRequest request, Long userId) {
         log.info("Creating product with name: {} and {} templates", request.getName(), request.getTemplates().size());
-        
+
         // Validate and fetch related entities
         Category category = validateAndGetCategory(request.getCategoryId());
         Brand brand = validateAndGetBrand(request.getBrandId());
         User user = validateAndGetUser(userId);
-        
+
         // Check duplicate product name
         validateProductNameUnique(request.getName(), null);
-        
+
         // Validate templates: Check SKU uniqueness
         validateTemplateSkuUniqueness(request.getTemplates());
-        
+
         // Create product entity (base info only)
         Product product = productMapper.toEntity(request);
         product.setCategory(category);
         product.setBrand(brand);
         product.setCreatedBy(user);
         product.setUpdatedBy(user);
-        
+
         // Create product templates (variants)
         for (ProductTemplateRequest templateReq : request.getTemplates()) {
             ProductTemplate template = productTemplateMapper.toEntity(templateReq);
@@ -99,18 +110,19 @@ public class ProductServiceImpl implements IProductService {
             template.setUpdatedBy(user);
             product.addTemplate(template);
         }
-        
+
         // Create product metadata (technical specs) if provided
         if (request.getMetadata() != null) {
             ProductMetadata metadata = productMetadataMapper.toEntity(request.getMetadata());
             metadata.setProduct(product);
             product.setMetadata(metadata);
         }
-        
+
         // Save product (cascade saves templates + metadata)
         Product savedProduct = productRepository.save(product);
-        log.info("Created product with ID: {} and {} templates", savedProduct.getId(), savedProduct.getTemplates().size());
-        
+        log.info("Created product with ID: {} and {} templates", savedProduct.getId(),
+                savedProduct.getTemplates().size());
+
         return productMapper.toDetailResponse(savedProduct);
     }
 
@@ -118,47 +130,47 @@ public class ProductServiceImpl implements IProductService {
     @Transactional(readOnly = true)
     public ProductDetailResponse getProductById(Long id) {
         log.info("Getting product detail with ID: {}", id);
-        
+
         Product product = findActiveProductById(id);
-        
+
         return productMapper.toDetailResponse(product);
     }
 
     @Override
     public ProductDetailResponse updateProduct(Long id, UpdateProductRequest request, Long userId) {
         log.info("Updating product with ID: {}", id);
-        
+
         // Find and validate product exists
         Product product = findActiveProductById(id);
-        
+
         // Check duplicate name if name is being updated
         if (request.getName() != null && !request.getName().equals(product.getName())) {
             validateProductNameUnique(request.getName(), id);
         }
-        
+
         // Update category if provided
         if (request.getCategoryId() != null) {
             Category category = validateAndGetCategory(request.getCategoryId());
             product.setCategory(category);
         }
-        
+
         // Update brand if provided
         if (request.getBrandId() != null) {
             Brand brand = validateAndGetBrand(request.getBrandId());
             product.setBrand(brand);
         }
-        
+
         // Get user for audit
         User user = validateAndGetUser(userId);
-        
+
         // Update fields using mapper (only non-null fields)
         productMapper.updateEntity(product, request);
         product.setUpdatedBy(user);
-        
+
         // Update templates if provided (REPLACE all existing templates)
         if (request.getTemplates() != null && !request.getTemplates().isEmpty()) {
             log.info("Replacing all templates for product ID: {}", id);
-            
+
             // Validate SKU uniqueness (except for current product's templates)
             for (ProductTemplateRequest templateReq : request.getTemplates()) {
                 boolean skuExists = productTemplateRepository.existsBySku(templateReq.getSku());
@@ -171,12 +183,12 @@ public class ProductServiceImpl implements IProductService {
                     }
                 }
             }
-            
+
             // Clear existing templates (orphan removal will delete them)
             product.clearTemplates();
             // Flush to avoid SKU constraint violations during re-add
             entityManager.flush();
-            
+
             // Add new templates
             for (ProductTemplateRequest templateReq : request.getTemplates()) {
                 ProductTemplate template = productTemplateMapper.toEntity(templateReq);
@@ -185,7 +197,7 @@ public class ProductServiceImpl implements IProductService {
                 product.addTemplate(template);
             }
         }
-        
+
         // Update metadata if provided
         if (request.getMetadata() != null) {
             log.info("Updating metadata for product ID: {}", id);
@@ -199,98 +211,103 @@ public class ProductServiceImpl implements IProductService {
                 product.setMetadata(metadata);
             }
         }
-        
+
         // Save updated product
         Product updatedProduct = productRepository.save(product);
-        log.info("Updated product with ID: {} and {} templates", updatedProduct.getId(), updatedProduct.getTemplates().size());
-        
+        log.info("Updated product with ID: {} and {} templates", updatedProduct.getId(),
+                updatedProduct.getTemplates().size());
+
         return productMapper.toDetailResponse(updatedProduct);
     }
 
     @Override
     public void deleteProduct(Long id, Long userId) {
         log.info("Soft deleting product with ID: {}", id);
-        
+
         // Find and validate product exists
         Product product = findActiveProductById(id);
-        
+
         // Get user for audit
         User user = validateAndGetUser(userId);
-        
+
         // Soft delete
         product.setIsDeleted(true);
         product.setDeletedAt(LocalDateTime.now());
         product.setDeletedBy(user);
-        
+
         productRepository.save(product);
         log.info("Soft deleted product with ID: {}", id);
     }
 
     /**
      * Increase stock for all templates of a product
-     * Note: This updates ALL templates equally. For SKU-specific updates, use updateProduct with templates.
+     * Note: This updates ALL templates equally. For SKU-specific updates, use
+     * updateProduct with templates.
      */
     @Override
     public void increaseStock(Long id, Integer amount) {
         log.info("Increasing stock for product ID: {} by {}", id, amount);
-        
+
         validateStockAmount(amount, "tăng");
-        
+
         Product product = findActiveProductById(id);
-        
+
         validateProductHasTemplates(product);
-        
+
         // Update stock for all templates
         for (ProductTemplate template : product.getTemplates()) {
             template.setStockQuantity(template.getStockQuantity() + amount);
         }
-        
+
         productRepository.save(product); // Cascade saves templates
-        
+
         log.info("Increased stock for product ID: {} ({} templates updated)", id, product.getTemplates().size());
     }
 
     /**
      * Decrease stock for all templates of a product
-     * Note: This updates ALL templates equally. For SKU-specific updates, use updateProduct with templates.
+     * Note: This updates ALL templates equally. For SKU-specific updates, use
+     * updateProduct with templates.
      */
     @Override
     public void decreaseStock(Long id, Integer amount) {
         log.info("Decreasing stock for product ID: {} by {}", id, amount);
-        
+
         validateStockAmount(amount, "giảm");
-        
+
         Product product = findActiveProductById(id);
-        
+
         validateProductHasTemplates(product);
-        
+
         // Calculate total stock across all templates
         int totalStock = product.getTemplates().stream()
                 .mapToInt(ProductTemplate::getStockQuantity)
                 .sum();
-        
+
         if (totalStock < amount) {
             throw new BadRequestException(
                     "Số lượng trong kho không đủ. Hiện tại: " + totalStock);
         }
-        
-        // Decrease stock sequentially from templates (prioritize templates with higher stock)
+
+        // Decrease stock sequentially from templates (prioritize templates with higher
+        // stock)
         // Sort templates by stock quantity descending to avoid partial deductions
         List<ProductTemplate> sortedTemplates = product.getTemplates().stream()
                 .sorted(Comparator.comparingInt(ProductTemplate::getStockQuantity).reversed())
                 .toList();
-        
+
         int remaining = amount;
         for (ProductTemplate template : sortedTemplates) {
-            if (remaining <= 0) break;
-            
+            if (remaining <= 0)
+                break;
+
             int deductAmount = Math.min(template.getStockQuantity(), remaining);
             template.setStockQuantity(template.getStockQuantity() - deductAmount);
             remaining -= deductAmount;
         }
-        
+
         productRepository.save(product); // Cascade saves templates
-        
+
         log.info("Decreased stock for product ID: {} ({} templates updated)", id, product.getTemplates().size());
     }
 
@@ -307,16 +324,17 @@ public class ProductServiceImpl implements IProductService {
             String sortBy,
             String sortDirection,
             Pageable pageable) {
-        
-        log.info("Getting products - keyword: {}, categoryId: {}, brandId: {}, priceRange: [{}-{}], status: {}, includeDeleted: {}, sort: {}({})", 
+
+        log.info(
+                "Getting products - keyword: {}, categoryId: {}, brandId: {}, priceRange: [{}-{}], status: {}, includeDeleted: {}, sort: {}({})",
                 keyword, categoryId, brandId, minPrice, maxPrice, status, includeDeleted, sortBy, sortDirection);
-        
+
         // Convert Double to BigDecimal for repository query
         BigDecimal minPriceBD = minPrice != null ? BigDecimal.valueOf(minPrice) : null;
         BigDecimal maxPriceBD = maxPrice != null ? BigDecimal.valueOf(maxPrice) : null;
-        
+
         Page<Product> products;
-        
+
         // Determine which repository query to use based on parameters
         if (includeDeleted != null && includeDeleted) {
             // Admin view: show all including deleted
@@ -331,7 +349,7 @@ public class ProductServiceImpl implements IProductService {
             // Default: get all active products
             products = productRepository.findByIsDeletedFalse(pageable);
         }
-        
+
         // Map to response DTOs and enrich with template data
         List<ProductListResponse> responseList = products.stream()
                 .map(product -> {
@@ -355,15 +373,18 @@ public class ProductServiceImpl implements IProductService {
                     return response;
                 })
                 .toList();
-        
-        // Apply in-memory sorting for price and stockQuantity (since not supported at DB level)
+
+        // Apply in-memory sorting for price and stockQuantity (since not supported at
+        // DB level)
         if ("price".equals(sortBy) || "stockQuantity".equals(sortBy)) {
             responseList = responseList.stream()
                     .sorted((a, b) -> {
                         int comparison = 0;
                         if ("price".equals(sortBy)) {
-                            java.math.BigDecimal priceA = a.getPrice() != null ? a.getPrice() : java.math.BigDecimal.ZERO;
-                            java.math.BigDecimal priceB = b.getPrice() != null ? b.getPrice() : java.math.BigDecimal.ZERO;
+                            java.math.BigDecimal priceA = a.getPrice() != null ? a.getPrice()
+                                    : java.math.BigDecimal.ZERO;
+                            java.math.BigDecimal priceB = b.getPrice() != null ? b.getPrice()
+                                    : java.math.BigDecimal.ZERO;
                             comparison = priceA.compareTo(priceB);
                         } else if ("stockQuantity".equals(sortBy)) {
                             Integer stockA = a.getStockQuantity() != null ? a.getStockQuantity() : 0;
@@ -374,13 +395,12 @@ public class ProductServiceImpl implements IProductService {
                     })
                     .toList();
         }
-        
+
         // Reconstruct Page with enriched and sorted responses
         return new org.springframework.data.domain.PageImpl<>(
                 responseList,
                 products.getPageable(),
-                products.getTotalElements()
-        );
+                products.getTotalElements());
     }
 
     @Override
@@ -390,13 +410,13 @@ public class ProductServiceImpl implements IProductService {
             Long categoryId,
             Long brandId,
             Pageable pageable) {
-        
-        log.info("Getting deleted products - keyword: {}, categoryId: {}, brandId: {}", 
+
+        log.info("Getting deleted products - keyword: {}, categoryId: {}, brandId: {}",
                 keyword, categoryId, brandId);
-        
+
         // Query for deleted products only
         Page<Product> products = productRepository.findDeletedProducts(keyword, categoryId, brandId, pageable);
-        
+
         // Map to response DTOs and enrich with template data
         List<ProductListResponse> responseList = products.stream()
                 .map(product -> {
@@ -420,35 +440,34 @@ public class ProductServiceImpl implements IProductService {
                     return response;
                 })
                 .toList();
-        
+
         return new org.springframework.data.domain.PageImpl<>(
                 responseList,
                 products.getPageable(),
-                products.getTotalElements()
-        );
+                products.getTotalElements());
     }
 
     @Override
     public void restoreProduct(Long id, Long userId) {
         log.info("Restoring product with ID: {}", id);
-        
+
         Product product = productRepository.findByIdIncludingDeleted(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy sản phẩm với ID: " + id));
-        
+
         if (!product.getIsDeleted()) {
             throw new BadRequestException("Sản phẩm này chưa bị xóa");
         }
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy người dùng với ID: " + userId));
-        
+
         product.setIsDeleted(false);
         product.setDeletedAt(null);
         product.setDeletedBy(null);
         product.setUpdatedBy(user);
-        
+
         productRepository.save(product);
         log.info("Restored product with ID: {}", id);
     }
@@ -456,36 +475,36 @@ public class ProductServiceImpl implements IProductService {
     @Override
     public void manageProductImages(Long productId, ManageImagesRequest request) {
         log.info("Managing images for product ID: {}", productId);
-        
+
         // Validate product exists
         Product product = productRepository.findByIdAndIsDeletedFalse(productId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy sản phẩm với ID: " + productId));
-        
+
         // Validate only one image is marked as primary
         long primaryCount = request.getImages().stream()
                 .filter(ProductImageRequest::getIsPrimary)
                 .count();
-        
+
         if (primaryCount != 1) {
             throw new BadRequestException("Phải có đúng 1 ảnh được đặt làm ảnh chính");
         }
-        
+
         // Validate imageOrder uniqueness and sequential
         List<Integer> orders = request.getImages().stream()
                 .map(ProductImageRequest::getImageOrder)
                 .sorted()
                 .toList();
-        
+
         for (int i = 0; i < orders.size(); i++) {
             if (orders.get(i) != i) {
                 throw new BadRequestException("Thứ tự ảnh phải liên tục từ 0 đến " + (orders.size() - 1));
             }
         }
-        
+
         // Delete existing images
         productImageRepository.deleteByProductId(productId);
-        
+
         // Create new images
         List<ProductImage> newImages = request.getImages().stream()
                 .map(imgRequest -> ProductImage.builder()
@@ -496,7 +515,7 @@ public class ProductServiceImpl implements IProductService {
                         .imageOrder(imgRequest.getImageOrder())
                         .build())
                 .toList();
-        
+
         productImageRepository.saveAll(newImages);
         log.info("Managed {} images for product ID: {}", newImages.size(), productId);
     }
@@ -504,31 +523,31 @@ public class ProductServiceImpl implements IProductService {
     @Override
     public void deleteProductImage(Long productId, Long imageId) {
         log.info("Deleting image ID: {} for product ID: {}", imageId, productId);
-        
+
         // Validate product exists
         productRepository.findByIdAndIsDeletedFalse(productId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy sản phẩm với ID: " + productId));
-        
+
         // Find image
         ProductImage image = productImageRepository.findById(imageId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy hình ảnh với ID: " + imageId));
-        
+
         // Validate image belongs to product
         if (!image.getProduct().getId().equals(productId)) {
             throw new BadRequestException("Hình ảnh không thuộc sản phẩm này");
         }
-        
+
         // Check if this is the only image
         List<ProductImage> productImages = productImageRepository.findByProductIdOrderByImageOrderAsc(productId);
         if (productImages.size() == 1) {
             throw new BadRequestException("Không thể xóa ảnh cuối cùng. Sản phẩm cần ít nhất 1 ảnh");
         }
-        
+
         // Delete image
         productImageRepository.delete(image);
-        
+
         // If deleted image was primary, promote the first remaining image
         if (image.getIsPrimary()) {
             List<ProductImage> remainingImages = productImageRepository.findByProductIdOrderByImageOrderAsc(productId);
@@ -539,10 +558,10 @@ public class ProductServiceImpl implements IProductService {
                 log.info("Promoted image ID: {} as new primary for product ID: {}", newPrimary.getId(), productId);
             }
         }
-        
+
         log.info("Deleted image ID: {} for product ID: {}", imageId, productId);
     }
-    
+
     /**
      * Enriches ProductListResponse with price and stock calculated from templates
      * Also applies active DISCOUNT promotions automatically
@@ -554,7 +573,7 @@ public class ProductServiceImpl implements IProductService {
         List<ProductTemplate> activeTemplates = product.getTemplates().stream()
                 .filter(ProductTemplate::getStatus)
                 .toList();
-        
+
         if (activeTemplates.isEmpty()) {
             response.setPrice(null);
             response.setStockQuantity(null);
@@ -562,34 +581,33 @@ public class ProductServiceImpl implements IProductService {
             response.setDiscountedPrice(null);
             return;
         }
-        
+
         // Calculate lowest price
         BigDecimal lowestPrice = activeTemplates.stream()
                 .map(ProductTemplate::getPrice)
                 .min(Comparator.naturalOrder())
                 .orElse(BigDecimal.ZERO);
-        
+
         // Calculate total stock
         int totalStock = activeTemplates.stream()
                 .mapToInt(ProductTemplate::getStockQuantity)
                 .sum();
-        
+
         response.setPrice(lowestPrice);
         response.setStockQuantity(totalStock);
-        
+
         // Calculate and apply active DISCOUNT promotions
         Long categoryId = product.getCategory() != null ? product.getCategory().getId() : null;
         Long brandId = product.getBrand() != null ? product.getBrand().getId() : null;
-        
+
         Double discountPercent = promotionService.getBestDiscountForProduct(
                 product.getId(),
                 categoryId,
-                brandId
-        );
-        
+                brandId);
+
         if (discountPercent != null && discountPercent > 0) {
             response.setDiscountPercent(discountPercent);
-            
+
             // Calculate discounted price
             BigDecimal discountMultiplier = BigDecimal.valueOf(1.0 - (discountPercent / 100.0));
             BigDecimal discountedPrice = lowestPrice.multiply(discountMultiplier)
@@ -677,4 +695,3 @@ public class ProductServiceImpl implements IProductService {
         }
     }
 }
-

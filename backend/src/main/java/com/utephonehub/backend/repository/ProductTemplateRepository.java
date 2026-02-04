@@ -21,6 +21,9 @@ import com.utephonehub.backend.enums.StockStatus;
 @Repository
 public interface ProductTemplateRepository extends JpaRepository<ProductTemplate, Long> {
 
+    // find by price greater than
+    List<ProductTemplate> findByPriceGreaterThan(BigDecimal price);
+
     /**
      * Find template by SKU (unique identifier)
      */
@@ -58,10 +61,9 @@ public interface ProductTemplateRepository extends JpaRepository<ProductTemplate
      */
     @Query("SELECT pt FROM ProductTemplate pt WHERE pt.price >= :minPrice AND pt.price <= :maxPrice")
     Page<ProductTemplate> findByPriceRange(
-        @Param("minPrice") BigDecimal minPrice,
-        @Param("maxPrice") BigDecimal maxPrice,
-        Pageable pageable
-    );
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            Pageable pageable);
 
     /**
      * Get total stock quantity for a product (sum of all templates)
