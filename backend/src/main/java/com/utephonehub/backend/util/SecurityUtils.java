@@ -34,6 +34,17 @@ public class SecurityUtils {
     }
 
     /**
+     * Tries to get the current user ID from the Authorization header.
+     * <p>
+     * Khác với {@link #getCurrentUserId(HttpServletRequest)} là method này
+     * KHÔNG ném ra exception nếu token không hợp lệ hoặc thiếu, mà sẽ trả về null.
+     *
+     * @param request the HTTP request containing the Authorization header
+     * @return the user ID if authenticated, or null if not authenticated/invalid token
+     */
+    // Note: implementation below uses token extraction and validation directly.
+
+    /**
      * Extracts the JWT token from the Authorization header.
      *
      * @param request the HTTP request containing the Authorization header
@@ -48,15 +59,29 @@ public class SecurityUtils {
     }
 
     /**
-     * Validates the token and returns the user ID if valid.
-     *
-     * @param request the HTTP request containing the Authorization header
-     * @return the user ID if token is valid, null otherwise
+     * Get client IP address from request
+     */
+    public String getClientIp(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-FORWARDED-FOR");
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            ipAddress = request.getRemoteAddr();
+        }
+        return ipAddress;
+    }
+
+    /**
+     * Returns the user id if the request contains a valid JWT token, otherwise null.
+     * This method does not throw an exception for unauthenticated requests.
      */
     public Long getUserIdIfAuthenticated(HttpServletRequest request) {
-        String token = extractToken(request);
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            return jwtTokenProvider.getUserIdFromToken(token);
+        try {
+            String token = extractToken(request);
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                return jwtTokenProvider.getUserIdFromToken(token);
+            }
+        } catch (Exception ex) {
+            // swallow and return null for unauthenticated
+            return null;
         }
         return null;
     }

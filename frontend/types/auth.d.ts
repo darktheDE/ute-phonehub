@@ -26,6 +26,9 @@ export interface RegisterRequest {
   username: string;
   fullName: string;
   email: string;
+  phoneNumber?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  dateOfBirth?: string;
   password: string;
   confirmPassword: string;
 }

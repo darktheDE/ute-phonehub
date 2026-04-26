@@ -5,15 +5,10 @@
 'use client';
 
 import { useAuth } from '@/hooks';
-import { TopBar, MainHeader } from '@/components/features/layout';
+import { MainHeader } from '@/components/features/layout';
 
 export function Header() {
   const { user, logout } = useAuth();
 
-  return (
-    <>
-      <TopBar />
-      <MainHeader user={user} onLogout={logout} />
-    </>
-  );
+  return <MainHeader user={user} onLogout={logout} />;
 }

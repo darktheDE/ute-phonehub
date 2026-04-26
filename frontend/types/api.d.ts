@@ -3,9 +3,11 @@
  * Matches Backend's ApiResponse<T> structure
  */
 export interface ApiResponse<T> {
-  code: number;
+  success: boolean;
+  status: number;
   message: string;
   data: T;
+  timestamp?: string;
 }
 
 /**

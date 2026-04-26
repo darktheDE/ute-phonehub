@@ -1,77 +1,106 @@
 'use client';
 
 import Link from 'next/link';
-import { Clock, ChevronRight, Star } from 'lucide-react';
-import { formatPrice } from '@/lib/utils';
-import { MOCK_FLASH_SALE_PRODUCTS } from '@/lib/mockData';
+import { ChevronRight, Zap, Flame, Tag } from 'lucide-react';
+import { ProductCard } from './products/NewProductCard';
+import { useProductsOnSalePaginated } from '@/hooks/useProducts';
+import { useWishlistStore } from '@/store';
+import { useCartActions } from '@/hooks/useCartActions';
+import { toast } from 'sonner';
 
 export function FlashSaleSection() {
+  const { data: saleProducts, isLoading, error } = useProductsOnSalePaginated({ limit: 8 });
+  const { addToCart } = useCartActions();
+  const { toggleItem: toggleWishlist, isInWishlist } = useWishlistStore();
+
+  const handleAddToCart = (productId: number) => {
+    const product = saleProducts?.find(p => p.id === productId);
+    if (product) {
+      addToCart(product);
+    }
+  };
+
+  const handleToggleWishlist = (productId: number) => {
+    const product = saleProducts?.find(p => p.id === productId);
+    if (product) {
+      const wasInWishlist = isInWishlist(productId);
+      toggleWishlist({
+        productId: product.id,
+        productName: product.name,
+        price: product.discountedPrice || product.originalPrice,
+        productImage: product.thumbnailUrl || '',
+        inStock: product.inStock,
+      });
+      toast.success(wasInWishlist ? 'Đã xóa khỏi yêu thích' : 'Đã thêm vào yêu thích');
+    }
+  };
+
   return (
-    <section className="py-8 md:py-12 bg-gradient-to-r from-red-600 to-orange-500">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl md:text-3xl font-bold text-white">
-              ⚡ FLASH SALE
+    <section className="relative py-10 md:py-14 bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
+          backgroundSize: '40px 40px'
+        }} />
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-4">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white px-5 py-2 text-sm font-bold tracking-wide uppercase shadow-xl animate-pulse">
+              <Zap className="h-5 w-5" />
+              <span>Flash Sale</span>
+              <Flame className="h-5 w-5" />
             </span>
-            <div className="hidden sm:flex items-center gap-2 bg-white/20 px-3 py-1 rounded-lg">
-              <Clock className="w-4 h-4 text-white" />
-              <span className="text-white font-mono">02:45:30</span>
+            <div className="hidden sm:flex items-center gap-2 rounded-full bg-white/90 backdrop-blur-sm px-4 py-2 text-sm font-semibold shadow-lg border border-orange-200">
+              <Tag className="h-4 w-4 text-red-500" />
+              <span className="font-bold text-red-600">
+                Giảm đến 50%
+              </span>
             </div>
           </div>
           <Link
-            href="#"
-            className="text-white hover:underline flex items-center gap-1"
+            href="/products/flash-sale"
+            className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary/80 transition-colors group"
           >
-            Xem tất cả <ChevronRight className="w-4 h-4" />
+            Xem tất cả <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {MOCK_FLASH_SALE_PRODUCTS.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white rounded-xl overflow-hidden hover:shadow-xl transition-shadow group"
-            >
-              <div className="relative">
-                <div className="h-36 md:h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-5xl md:text-6xl group-hover:scale-105 transition-transform">
-                  {product.image}
-                </div>
-                <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
-                  -{product.discount}%
-                </span>
+        {error && (
+          <div className="rounded-2xl border border-destructive bg-destructive/10 p-6 text-center text-destructive">
+            Có lỗi xảy ra khi tải sản phẩm khuyến mãi.
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="aspect-square bg-secondary rounded-2xl mb-2"></div>
+                <div className="h-4 bg-secondary rounded mb-1"></div>
+                <div className="h-3 bg-secondary rounded w-3/4"></div>
               </div>
-              <div className="p-3 md:p-4">
-                <h3 className="font-medium text-foreground mb-2 line-clamp-2 text-sm md:text-base">
-                  {product.name}
-                </h3>
-                <div className="flex items-center gap-1 mb-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-3 h-3 ${
-                        i < Math.floor(product.rating)
-                          ? 'fill-primary text-primary'
-                          : 'fill-gray-200 text-gray-200'
-                      }`}
-                    />
-                  ))}
-                  <span className="text-xs text-muted-foreground ml-1">
-                    ({product.reviews})
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-base md:text-lg font-bold text-red-600">
-                    {formatPrice(product.salePrice)}
-                  </span>
-                  <span className="text-xs md:text-sm text-muted-foreground line-through">
-                    {formatPrice(product.originalPrice)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : saleProducts && saleProducts.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {saleProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={handleAddToCart}
+                onToggleWishlist={handleToggleWishlist}
+                isInWishlist={isInWishlist(product.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-secondary/60 p-8 text-center text-muted-foreground">
+            Hiện chưa có sản phẩm đang Flash Sale.
+          </div>
+        )}
       </div>
     </section>
   );

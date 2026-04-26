@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
@@ -33,7 +35,57 @@ public class Cart {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CartItem> items;
+    @Setter(AccessLevel.NONE) // Prevent direct setter, use helper methods instead
+    private List<CartItem> items = new ArrayList<>();
+
+    /**
+     * Get unmodifiable view of cart items
+     * @return unmodifiable list of cart items
+     */
+    public List<CartItem> getItems() {
+        return items != null ? Collections.unmodifiableList(items) : Collections.emptyList();
+    }
+
+    /**
+     * Get mutable items list for JPA and internal use only
+     * @return mutable items list
+     */
+    public List<CartItem> getItemsInternal() {
+        if (items == null) {
+            items = new ArrayList<>();
+        }
+        return items;
+    }
+
+    /**
+     * Add item to cart safely
+     * @param item cart item to add
+     */
+    public void addItem(CartItem item) {
+        getItemsInternal().add(item);
+        item.setCart(this);
+    }
+
+    /**
+     * Remove item from cart safely
+     * @param item cart item to remove
+     */
+    public void removeItem(CartItem item) {
+        getItemsInternal().remove(item);
+        item.setCart(null);
+    }
+
+    /**
+     * Clear all items from cart
+     */
+    public void clearItems() {
+        getItemsInternal().forEach(item -> item.setCart(null));
+        getItemsInternal().clear();
+    }
 }
 

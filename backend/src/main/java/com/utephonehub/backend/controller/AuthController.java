@@ -7,14 +7,14 @@ import com.utephonehub.backend.dto.response.user.UserResponse;
 import com.utephonehub.backend.service.IAuthService;
 import com.utephonehub.backend.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +29,9 @@ public class AuthController {
     private final IAuthService authService;
     private final SecurityUtils securityUtils;
 
+    @Value("${app.oauth2.authorization-uri:/oauth2/authorization/google}")
+    private String googleAuthorizationUri;
+
     @PostMapping("/register")
     @Operation(summary = "Đăng ký tài khoản mới", description = "Tạo một tài khoản khách hàng mới")
     @ApiResponses(value = {
@@ -39,7 +42,7 @@ public class AuthController {
         log.info("Register request for email: {}", request.getEmail());
         UserResponse user = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Đăng ký thành công", user));
+                .body(ApiResponse.created("Đăng ký thành công", user));
     }
 
     @PostMapping("/register/admin")
@@ -52,7 +55,7 @@ public class AuthController {
         log.info("Register admin request for email: {}", request.getEmail());
         UserResponse user = authService.registerAdmin(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Đăng ký tài khoản Admin thành công", user));
+                .body(ApiResponse.created("Đăng ký tài khoản Admin thành công", user));
     }
 
     @PostMapping("/login")
@@ -116,6 +119,30 @@ public class AuthController {
         log.info("Verify OTP and reset password for email: {}", request.getEmail());
         authService.verifyOtpAndResetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Mật khẩu đã được đặt lại thành công", null));
+    }
+
+    @PostMapping("/verify-email")
+    @Operation(summary = "Xác thực email đăng ký", description = "Xác thực email bằng mã OTP được gửi sau khi đăng ký")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Xác thực email thành công"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "OTP không hợp lệ hoặc đã hết hạn")
+    })
+    public ResponseEntity<ApiResponse<?>> verifyRegistrationOtp(
+            @Valid @RequestBody VerifyRegistrationOtpRequest request) {
+        log.info("Verify registration OTP for email: {}", request.getEmail());
+        authService.verifyRegistrationOtp(request);
+        return ResponseEntity.ok(ApiResponse.success("Email đã được xác thực thành công", null));
+    }
+
+    @GetMapping("/login/google")
+    @Operation(summary = "Bắt đầu đăng nhập bằng Google", description = "Redirect người dùng tới Google OAuth2 login")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "302", description = "Redirect tới Google"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Lỗi khi xây dựng URL đăng nhập Google")
+    })
+    public void loginWithGoogle(HttpServletResponse response) throws java.io.IOException {
+        log.info("Start Google OAuth2 login flow, redirecting to {}", googleAuthorizationUri);
+        response.sendRedirect(googleAuthorizationUri);
     }
 }
 

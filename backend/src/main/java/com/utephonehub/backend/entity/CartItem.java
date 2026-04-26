@@ -38,5 +38,9 @@ public class CartItem {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }
 

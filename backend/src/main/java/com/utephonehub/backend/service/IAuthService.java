@@ -54,4 +54,10 @@ public interface IAuthService {
      * @param request Verify OTP request
      */
     void verifyOtpAndResetPassword(VerifyOtpRequest request);
+
+    /**
+     * Verify registration email OTP (for email verification)
+     * @param request Verify registration OTP request
+     */
+    void verifyRegistrationOtp(VerifyRegistrationOtpRequest request);
 }

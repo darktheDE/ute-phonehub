@@ -40,5 +40,22 @@ logs/
 # Node modules (in case at root level)
 node_modules/
 
+# Next.js
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
 # Docker
 docker-compose.override.yml
+
+# Backend build
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+
+.cursor/
+CLAUDE.md

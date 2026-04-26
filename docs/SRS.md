@@ -263,11 +263,11 @@ Các yêu cầu chức năng được tổ chức theo hai phân hệ chính: **
 
 | ID | Tên chức năng | Mô tả chi tiết |
 | :--- | :--- | :--- |
-| **FR-CLIENT-01** | **Đăng ký tài khoản** | Người dùng (Guest) có thể tạo tài khoản mới bằng Email. Hệ thống yêu cầu xác thực email qua OTP/Link trước khi kích hoạt tài khoản. |
+| **FR-CLIENT-01** | **Đăng ký tài khoản** | Người dùng (Guest) có thể tạo tài khoản mới bằng Email. Tài khoản được kích hoạt ngay sau khi đăng ký thành công. |
 | **FR-CLIENT-02** | **Đăng nhập (Email/Password)** | Người dùng đăng nhập bằng Email và Mật khẩu đã đăng ký. Hệ thống xác thực và trả về JWT (Access & Refresh Token). |
 | **FR-CLIENT-03** | **Đăng nhập Google (OAuth2)** | Người dùng có thể đăng nhập nhanh bằng tài khoản Google. Nếu email chưa tồn tại, hệ thống tự động tạo tài khoản mới. |
 | **FR-CLIENT-04** | **Quên mật khẩu** | Người dùng yêu cầu đặt lại mật khẩu qua Email. Hệ thống gửi mã OTP/Link để xác thực quyền sở hữu trước khi cho phép nhập mật khẩu mới. |
-| **FR-CLIENT-05** | **Quản lý Hồ sơ cá nhân** | Người dùng (Member) có thể xem và cập nhật thông tin cá nhân: Họ tên, Số điện thoại, Ảnh đại diện. |
+| **FR-CLIENT-05** | **Quản lý Hồ sơ cá nhân** | Người dùng (Member) có thể xem và cập nhật thông tin cá nhân: Họ tên, Số điện thoại. |
 | **FR-CLIENT-06** | **Quản lý Sổ địa chỉ** | Người dùng có thể thêm, sửa, xóa các địa chỉ giao hàng và thiết lập một địa chỉ làm mặc định. |
 | **FR-CLIENT-07** | **Đổi mật khẩu** | Người dùng có thể thay đổi mật khẩu đăng nhập (yêu cầu nhập mật khẩu cũ để xác thực). |
 
@@ -410,10 +410,10 @@ Phần này mô tả chi tiết luồng đi của các Use Case quan trọng. C�
 | **Trigger** | Người dùng chọn chức năng "Đăng ký" trên giao diện. |
 | **Description** | Cho phép người dùng tạo tài khoản mới bằng email để truy cập các chức năng dành cho thành viên. |
 | **Pre-conditions** | Người dùng chưa đăng nhập. |
-| **Post-conditions** | Tài khoản được tạo trong hệ thống với trạng thái "Chưa kích hoạt" (hoặc kích hoạt tùy logic). Email xác thực được gửi đi. |
-| **Main Flow** | 1. Người dùng nhập thông tin: Họ tên, Email, Mật khẩu, Nhập lại mật khẩu. 2. Người dùng nhấn nút "Đăng ký". 3. Hệ thống kiểm tra định dạng email và độ mạnh mật khẩu. 4. Hệ thống kiểm tra email đã tồn tại trong cơ sở dữ liệu chưa. 5. Hệ thống mã hóa mật khẩu và lưu thông tin tài khoản mới. 6. Hệ thống gửi email chứa mã OTP/Link xác thực. 7. Hệ thống hiển thị thông báo thành công và chuyển sang trang xác thực. |
+| **Post-conditions** | Tài khoản được tạo trong hệ thống với trạng thái "Hoạt động" (Active). Email chào mừng được gửi đi. |
+| **Main Flow** | 1. Người dùng nhập thông tin: Họ tên, Email, Mật khẩu, Nhập lại mật khẩu. 2. Người dùng nhấn nút "Đăng ký". 3. Hệ thống kiểm tra định dạng email và độ mạnh mật khẩu. 4. Hệ thống kiểm tra email đã tồn tại trong cơ sở dữ liệu chưa. 5. Hệ thống mã hóa mật khẩu và lưu thông tin tài khoản mới. 6. Hệ thống gửi email chào mừng. 7. Hệ thống hiển thị thông báo thành công và chuyển hướng về trang đăng nhập. |
 | **Alternate Flow** | **4a. Email đã tồn tại:** 1. Hệ thống báo lỗi "Email đã được sử dụng". 2. Gợi ý người dùng chuyển sang trang Đăng nhập. |
-| **Exception Flow** | **3a. Dữ liệu không hợp lệ:** Hệ thống hiển thị thông báo lỗi ngay tại trường nhập liệu tương ứng (Client-side validation). **6a. Lỗi gửi mail:** Hệ thống thông báo lỗi kết nối và cho phép người dùng yêu cầu gửi lại email. |
+| **Exception Flow** | **3a. Dữ liệu không hợp lệ:** Hệ thống hiển thị thông báo lỗi ngay tại trường nhập liệu tương ứng (Client-side validation). **6a. Lỗi gửi mail:** Hệ thống log lỗi nhưng vẫn cho phép đăng ký thành công. |
 
 #### **UC-02: Đăng nhập (Login)**
 
@@ -645,7 +645,7 @@ Bảng dưới đây mô tả các quy tắc ràng buộc logic mà hệ thống
 | Mã quy tắc | Tên quy tắc | Mô tả chi tiết |
 | :--- | :--- | :--- |
 | **BR-AUTH-01** | **Độ mạnh mật khẩu** | Mật khẩu người dùng bắt buộc phải có độ dài tối thiểu 8 ký tự, bao gồm ít nhất: 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt. |
-| **BR-AUTH-02** | **Khóa tài khoản** | Nếu người dùng nhập sai mật khẩu quá 5 lần liên tiếp, tài khoản sẽ bị khóa tạm thời trong 30 phút. |
+
 | **BR-ORDER-01** | **Hủy đơn hàng** | Khách hàng chỉ được phép tự hủy đơn hàng khi trạng thái đơn hàng là "Chờ xác nhận" (Pending). Khi đơn hàng đã chuyển sang "Đang xử lý" hoặc "Đang giao", chỉ Admin mới có quyền hủy. |
 | **BR-ORDER-02** | **Quy trình trạng thái** | Trạng thái đơn hàng chỉ được chuyển đổi một chiều theo quy trình: `Pending` -> `Confirmed` -> `Shipping` -> `Delivered`. Không được phép chuyển ngược trạng thái (trừ trường hợp `Cancelled` hoặc `Returned`). |
 | **BR-PROD-01** | **Mã SKU** | Mã SKU (Stock Keeping Unit) của sản phẩm phải là duy nhất trên toàn hệ thống. |

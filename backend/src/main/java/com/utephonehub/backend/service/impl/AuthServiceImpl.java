@@ -8,6 +8,7 @@ import com.utephonehub.backend.entity.Cart;
 import com.utephonehub.backend.enums.UserRole;
 import com.utephonehub.backend.enums.UserStatus;
 import com.utephonehub.backend.exception.BadRequestException;
+import com.utephonehub.backend.exception.ConflictException;
 import com.utephonehub.backend.exception.ResourceNotFoundException;
 import com.utephonehub.backend.exception.UnauthorizedException;
 import com.utephonehub.backend.repository.UserRepository;
@@ -41,6 +42,7 @@ public class AuthServiceImpl implements IAuthService {
     private final UserMapper userMapper;
 
     private static final String OTP_PREFIX = "otp:";
+    private static final String REGISTER_OTP_PREFIX = "verify_email:";
     private static final long OTP_EXPIRATION_MINUTES = 5;
 
     @Override
@@ -49,19 +51,19 @@ public class AuthServiceImpl implements IAuthService {
         log.info("Registering new user with email: {}", request.getEmail());
 
         // Validate password match
-        if (request.getPassword() != null && request.getConfirmPassword() != null 
+        if (request.getPassword() != null && request.getConfirmPassword() != null
                 && !request.getPassword().equals(request.getConfirmPassword())) {
             throw new BadRequestException("Mật khẩu và xác nhận mật khẩu không khớp");
         }
 
         // Check if email already exists
         if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("Email này đã được sử dụng");
+            throw new ConflictException("Email này đã được sử dụng");
         }
 
         // Check if username already exists
         if (request.getUsername() != null && userRepository.existsByUsername(request.getUsername())) {
-            throw new BadRequestException("Tên đăng nhập này đã được sử dụng");
+            throw new ConflictException("Tên đăng nhập này đã được sử dụng");
         }
 
         // Create new user
@@ -70,6 +72,8 @@ public class AuthServiceImpl implements IAuthService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .phoneNumber(request.getPhoneNumber())
+                .gender(request.getGender())
+                .dateOfBirth(request.getDateOfBirth())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(UserRole.CUSTOMER)
                 .status(UserStatus.ACTIVE)
@@ -85,6 +89,17 @@ public class AuthServiceImpl implements IAuthService {
 
         log.info("User registered successfully with id: {}", user.getId());
 
+        // Send welcome registration email (async, không block registration flow)
+        try {
+            log.info("Attempting to send registration welcome email to: {}", user.getEmail());
+            emailService.sendRegistrationEmail(user.getEmail(), user.getFullName());
+            log.info("Registration welcome email sent successfully to: {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send registration welcome email to {}: {}",
+                    user.getEmail(), e.getMessage(), e);
+            // Không throw exception để không ảnh hưởng registration
+        }
+
         return userMapper.toResponse(user);
     }
 
@@ -94,19 +109,19 @@ public class AuthServiceImpl implements IAuthService {
         log.info("Registering new admin with email: {}", request.getEmail());
 
         // Validate password match
-        if (request.getPassword() != null && request.getConfirmPassword() != null 
+        if (request.getPassword() != null && request.getConfirmPassword() != null
                 && !request.getPassword().equals(request.getConfirmPassword())) {
             throw new BadRequestException("Mật khẩu và xác nhận mật khẩu không khớp");
         }
 
         // Check if email already exists
         if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("Email này đã được sử dụng");
+            throw new ConflictException("Email này đã được sử dụng");
         }
 
         // Check if username already exists
         if (request.getUsername() != null && userRepository.existsByUsername(request.getUsername())) {
-            throw new BadRequestException("Tên đăng nhập này đã được sử dụng");
+            throw new ConflictException("Tên đăng nhập này đã được sử dụng");
         }
 
         // Create new admin user
@@ -115,6 +130,8 @@ public class AuthServiceImpl implements IAuthService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .phoneNumber(request.getPhoneNumber())
+                .gender(request.getGender())
+                .dateOfBirth(request.getDateOfBirth())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(UserRole.ADMIN)
                 .status(UserStatus.ACTIVE)
@@ -142,28 +159,19 @@ public class AuthServiceImpl implements IAuthService {
             throw new UnauthorizedException("Tài khoản của bạn đã bị khóa");
         }
 
+        // Only allow ACTIVE users to login
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new UnauthorizedException("Tài khoản của bạn không ở trạng thái hoạt động");
+        }
+
         // Verify password
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new UnauthorizedException("Tên đăng nhập/email hoặc mật khẩu không chính xác");
         }
 
-        // Generate tokens
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getEmail());
-
-        // Store refresh token in Redis
-        String refreshTokenKey = "refresh_token:" + user.getId();
-        redisTemplate.opsForValue().set(refreshTokenKey, refreshToken, 7, TimeUnit.DAYS);
-
+        AuthResponse response = buildAuthResponse(user);
         log.info("User logged in successfully with id: {}", user.getId());
-
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(jwtTokenProvider.getExpirationTime() / 1000)
-                .user(userMapper.toResponse(user))
-                .build();
+        return response;
     }
 
     @Override
@@ -193,6 +201,26 @@ public class AuthServiceImpl implements IAuthService {
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(request.getRefreshToken())
+                .tokenType("Bearer")
+                .expiresIn(jwtTokenProvider.getExpirationTime() / 1000)
+                .user(userMapper.toResponse(user))
+                .build();
+    }
+
+    /**
+     * Generate access/refresh tokens for a user, store refresh token in Redis, and
+     * build AuthResponse.
+     */
+    public AuthResponse buildAuthResponse(User user) {
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getEmail());
+
+        String refreshTokenKey = "refresh_token:" + user.getId();
+        redisTemplate.opsForValue().set(refreshTokenKey, refreshToken, 7, TimeUnit.DAYS);
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(jwtTokenProvider.getExpirationTime() / 1000)
                 .user(userMapper.toResponse(user))
@@ -267,5 +295,37 @@ public class AuthServiceImpl implements IAuthService {
         redisTemplate.delete(otpKey);
 
         log.info("Password reset successfully for user id: {}", user.getId());
+
+        // Send password reset confirmation email (async, không block flow)
+        try {
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName());
+        } catch (Exception e) {
+            log.error("Failed to send password reset email to {}: {}",
+                    user.getEmail(), e.getMessage());
+            // Không throw exception
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public void verifyRegistrationOtp(VerifyRegistrationOtpRequest request) {
+        log.info("Verifying registration OTP for email: {}", request.getEmail());
+
+        String otpKey = REGISTER_OTP_PREFIX + request.getEmail();
+        String storedOtp = redisTemplate.opsForValue().get(otpKey);
+
+        if (storedOtp == null || !storedOtp.equals(request.getOtp())) {
+            throw new UnauthorizedException("Mã OTP không hợp lệ hoặc đã hết hạn");
+        }
+
+        // Verify user exists
+        if (!userRepository.existsByEmail(request.getEmail())) {
+            throw new ResourceNotFoundException("Người dùng không tồn tại");
+        }
+
+        // Delete OTP from Redis (one-time use)
+        redisTemplate.delete(otpKey);
+
+        log.info("Registration OTP verified successfully for email: {}", request.getEmail());
     }
 }

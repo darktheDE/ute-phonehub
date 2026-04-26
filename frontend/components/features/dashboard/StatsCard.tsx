@@ -22,14 +22,14 @@ export function StatsCard({ label, value, change, icon: Icon, colorClass }: Stat
         <h3 className="text-sm font-medium text-muted-foreground">
           {label}
         </h3>
-        <div className={cn(colorClass, "p-2 md:p-3 rounded-lg")}>
-          <Icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
+        <div className={cn(colorClass, "p-2 md:p-3 rounded-lg bg-primary/15 text-primary")}>
+          <Icon className="w-4 h-4 md:w-5 md:h-5" />
         </div>
       </div>
       <p className="text-xl md:text-2xl font-bold text-foreground mb-1">
         {value}
       </p>
-      <p className="text-xs md:text-sm text-green-600">{change} so với tháng trước</p>
+      <p className="text-xs md:text-sm text-primary">{change} so với tháng trước</p>
     </div>
   );
 }

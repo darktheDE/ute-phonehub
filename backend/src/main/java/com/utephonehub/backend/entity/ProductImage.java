@@ -29,8 +29,13 @@ public class ProductImage {
     @Column(length = 255)
     private String altText;
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean isPrimary = false;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer imageOrder = 0;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

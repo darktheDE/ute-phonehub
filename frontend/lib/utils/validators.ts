@@ -15,9 +15,25 @@ export const validateEmail = (email: string): ValidationResult => {
     return { isValid: false, error: 'Email là bắt buộc' };
   }
   
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return { isValid: false, error: 'Vui lòng nhập địa chỉ email hợp lệ' };
+  // Trim whitespace
+  const trimmedEmail = email.trim();
+  
+  if (!trimmedEmail) {
+    return { isValid: false, error: 'Email là bắt buộc' };
+  }
+  
+  // Improved email regex: more permissive but still valid
+  // Allows: user@domain.com, user.name@domain.co.uk, user+tag@domain.com
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  if (!emailRegex.test(trimmedEmail)) {
+    return { isValid: false, error: 'Email không hợp lệ' };
+  }
+  
+  // Additional check: must have at least one dot after @
+  const parts = trimmedEmail.split('@');
+  if (parts.length !== 2 || !parts[1].includes('.')) {
+    return { isValid: false, error: 'Email không hợp lệ' };
   }
   
   return { isValid: true };
@@ -40,6 +56,15 @@ export const validatePassword = (password: string): ValidationResult => {
   }
   
   return { isValid: true };
+};
+
+/**
+ * Check if a URL is a remote image (http/https)
+ */
+export const isRemoteImageUrl = (value: unknown): boolean => {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  return /^(https?:)?\.\/\//i.test(trimmed);
 };
 
 /**
@@ -69,9 +94,11 @@ export const validatePhoneNumber = (phone: string): ValidationResult => {
     return { isValid: false, error: 'Số điện thoại là bắt buộc' };
   }
   
-  const phoneRegex = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
+  // Support Vietnamese phone numbers: 10-11 digits starting with 0
+  // Covers both mobile (10 digits) and landline (10-11 digits)
+  const phoneRegex = /^0\d{9,10}$/;
   if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-    return { isValid: false, error: 'Số điện thoại không hợp lệ' };
+    return { isValid: false, error: 'Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)' };
   }
   
   return { isValid: true };

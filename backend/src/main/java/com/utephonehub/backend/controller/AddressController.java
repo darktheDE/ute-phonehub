@@ -23,7 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Address", description = "API quản lý địa chỉ giao hàng")
-@SecurityRequirement(name = "Bearer Authentication")
+@SecurityRequirement(name = "bearerAuth")
 public class AddressController {
 
     private final IAddressService addressService;
@@ -47,7 +47,7 @@ public class AddressController {
         Long userId = securityUtils.getCurrentUserId(httpRequest);
         AddressResponse address = addressService.createAddress(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Thêm địa chỉ thành công", address));
+                .body(ApiResponse.created("Thêm địa chỉ thành công", address));
     }
 
     @PutMapping("/{id}")

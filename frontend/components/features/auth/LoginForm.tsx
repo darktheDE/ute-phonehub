@@ -19,7 +19,7 @@ export function LoginForm() {
   const router = useRouter();
   const { setUser } = useAuth();
   const { errors, validate, clearAllErrors } = useFormValidation();
-  
+
   const [formData, setFormData] = useState({
     usernameOrEmail: '',
     password: '',
@@ -57,16 +57,26 @@ export function LoginForm() {
         password: formData.password,
       });
 
-      if (response.code === 200) {
+      if (response.success && response.status === 200) {
         // Store tokens and user data
         setAuthTokens(response.data.accessToken, response.data.refreshToken);
         setStoredUser(response.data.user);
         setUser(response.data.user);
 
         // Redirect based on user role
-        router.push(ROUTES.MANAGE);
+        if (response.data.user.role === 'ADMIN') {
+          router.push(ROUTES.ADMIN);
+        } else {
+          router.push(ROUTES.HOME);
+        }
       } else {
-        setError(response.message || 'Đăng nhập thất bại');
+        // Check if account is locked
+        const msg = response.message || 'Đăng nhập thất bại';
+        if (response.status === 401 && msg.includes('khóa')) {
+          router.push(ROUTES.ACCOUNT_LOCKED);
+          return;
+        }
+        setError(msg);
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra khi đăng nhập';

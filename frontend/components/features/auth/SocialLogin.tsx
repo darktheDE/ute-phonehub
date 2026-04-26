@@ -4,6 +4,8 @@
 
 'use client';
 
+import { toast } from 'sonner';
+
 interface SocialLoginProps {
   mode: 'login' | 'register';
   loading?: boolean;
@@ -11,8 +13,52 @@ interface SocialLoginProps {
 
 export function SocialLogin({ mode, loading = false }: SocialLoginProps) {
   const handleGoogleAuth = () => {
-    // TODO: Implement Google OAuth
-    alert(`Tính năng ${mode === 'login' ? 'đăng nhập' : 'đăng ký'} Google sẽ được triển khai sau`);
+    try {
+      // Lấy base URL từ env hoặc dùng default
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
+      
+      // Đảm bảo URL có protocol (http:// hoặc https://)
+      let baseUrl = apiBaseUrl.trim();
+      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+        baseUrl = `http://${baseUrl}`;
+      }
+      
+      // Loại bỏ trailing slash nếu có
+      baseUrl = baseUrl.replace(/\/$/, '');
+      
+      const googleLoginUrl = `${baseUrl}/auth/login/google`;
+      
+      // Validate URL format
+      try {
+        new URL(googleLoginUrl);
+      } catch (urlError) {
+        console.error('Invalid Google login URL:', googleLoginUrl, urlError);
+        toast.error('Cấu hình URL API không hợp lệ', {
+          description: 'Vui lòng kiểm tra biến môi trường NEXT_PUBLIC_API_URL.',
+        });
+        return;
+      }
+      
+      console.log('Redirecting to Google OAuth2:', googleLoginUrl);
+      
+      // Redirect browser đến Google OAuth2 endpoint
+      // Kiểm tra nếu đang ở Swagger UI (backend port) thì mở tab mới, ngược lại navigate bình thường
+      const isBackendPort = window.location.hostname === 'localhost' && 
+                           (window.location.port === '8081' || window.location.port === '');
+      
+      if (isBackendPort) {
+        // Đang ở Swagger UI hoặc backend, mở trong tab mới để tránh CORS
+        window.open(googleLoginUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        // Frontend bình thường (port 3000), navigate trong cùng tab
+        window.location.href = googleLoginUrl;
+      }
+    } catch (error) {
+      console.error('Error initiating Google login:', error);
+      toast.error('Có lỗi xảy ra', {
+        description: 'Không thể khởi tạo đăng nhập Google. Vui lòng thử lại.',
+      });
+    }
   };
 
   return (
@@ -33,7 +79,7 @@ export function SocialLogin({ mode, loading = false }: SocialLoginProps) {
       <button
         type="button"
         onClick={handleGoogleAuth}
-        className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-border rounded-lg hover:bg-secondary transition-colors"
+        className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-border rounded-lg hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         disabled={loading}
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
