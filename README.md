@@ -6,15 +6,17 @@ Dự án được phát triển nhằm cung cấp trải nghiệm mua sắm tr�
 
 ---
 
+![UTE Phone Hub Homepage](docs/utephonehub-homepage.png)
+
 ## 🚀 Công Nghệ Sử Dụng (Tech Stack)
 
 ### Backend (Server-side)
 *   **Core**: Java 17, Spring Boot 3.5.8
-*   **Security**: Spring Security 6, JWT (Stateless), OAuth2 (Google Login)
+*   **Security**: Spring Security 6, JWT (Stateless), OAuth2 (Google Login), BCrypt Hashing
 *   **Database**: PostgreSQL 15 (Primary), Redis 7 (Caching, Session, Cart)
 *   **ORM**: Spring Data JPA (Hibernate)
 *   **API**: RESTful API, OpenAPI (Swagger) 3.0
-*   **Build Tool**: Maven
+*   **Infrastructure**: Docker, Docker Compose
 
 ### Frontend (Client-side)
 *   **Framework**: Next.js 16.0.7 (App Router), React 19
@@ -22,136 +24,61 @@ Dự án được phát triển nhằm cung cấp trải nghiệm mua sắm tr�
 *   **Styling**: Tailwind CSS 4, Shadcn/UI (Radix UI)
 *   **State Management**: Zustand
 *   **Data Fetching**: Axios, SWR
-*   **Form**: React Hook Form, Zod
+*   **Animation**: Lucide Icons, Framer Motion
 
-### Infrastructure & Tools
-*   **Containerization**: Docker, Docker Compose
-*   **Payment**: VNPay Integration
-*   **Chatbot**: Tawk.to / AI Chatbot Integration
-*   **Mail**: Google SMTP
+---
+
+## 🏆 Những Thành Quả Đạt Được (Key Achievements)
+
+Nhóm đã hoàn thiện một hệ thống thương mại điện tử hoàn chỉnh với các điểm nhấn công nghệ:
+
+1.  **Kiến Trúc Hiện Đại**: Triển khai mô hình **BFF (Backend For Frontend)** giúp tối ưu hóa dữ liệu cho giao diện và tăng cường bảo mật bằng cách che giấu cấu trúc hệ thống phía sau.
+2.  **Trải Nghiệm Người Dùng (UX) Đỉnh Cao**: Sử dụng **Next.js Server Components** và **Streaming SSR** để tối ưu hóa tốc độ tải trang (FCP < 1s). Giao diện được thiết kế theo chuẩn **Responsive** hoàn hảo trên mọi thiết bị.
+3.  **Tích Hợp AI Chatbot**: Sử dụng **Gemini AI API** để xây dựng chatbot tư vấn sản phẩm thông minh, hỗ trợ khách hàng tìm kiếm và giải đáp thắc mắc 24/7.
+4.  **Thanh Toán Trực Tuyến An Toàn**: Tích hợp thành công cổng thanh toán **VNPay Sandbox**, cho phép xử lý giao dịch thực tế qua mã QR và ngân hàng nội địa.
+5.  **Tính Năng So Sánh Sản Phẩm**: Xây dựng module so sánh cấu hình phần cứng (RAM, ROM, Chip, Pin) trực quan, giúp người dùng dễ dàng đưa ra quyết định mua sắm.
+6.  **Tra Cứu & QR Code**: Hệ thống tự động tạo **Mã QR** cho mỗi đơn hàng, hỗ trợ khách hàng tra cứu trạng thái nhanh chóng mà không cần đăng nhập.
 
 ---
 
 ## ✨ Tính Năng Chính (Features)
 
-### 👤 Khách Hàng (User)
-*   **Xác thực**: Đăng ký, Đăng nhập (Email/Password), **Đăng nhập nhanh bằng Google**, Quên mật khẩu.
-*   **Sản phẩm**: Tìm kiếm (tên, hãng), Lọc nâng cao (giá, cấu hình), Xem chi tiết, **So sánh sản phẩm**.
-*   **Mua sắm**: Giỏ hàng (lưu Redis), Thanh toán **VNPay/Momo** hoặc COD, Áp dụng Voucher.
-*   **Tương tác**: Đánh giá sản phẩm, Tra cứu đơn hàng (User & Guest), **Quét mã QR đơn hàng**.
-*   **Hỗ trợ**: Chatbot AI tư vấn.
+### 👤 Phân Hệ Khách Hàng (User)
+*   **Xác thực đa năng**: Đăng ký truyền thống, đăng nhập nhanh qua **Google OAuth2**, quản lý profile và sổ địa chỉ.
+*   **Mua sắm thông minh**: Tìm kiếm nâng cao (Autocomplete), bộ lọc cấu hình chi tiết, so sánh sản phẩm.
+*   **Giỏ hàng & Thanh toán**: Giỏ hàng lưu trữ linh hoạt (Redis), áp dụng Voucher giảm giá, thanh toán VNPay/COD.
+*   **Hậu mãi**: Đánh giá sản phẩm (kèm ảnh), theo dõi đơn hàng qua Timeline, quét QR đơn hàng.
 
-### 🛡️ Quản Trị Viên (Admin)
-*   **Dashboard**: Thống kê doanh thu, đơn hàng, khách hàng mới theo thời gian thực.
-*   **Quản lý Sản phẩm**: Thêm/Sửa/Xóa (Soft delete), Quản lý kho, Hình ảnh, Cấu hình.
-*   **Quản lý Đơn hàng**: Duyệt đơn, Cập nhật trạng thái, In hóa đơn.
-*   **Quản lý Hệ thống**: User (Phân quyền/Khóa), Voucher (Khuyến mãi).
-
----
-
-## 🛠️ Yêu Cầu Cài Đặt (Prerequisites)
-
-Để chạy dự án, bạn cần cài đặt các công cụ sau:
-*   [Java JDK 17](https://www.oracle.com/java/technologies/downloads/#java17)
-*   [Node.js 20+](https://nodejs.org/) (Khuyến nghị bản LTS)
-*   [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-*   [Git](https://git-scm.com/)
+### 🛡️ Phân Hệ Quản Trị (Admin)
+*   **Dashboard Real-time**: Thống kê doanh thu, đơn hàng, người dùng mới qua biểu đồ trực quan.
+*   **Quản lý Catalog**: Toàn quyền CRUD Sản phẩm (JSON Attributes), Danh mục, Thương hiệu.
+*   **Vận hành**: Quản lý kho, xử lý đơn hàng đa trạng thái, quản lý mã khuyến mãi (Voucher).
+*   **Kiểm soát**: Phân quyền người dùng (Role-based), kiểm duyệt đánh giá khách hàng.
 
 ---
 
-## 📥 Hướng Dẫn Cài Đặt & Chạy (Installation)
+## 👥 Đội Ngũ Phát Triển (Development Team)
 
-### 1. Clone Project
-```bash
-git clone https://github.com/darktheDE/ute-phonehub.git
-cd ute-phonehub
-```
+Dự án được thực hiện bởi nhóm sinh viên lớp **CNPM HK5 @ HCMUTE**:
 
-### 2. Cấu Hình & Chạy Backend (Docker)
-Chúng tôi khuyến khích chạy Backend và Database bằng Docker Compose để đảm bảo môi trường đồng nhất.
-
-1.  Di chuyển vào thư mục backend:
-    ```bash
-    cd backend
-    ```
-
-2.  Tạo file cấu hình môi trường:
-    ```bash
-    # Trên Windows (PowerShell)
-    copy .env.example .env
-    # Trên Linux/Mac
-    cp .env.example .env
-    ```
-
-3.  Cập nhật file `.env` với thông tin của bạn (Google Client ID, VNPay, Mail, etc.). *Nếu chỉ chạy test local cơ bản, bạn có thể giữ nguyên các cấu hình Database/Redis mặc định.*
-
-4.  Khởi chạy hệ thống (Database + Redis + Backend):
-    ```bash
-    docker-compose up -d --build
-    ```
-    *Lệnh này sẽ tự động khởi tạo database, chạy migration và start server tại port `8081`.*
-
-### 3. Cấu Hình & Chạy Frontend
-1.  Mở một terminal mới, di chuyển vào thư mục frontend:
-    ```bash
-    cd frontend
-    ```
-
-2.  Tạo file môi trường (Nếu chưa có):
-    Tạo file `.env.local` với nội dung sau:
-    ```properties
-    NEXT_PUBLIC_API_URL=http://localhost:8081/api/v1
-    ```
-
-3.  Cài đặt dependencies:
-    ```bash
-    npm install
-    ```
-
-4.  Chạy server development:
-    ```bash
-    npm run dev
-    ```
-
-🚀 **Frontend sẽ chạy tại:** [http://localhost:3000](http://localhost:3000)
+| Thành viên | Phụ trách Module | Công việc chính |
+| :--- | :--- | :--- |
+| **Đỗ Kiến Hưng** | **Project Manager** & M01, M08 | JWT Auth, Google OAuth2, Product Reviews & Ratings. |
+| **Võ Đức Hoàng** | M02 - Quản lý Sản phẩm | CRUD Product, Image Upload, Soft Delete. |
+| **Huỳnh Ngọc Thạch** | M03 - Danh mục & Thương hiệu | Category & Brand Management, Business Constraints. |
+| **Trần Quốc Giăng** | M04 - Khám phá Sản phẩm | Product Comparison, Recommendations, AI Lead. |
+| **Lưu Trần Kim Phú** | M05 - Giỏ hàng (Redis) | Redis Cart, Syncing, Real-time updates. |
+| **Huỳnh Hữu Huy** | M06, M07 - Thanh toán & Đơn hàng | VNPay Integration, Checkout, Order Tracking (Public/Guest). |
+| **Nguyễn Văn Quang Duy** | M09 - Khuyến mãi | Voucher Engine, Campaign Management. |
+| **Trần Thị Thanh Trang** | M10 - Admin Dashboard | Statistical Charts, User Management, Analytics. |
 
 ---
 
-## 📚 Tài Liệu API (Documentation)
+## 📖 Tài Liệu Phát Triển
 
-Sau khi chạy Backend thành công, bạn có thể truy cập tài liệu API đầy đủ (Swagger UI) tại:
+Để biết cách cài đặt, chạy dự án và các quy chuẩn đóng góp, vui lòng xem:
 
-👉 **[http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html)**
-
----
-
-## 📂 Cấu Trúc Dự Án (Project Structure)
-
-```
-ute-phonehub/
-├── backend/                # Mã nguồn Backend (Spring Boot)
-│   ├── src/main/java       # Source code Java
-│   ├── src/main/resources  # Configs, SQL Migrations
-│   ├── Dockerfile          # Config Docker Backend
-│   └── docker-compose.yml  # Config Docker Compose (Full Stack infra)
-├── frontend/               # Mã nguồn Frontend (Next.js)
-│   ├── app/                # Next.js App Router (Pages & Layouts)
-│   ├── components/         # React Components (Shadcn/UI)
-│   ├── services/           # API Services (Axios)
-│   └── store/              # Zustand State Management
-├── docs/                   # Tài liệu dự án (SRS, Diagrams, Convention)
-└── .cursor/                # Config & Docs cho AI Agent (Cursor)
-```
-
----
-
-## 🤝 Đóng Góp (Contributing)
-
-1.  **Fork** dự án.
-2.  Tạo branch feature mới (`git checkout -b feature/AmazingFeature`).
-3.  Commit thay đổi (`git commit -m 'Add some AmazingFeature'`).
-4.  Push lên branch (`git push origin feature/AmazingFeature`).
-5.  Tạo **Pull Request**.
+👉 **[TÀI LIỆU PHÁT TRIỂN & CHẠY DỰ ÁN (DEVELOPMENT.md)](DEVELOPMENT.md)**
 
 ---
 
